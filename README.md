@@ -1,36 +1,81 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# IntelliPaaS Web Studio
 
-## Getting Started
+Website-configurator sales funnel for German SMBs — a production Next.js port of the
+Claude Design prototype in [`website-assessment-tool/`](website-assessment-tool/) (kept as the design reference).
 
-First, run the development server:
+Persona → branching questions → recommended bundle → add-on configurator with live pricing →
+lead capture (no payment) with integrated Calendly scheduling → optional content intake →
+confirmation. Everything price- or plan-shaped is CMS-managed in Supabase via `/admin`.
+
+## Stack
+
+Next.js (App Router, TS) · next-intl (DE default / EN) · Supabase (Postgres + Auth + Storage) ·
+Zustand · Calendly (inline embed + webhook) · Resend · Vercel AI SDK + OpenAI (plan generator) ·
+Vitest + Playwright.
+
+## Setup
 
 ```bash
+npm install
+cp .env.example .env.local   # fill in the values below
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Environment variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Var | Purpose |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase project (anon key only reads the public catalog — RLS) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-only: lead writes, uploads, voucher checks, webhook |
+| `NEXT_PUBLIC_SITE_URL` | Absolute URL used in admin links inside emails |
+| `RESEND_API_KEY` / `RESEND_FROM_EMAIL` | Lead notification + customer confirmation emails (skipped if unset) |
+| `CALENDLY_WEBHOOK_SIGNING_KEY` | HMAC verification of `/api/webhooks/calendly` |
+| `OPENAI_API_KEY` / `OPENAI_PLAN_MODEL` | Suggested-plan generator (default `gpt-4o`) |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Supabase
 
-## Learn More
+The project is linked to `aqbktyvrzuwgjnzoaglv` (eu-central-1). Schema lives in
+`supabase/migrations/`, the full catalog seed (bundles, 45 add-ons, care/CF/support plans,
+personas, settings, `TKFF20` voucher) in `supabase/seed.sql`:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+supabase link --project-ref <ref>
+supabase db push --include-seed
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Admin users are provisioned manually (no public sign-up) — Supabase dashboard → Auth → Add user
+(email confirmed), or via the admin API. Any authenticated user is an admin.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Calendly
 
-## Deploy on Vercel
+1. Set the event-type URL in `/admin/catalog/settings` → *Calendly event URL* (empty hides the embed).
+2. Create a webhook subscription (Calendly API, events `invitee.created` + `invitee.canceled`)
+   pointing at `https://<site>/api/webhooks/calendly`, and put its signing key in
+   `CALENDLY_WEBHOOK_SIGNING_KEY`. Appointments link to leads via the `utm_content` lead id
+   passed into the embed (fallback: invitee email).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Admin portal (`/admin`)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Leads** — searchable list, full detail (config snapshot, questionnaire, stage-2 content,
+  uploaded files via signed URLs, appointment, status).
+- **Calendar** — month view of all Calendly appointments.
+- **Catalog** — CMS for bundles, add-ons (+categories), care/Cloudflare/support plans, personas,
+  and settings (yearly-discount %, team email, Calendly URL, AI-bundle pricing). Edits are live
+  on the public site immediately. Lead price snapshots are immutable.
+- **Vouchers** — multi-code percent discounts with scope (one-time/recurring/both), validity
+  window, redemption limits.
+- **Suggested build plan** (per lead) — AI-generated phased prompt chain (Claude Design →
+  Claude Code) tailored to the lead; phases chain via literal `{{phase_n.output}}` tokens;
+  prompts are copyable, editable, and re-generable as new versions.
+
+## Tests
+
+```bash
+npm run test        # Vitest — pricing engine vectors ported from the prototype
+npm run typecheck
+npm run lint
+npm run build && npm run e2e   # Playwright against http://localhost:3111 (starts the server)
+```
+
+The e2e suite covers the full DE funnel (exact pricing math incl. TKFF20), the BYOW branch,
+the EN locale + language toggle, admin auth, lead detail, and a live CMS price edit.

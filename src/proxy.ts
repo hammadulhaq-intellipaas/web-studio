@@ -57,6 +57,6 @@ export async function proxy(request: NextRequest) {
   return intlMiddleware(request);
 }
 
-export const proxyConfig = {
+export const config = {
   matcher: ['/((?!_next|.*\\..*).*)'],
 };

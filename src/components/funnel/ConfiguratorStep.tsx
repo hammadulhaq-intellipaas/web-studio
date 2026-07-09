@@ -11,7 +11,6 @@ import {
   isAddonVisible,
   isByow,
   isCfIncluded,
-  qtyOf,
   stepQty,
 } from '@/lib/pricing/engine';
 import { recommend } from '@/lib/pricing/recommend';
@@ -26,7 +25,6 @@ import {
   BORDER,
   card,
   GOLD_BG,
-  gradButton,
   GreenCheckIcon,
   GREEN,
   INK,
@@ -913,5 +911,3 @@ const planCardStyle: React.CSSProperties = {
   position: 'relative',
   transition: 'all .15s',
 };
-
-void gradButton;

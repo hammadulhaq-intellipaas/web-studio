@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 import type { Catalog } from '@/lib/types';
 import { useFunnel } from '@/stores/funnel';
 import { Header } from './Header';
@@ -15,9 +15,13 @@ import { DoneScreen } from './DoneScreen';
 
 export function FunnelShell({ catalog }: { catalog: Catalog }) {
   const step = useFunnel((s) => s.step);
-  // Avoid hydration mismatches: the persisted store only exists client-side.
-  const [hydrated, setHydrated] = useState(false);
-  useEffect(() => setHydrated(true), []);
+  // Avoid hydration mismatches: the persisted store only exists client-side,
+  // so the server (and first client render) always shows the intro.
+  const hydrated = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
   return (
     <div

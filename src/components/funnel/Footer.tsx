@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import NextLink from 'next/link';
 import { Link } from '@/i18n/navigation';
 import { BORDER, INK, MUTED } from './ui';
 import { LockIcon } from './ui';
@@ -30,13 +31,13 @@ export function Footer() {
         <Link href="/datenschutz" className="hov-blue-text" style={{ color: MUTED, textDecoration: 'none' }}>
           {t('datenschutz')}
         </Link>
-        <a
+        <NextLink
           href="/admin"
           className="hov-blue-text"
           style={{ color: '#B9C6DB', fontSize: 11.5, fontWeight: 600, textDecoration: 'none' }}
         >
           {t('adminLink')}
-        </a>
+        </NextLink>
         <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
           <LockIcon color={MUTED} />
           {t('footerBadges')}
