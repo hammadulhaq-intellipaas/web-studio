@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import createIntlMiddleware from 'next-intl/middleware';
 import { createServerClient } from '@supabase/ssr';
 import { routing } from './i18n/routing';
+import { SUPABASE_PUBLIC_KEY, SUPABASE_URL } from './lib/supabase/env';
 
 const intlMiddleware = createIntlMiddleware(routing);
 
@@ -9,8 +10,8 @@ async function handleAdmin(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    SUPABASE_URL,
+    SUPABASE_PUBLIC_KEY,
     {
       cookies: {
         getAll() {

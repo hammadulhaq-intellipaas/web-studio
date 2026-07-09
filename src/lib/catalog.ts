@@ -12,13 +12,12 @@ import type {
   Persona,
   SupportPlan,
 } from './types';
+import { SUPABASE_PUBLIC_KEY, SUPABASE_URL } from './supabase/env';
 
 function anonClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { persistSession: false } },
-  );
+  return createClient(SUPABASE_URL, SUPABASE_PUBLIC_KEY, {
+    auth: { persistSession: false },
+  });
 }
 
 /** Loads the full public catalog. Cached per request; pages revalidate on admin edits. */
