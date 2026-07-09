@@ -59,6 +59,6 @@ export const getCatalog = cache(async (): Promise<Catalog> => {
     aiBundleBullets: (settingsMap.ai_bundle_bullets ?? []) as LocalizedText[],
     trustItems: (settingsMap.trust_items ?? []) as LocalizedText[],
     nextSteps: (settingsMap.next_steps ?? []) as LocalizedText[],
-    calendlyEventUrl: String(settingsMap.calendly_event_url ?? ''),
+    calendlyEventUrl: String(settingsMap.calendly_event_url || process.env.CALENDLY_URL || ''),
   };
 });
