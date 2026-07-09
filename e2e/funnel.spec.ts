@@ -62,7 +62,13 @@ test.describe('public funnel (de)', () => {
     await page.getByTestId('lead-consent').check();
     await page.getByTestId('lead-submit').click();
 
-    // No Calendly URL configured → straight to stage 2.
+    // With a Calendly URL configured the scheduling panel appears first;
+    // without one the funnel jumps straight to stage 2.
+    const calendlyContinue = page.getByTestId('calendly-continue');
+    await expect(calendlyContinue.or(page.getByTestId('readiness'))).toBeVisible();
+    if (await calendlyContinue.isVisible()) {
+      await calendlyContinue.click();
+    }
     await expect(page.getByTestId('readiness')).toBeVisible();
     await expect(page.getByTestId('readiness')).toHaveText('25%');
 
@@ -128,8 +134,13 @@ test.describe('admin portal', () => {
     await page.getByTestId('admin-login-submit').click();
     await expect(page.getByTestId('stat-total-leads')).toBeVisible();
 
-    await page.goto(`/admin/leads?q=${encodeURIComponent(TEST_EMAIL)}`);
-    const row = page.getByTestId('leads-table').getByRole('link', { name: 'Erika Musterfrau' });
+    // Search by name (TEST_EMAIL would change if the worker restarted after an
+    // earlier failure); the newest matching lead is the one this run created.
+    await page.goto('/admin/leads?q=Musterfrau');
+    const row = page
+      .getByTestId('leads-table')
+      .getByRole('link', { name: 'Erika Musterfrau' })
+      .first();
     await expect(row).toBeVisible();
     await row.click();
 
