@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "e2e": "playwright test",
+    "test:e2e:fast": "playwright test --grep-invert @integration",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
