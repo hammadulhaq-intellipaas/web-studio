@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Funnel (public site) — ported from the design export */
+@keyframes ipFade {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.funnel input::placeholder,
+.funnel textarea::placeholder {
+  color: #9aa7bc;
+}
+
+.funnel input:focus,
+.funnel textarea:focus {
+  outline: 2px solid #1e5eff33;
+  border-color: #1e5eff !important;
+}
+
+@media (max-width: 960px) {
+  [data-cfg-grid] {
+    grid-template-columns: 1fr !important;
+  }
+  [data-cfg-side] {
+    position: static !important;
+  }
+}
+
+/* Hover utilities replacing the prototype's style-hover attributes */
+.hov-blue-border:hover {
+  border-color: #1e5eff !important;
+}
+.hov-blue-text:hover {
+  color: #1e5eff !important;
+}
+.hov-fade:hover {
+  opacity: 0.8;
+}
+.hov-lift:hover {
+  transform: translateY(-2px);
+}
+.hov-lift1:hover {
+  transform: translateY(-1px);
+}
+.hov-card:hover {
+  border-color: #1e5eff !important;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px -12px rgba(15, 36, 64, 0.25);
+}
+.hov-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 32px -8px rgba(30, 79, 214, 0.6);
+}
+.hov-ink-bg:hover {
+  background: #1e4fd6 !important;
+}
+.hov-danger:hover {
+  background: #d6493e !important;
+  color: #ffffff !important;
+}
+.hov-white-bg:hover {
+  background: rgba(255, 255, 255, 0.9) !important;
+  color: #0f2440 !important;
+}
+.hov-ink-text:hover {
+  color: #0f2440 !important;
+}
+.hov-green-dark:hover {
+  color: #0f2440 !important;
+}
+.hov-blue-stepper:hover {
+  border-color: #1e5eff !important;
+  color: #1e5eff !important;
+}

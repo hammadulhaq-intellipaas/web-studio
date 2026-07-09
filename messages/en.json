@@ -1,0 +1,364 @@
+{
+  "common": {
+    "back": "← Back",
+    "logoAlt": "IntelliPaaS.io — to the homepage",
+    "webStudio": "Web Studio",
+    "stepOf": "Step {num} of 5",
+    "footerBrand": "IntelliPaaS.io Web Studio",
+    "impressum": "Legal notice",
+    "datenschutz": "Privacy policy",
+    "adminLink": "Price management",
+    "footerBadges": "GDPR-compliant · SSL-encrypted (256-bit) · Secured by Cloudflare · Servers in DE/EU"
+  },
+  "intro": {
+    "headline": "Your new website — configured in just a few minutes.",
+    "sub": "Answer a few questions and instantly get a suitable package with a price. No obligation.",
+    "cta": "Start now"
+  },
+  "persona": {
+    "title": "Who are you?",
+    "sub": "Choose your industry — we'll suggest suitable options."
+  },
+  "questions": {
+    "title": "A few quick questions",
+    "sub": "We've pre-selected suitable answers for you — just adjust them. New questions appear depending on your answers.",
+    "multi": "Multiple",
+    "cta": "Show recommendation →",
+    "linkPh": {
+      "website": "www.your-company.com",
+      "social": "instagram.com/yourprofile",
+      "concept": "Link to your draft (Figma, PDF, Google Docs …)",
+      "default": "Paste a link"
+    },
+    "hasSite": {
+      "title": "Do you already have a website, social page or a concept?",
+      "hint": "So we start at the right point. If yes, paste the link.",
+      "opts": {
+        "none": "No, I'm starting fresh",
+        "website": "Yes, an existing website",
+        "social": "Only Instagram / social media",
+        "concept": "A concept / draft"
+      }
+    },
+    "selfbuilt": {
+      "title": "Did you build this website yourself — e.g. with AI tools?",
+      "hint": "Lovable, Wix AI, Framer AI, Webflow … Then we'll just take it live cleanly and legally compliant.",
+      "opts": {
+        "nein": "No, professionally built or grown over time",
+        "ja": "Yes, built myself with AI tools"
+      }
+    },
+    "aiHas": {
+      "title": "What does your current site already have? (Current state)",
+      "hint": "Multiple choice — so we know what we're building on.",
+      "opts": {
+        "home": "Homepage",
+        "sub": "Several subpages",
+        "form": "Contact form",
+        "blog": "Blog",
+        "shop": "Online shop",
+        "booking": "Appointment booking",
+        "multilang": "Multilingual",
+        "domain": "Own domain"
+      }
+    },
+    "aiMissing": {
+      "title": "What's still missing for a professional go-live? (Target state)",
+      "hint": "Multiple choice — we derive your recommendation from this.",
+      "opts": {
+        "domain": "Own domain",
+        "hosting": "Professional hosting",
+        "ssl": "SSL / security",
+        "legal": "Legal texts (legal notice, privacy policy)",
+        "seo": "SEO basics",
+        "email": "Email addresses",
+        "perf": "Performance optimization",
+        "design": "Design polish"
+      }
+    },
+    "byowScope": {
+      "title": "Is your site finished as is — or do you still need changes?",
+      "hint": "Go live only: we take it over unchanged. Changes + go live: we treat your AI site as a design concept and professionally finish it.",
+      "opts": {
+        "live": "Just take it live — everything's there",
+        "changes": "Make changes and then take it live"
+      }
+    },
+    "pages": {
+      "title": "Roughly how many pages do you need?",
+      "hint": "Count roughly: homepage, contact, team, services/products, individual product or service pages … Legal notice & privacy policy are always included.",
+      "opts": { "14": "1–4", "58": "5–8", "912": "9–12", "12p": "More than 12" }
+    },
+    "langs": {
+      "title": "In how many languages?",
+      "titleByow": "In how many languages should the site be available?",
+      "opts": { "1": "1 language", "2": "2 languages", "3": "3+" }
+    },
+    "contact": {
+      "title": "How should your customers get in touch?",
+      "opts": {
+        "form": "Contact form only",
+        "booking": "Contact form + online appointment booking (calendar)"
+      }
+    },
+    "fees": {
+      "title": "Are the appointments paid?",
+      "hint": "e.g. consulting, coaching, treatment — then we set up secure payment (Stripe) right at booking. Costs extra.",
+      "opts": { "nein": "No, free appointments", "ja": "Yes, paid appointments" }
+    },
+    "shop": {
+      "title": "Do you want to sell online?",
+      "hint": "Products or services — service businesses sell online too: consulting packages, courses, vouchers, bookable appointments.",
+      "opts": {
+        "nein": "No",
+        "paar": "A few products / services",
+        "shop": "Full online shop"
+      }
+    },
+    "blog": {
+      "title": "Do you want a blog / news section?",
+      "opts": { "ja": "Yes", "nein": "No" }
+    },
+    "assets": {
+      "title": "Do you already have a logo & imagery?",
+      "opts": { "ja": "Yes", "teil": "Partially", "nein": "No" }
+    }
+  },
+  "configurator": {
+    "backToQuestions": "← Back to the questions",
+    "recLabel": "Our recommendation for you",
+    "recBadge": "RECOMMENDED",
+    "recommendedBadge": "RECOMMENDED",
+    "recommendedSmall": "recommended",
+    "onceTag": "one-time",
+    "sec1Title": "1 · Your website package",
+    "sec1Sub": "— one-time build",
+    "priceOnce": "{price} one-time",
+    "includedTitle": "Included in the {name} package",
+    "includedSub": "One-time {price} — this is what you get at no extra cost:",
+    "byosNote": "The Bring Your Own Website package includes no content or design changes. All adjustments are billed as separate iterations at {price} each.",
+    "sec2Title": "2 · Add extras",
+    "extrasSub": "Only pick what you need. Recommended items are marked.",
+    "extrasLaunch": "Cheaper now at launch — bookable later, then more expensive.",
+    "legendOnce": "one-time",
+    "legendMonthly": "monthly / ongoing",
+    "laterLabel": "bookable later: {price}",
+    "includedInBundle": "Included in the {name} package",
+    "includedInAi": "Included in the AI Agentic Bundle",
+    "enthalten": "✓ included",
+    "tierFrom": "from {price}/mo. · 1 to 10 articles",
+    "perUnit": "+ {price} per {unit}",
+    "plusMonthly": "+ {price}/mo.",
+    "plusYearly": "+ {price}/yr.",
+    "plusOnce": "+ {price} one-time",
+    "catNoteKiInBundle": "Already included in the AI Agentic Bundle.",
+    "catNoteKiTip": "Tip: ~40% cheaper in the AI Agentic Bundle (below).",
+    "sec3Title": "3 · Care & security",
+    "sec3Sub": "— ongoing subscription",
+    "careIntro": "We keep your website secure & legally safe. {hint}",
+    "billingHintYearly": "All monthly prices with annual payment (−{pct}%).",
+    "billingHintMonthly": "Monthly prices with monthly payment — pay annually and save {pct}%.",
+    "careTitle": "Care & hosting plan",
+    "cfTitle": "Cloudflare Security",
+    "cfSetupPlus": "{setup} setup + {mon}/mo.",
+    "cfSetupOnly": "{setup} setup · ongoing costs included in the care plan",
+    "cfIncludedBundle": "Included in the {name} package",
+    "cfIncludedCare": "Included in the {name} care plan",
+    "cfFree": "€0",
+    "perMonthPrice": "{price}/mo.",
+    "supTitle": "Support plan (bookable separately)",
+    "vipNote": "Platinum bonus: VIP support free for the first 3 months.",
+    "bakTitle": "Backup upgrade",
+    "bakName": "{label} instead of {base}",
+    "bakFallback": "Backup upgrade",
+    "bakPrice": "+ {price}/mo.",
+    "bakNotAvailable": "Not available for Bring Your Own Website",
+    "aiTitle": "AI Agentic Bundle",
+    "aiPriceLabel": "{setup} setup + {mon}/mo.",
+    "aiHeadline": "Your digital assistant — runs 24/7, with no extra effort for you.",
+    "aiSub": "AI chatbot, content engine, automated review responses and AI visibility monitoring — about 40% cheaper in the bundle than individually ({single}).",
+    "aiSingle": "individually {price}/mo.",
+    "aiAdd": "Add bundle",
+    "aiRemove": "✓ In cart — remove",
+    "sidebarTitle": "Your configuration",
+    "onceLabel": "One-time",
+    "oncePayment": "one-time payment",
+    "monthlyLabel": "Monthly",
+    "monthlySub": "ongoing subscription",
+    "sumOnce": "Total one-time",
+    "sumMonthly": "Total monthly",
+    "yearlyItemsLabel": "Yearly (e.g. legal update)",
+    "payYearly": "Pay annually",
+    "payMonthly": "Pay monthly",
+    "yearlyNoteActive": "Annual payment active: {yearTotal}/yr. — you save {savings}/yr. compared to monthly.",
+    "yearlyNoteInactive": "Save {pct}%: with annual payment only {discounted}/mo. instead of {full}.",
+    "promoPlaceholder": "Enter discount code",
+    "promoPlaceholderOptional": "Discount code (optional)",
+    "promoApply": "Redeem",
+    "promoDiscountLine": "Discount {code} (−{pct}%)",
+    "promoActive": "{code} · {pct}% discount active",
+    "promoSavings": "You save {amount}",
+    "promoSavingsAmount": "{once} one-time + {monthly}/mo.",
+    "promoErrEmpty": "Please enter a code.",
+    "promoErrInvalid": "Unfortunately, this code is invalid.",
+    "disclaimer": "Non-binding estimate. Final prices, no VAT (reverse charge, service provided by IntelliPaaS Inc., USA).",
+    "ctaLead": "Continue to inquiry →",
+    "sslShort": "SSL 256-bit · Secured by Cloudflare"
+  },
+  "reasons": {
+    "byowChanges": "Since you still need changes, we treat your self-built AI site as a design concept and professionally finish it. With Gold you get the full rebuild — up to 8 pages, 2 languages, blog and SEO basics. \"Bring Your Own Website\" remains selectable if you only want to go live after all.",
+    "byowLive": "You've already built your site yourself and just want to go live — \"Bring Your Own Website\" takes it live cleanly, securely and legally compliant: domain, hosting in Germany, SSL, email, Cloudflare proxy and acceptance test. Tip: for maximum impact, we're happy to build you a professional website from scratch with Gold.",
+    "silver": "Ideal for a lean, professional presence with up to 4 pages.",
+    "gold": "The main deal: up to 8 pages, 2 languages, blog and SEO basics — best value.",
+    "platinum": "The big presence: up to 12 pages, 3 languages, premium design, Cloudflare security and a CMS for self-management.",
+    "chosenBecause": " Chosen because: {reasons}.",
+    "why": {
+      "twoLangs": "2 languages included",
+      "threeLangs": "3 languages included",
+      "blog": "Blog setup included",
+      "shop": "Premium base for the full online shop"
+    }
+  },
+  "summaryLabels": {
+    "paket": "Package",
+    "pflege": "Care",
+    "support": "Support",
+    "cloudflare": "Cloudflare",
+    "setupSuffix": " — setup",
+    "included": "included",
+    "cfDesc": "WAF, bot & DDoS protection",
+    "upgradeSuffix": " (upgrade)",
+    "aiSetupName": "AI Agentic Bundle — setup",
+    "aiName": "AI Agentic Bundle",
+    "aiDesc": "Chatbot, content engine, reviews, GEO",
+    "perMonth": "/mo.",
+    "perYear": "/yr.",
+    "tierUnit": "articles/mo."
+  },
+  "lead": {
+    "back": "← Back to the configurator",
+    "title": "Almost done!",
+    "sub": "We'll contact you personally — no obligation and free of charge.",
+    "onceHeader": "One-time — what you pay & receive once",
+    "monthlyHeader": "Monthly — ongoing services",
+    "fields": {
+      "vorname": "First name",
+      "nachname": "Last name",
+      "firma": "Company name",
+      "email": "Email",
+      "tel": "Phone"
+    },
+    "phEmail": "your@email.com",
+    "phTel": "+49 …",
+    "zielLabel": "What do you want to achieve?",
+    "zielOptional": "(optional)",
+    "zielPh": "e.g. Get more inquiries via Google",
+    "consent": "I consent to the processing of my data in accordance with the <link>privacy policy</link>.",
+    "errEmail": "Please enter a valid email address.",
+    "errTel": "Please enter your phone number — we will call you.",
+    "errConsent": "Please consent to the data processing.",
+    "errSubmit": "Something went wrong. Please try again.",
+    "submitting": "Sending …",
+    "cta": "Submit inquiry & schedule a call",
+    "noRisk": "No risk — the initial call is non-binding.",
+    "dataSafe": "Your data is safe",
+    "sslLong": "SSL/TLS-encrypted (256-bit) · Secured by Cloudflare · Servers in DE/EU · GDPR-compliant",
+    "calendlyTitle": "Pick your preferred appointment right away",
+    "calendlySub": "Your inquiry has been received. Book your non-binding initial call now — or add your content first.",
+    "calendlyBooked": "Appointment booked — we look forward to the call!",
+    "calendlyContinue": "Continue →",
+    "calendlySkip": "Schedule later →"
+  },
+  "stage2": {
+    "banner": "Done! We'll be in touch shortly.",
+    "bannerSub": "Want to go live faster? The more you share now, the more impressive your first draft will be. All voluntary — you can also add things later.",
+    "title": "Make your website great",
+    "readiness": "Website readiness",
+    "readinessLow": "Good start! Just your logo and 2–3 sentences make a big difference.",
+    "readinessMid": "Strong! Your first draft is already getting much more personal.",
+    "readinessHigh": "Excellent — with this we'll build you an impressive first draft.",
+    "filled": "{filled} / {total} filled in",
+    "sections": {
+      "unternehmen": "Company",
+      "marke": "Brand & images",
+      "geschichte": "Your story",
+      "social": "Credentials & social",
+      "ziel": "Goal & taste"
+    },
+    "notes": {
+      "unternehmen": "These details also flow into your legal notice.",
+      "markeWithUrl": "We'll review {url} and automatically take over what we find there."
+    },
+    "fields": {
+      "firmenname": { "label": "Company name", "ph": "e.g. Müller Sanitär GmbH" },
+      "rechtsform": { "label": "Legal form", "ph": "GmbH, e.K., GbR …" },
+      "anschrift": { "label": "Address", "ph": "Street, postcode, city" },
+      "inhaber": { "label": "Managing director / owner", "ph": "First and last name" },
+      "ustid": { "label": "VAT ID", "ph": "DE…" },
+      "oeffnung": { "label": "Opening hours", "ph": "Mon–Fri 8am–5pm" },
+      "gebiet": { "label": "Service area / locations", "ph": "e.g. Munich + 30 km" },
+      "farben": { "label": "Brand colors (if available)", "ph": "e.g. dark blue + orange" },
+      "einsatz": { "label": "What you do in one sentence", "ph": "e.g. We renovate bathrooms — fast and clean." },
+      "leistungen": { "label": "Services / products (each becomes a section)", "ph": "One per line" },
+      "usps": { "label": "Why customers choose you (USPs)", "ph": "e.g. 24h emergency service, fixed-price guarantee …" },
+      "zertifikate": { "label": "Certificates, master titles, guilds, TÜV, awards", "ph": "" },
+      "gprofil": { "label": "Google Business Profile link", "ph": "https://g.page/…" },
+      "socialp": { "label": "Social profiles", "ph": "Instagram, Facebook, LinkedIn …" },
+      "bewertungen": { "label": "Reviews / testimonials", "ph": "Or: \"take them from my Google profile\"" },
+      "beispiele": { "label": "1–2 example websites you like (or dislike)", "ph": "www.example.com — I like it because …" }
+    },
+    "uploadLogo": "Logo (upload) — or we design one",
+    "uploadFotos": "Photos: team, premises, products, work samples",
+    "uploadDrag": "Drag files here or",
+    "uploadPick": "Choose files",
+    "uploadAccept": "JPG, PNG, WebP, PDF, DOC · max. 25 MB per file",
+    "driveLabel": "Lots of material? Paste a Google Drive/Dropbox link instead",
+    "drivePh": "https://drive.google.com/…",
+    "goalLabel": "Main goal of your website",
+    "goals": {
+      "anrufe": "Calls",
+      "termine": "Appointment bookings",
+      "verkaeufe": "Online sales",
+      "anfragen": "Inquiries"
+    },
+    "ctaSend": "Send content & finish",
+    "ctaLater": "Add later →"
+  },
+  "done": {
+    "title": "Thank you! We've received your inquiry.",
+    "sub": "No risk — the initial call is non-binding.",
+    "onceLabel": "One-time",
+    "monthlyLabel": "Monthly",
+    "yearlyLabel": "Yearly",
+    "disclaimer": "Non-binding estimate · Final prices, no VAT (reverse charge, invoice from IntelliPaaS Inc., USA) · We'll also send you the summary by email.",
+    "restart": "Start a new configuration"
+  },
+  "legal": {
+    "impressumTitle": "Legal notice",
+    "impressumBody": "IntelliPaaS Inc.\nInformation pursuant to § 5 TMG to follow.",
+    "datenschutzTitle": "Privacy policy",
+    "datenschutzBody": "Information about the processing of your personal data to follow."
+  },
+  "emails": {
+    "customer": {
+      "subject": "Your inquiry at IntelliPaaS Web Studio",
+      "greeting": "Hello {name},",
+      "intro": "thank you for your inquiry! We'll contact you personally — usually the same day. Here's your configuration at a glance:",
+      "onceLabel": "One-time",
+      "monthlyLabel": "Monthly",
+      "yearlyLabel": "Yearly",
+      "sumOnce": "Total one-time",
+      "sumMonthly": "Total monthly",
+      "discount": "Discount {code} (−{pct}%)",
+      "noRisk": "No risk — the initial call is non-binding.",
+      "signoff": "Your IntelliPaaS Web Studio team"
+    },
+    "team": {
+      "subject": "New inquiry: {firma} ({bundle})",
+      "contact": "Contact",
+      "configuration": "Configuration",
+      "goal": "Goal",
+      "openInAdmin": "Open in admin portal"
+    }
+  }
+}

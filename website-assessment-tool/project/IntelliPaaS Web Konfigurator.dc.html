@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;padding:0;background:#F5F7FB}
+*{box-sizing:border-box}
+@keyframes ipFade{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+input::placeholder,textarea::placeholder{color:#9AA7BC}
+input:focus,textarea:focus{outline:2px solid #1E5EFF33;border-color:#1E5EFF !important}
+@media (max-width:960px){[data-cfg-grid]{grid-template-columns:1fr !important}[data-cfg-side]{position:static !important}}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-direction:column;background:#F5F7FB;font-family:Inter,'Helvetica Neue',sans-serif;color:#0F2440">
+
+  <!-- ============ HEADER ============ -->
+  <header style="background:#ffffff;border-bottom:1px solid #E4E9F2;position:sticky;top:0;z-index:50">
+    <div style="max-width:1100px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;gap:14px">
+      <img src="assets/intellipaas-logo.png" alt="IntelliPaaS.io" style="height:44px;width:44px;object-fit:cover;object-position:center 38%"></img>
+      <div style="display:flex;align-items:baseline;gap:8px">
+        <span style="font-weight:800;font-size:17px;letter-spacing:-0.2px">IntelliPaaS<span style="color:#1E5EFF">.io</span></span>
+        <span style="font-size:11px;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;color:#7A879B;border:1px solid #E4E9F2;border-radius:999px;padding:3px 9px">Web Studio</span>
+      </div>
+      <sc-if value="{{ showProgress }}" hint-placeholder-val="{{ false }}">
+        <div style="margin-left:auto;display:flex;align-items:center;gap:12px">
+          <span style="font-size:12.5px;font-weight:600;color:#7A879B;white-space:nowrap">Schritt {{ stepNum }} von 5</span>
+          <div style="width:140px;height:6px;border-radius:999px;background:#E4E9F2;overflow:hidden">
+            <div style="height:100%;border-radius:999px;background:linear-gradient(90deg,#1E4FD6,#22B8D8);width:{{ stepPct }}%;transition:width .45s cubic-bezier(.4,0,.2,1)"></div>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+  </header>
+
+  <main style="flex:1;width:100%;max-width:1100px;margin:0 auto;padding:0 24px">
+
+    <!-- ============ INTRO ============ -->
+    <sc-if value="{{ isIntro }}" hint-placeholder-val="{{ true }}">
+      <section data-screen-label="Intro" style="animation:ipFade .5s ease both;display:flex;flex-direction:column;align-items:center;text-align:center;padding:72px 0 80px">
+        <img src="assets/intellipaas-logo.png" alt="" style="height:110px;margin-bottom:8px"></img>
+        <h1 style="font-size:clamp(30px,4.5vw,46px);font-weight:800;letter-spacing:-1.2px;line-height:1.12;margin:0 0 16px;max-width:720px;text-wrap:balance">Ihre neue Website — in wenigen Minuten konfiguriert.</h1>
+        <p style="font-size:18px;line-height:1.55;color:#4A5872;margin:0 0 28px;max-width:560px;text-wrap:pretty">Beantworten Sie ein paar Fragen und erhalten Sie sofort ein passendes Paket mit Preis. Unverbindlich.</p>
+        <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-bottom:36px">
+          <sc-for list="{{ trustItems }}" as="t" hint-placeholder-count="4">
+            <span style="display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:#0F2440;background:#ffffff;border:1px solid #E4E9F2;border-radius:999px;padding:8px 14px">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="flex:none"><circle cx="12" cy="12" r="10" fill="#E8F0FF"></circle><path d="M8 12.5l2.6 2.6L16 9.5" stroke="#1E5EFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+              {{ t.label }}
+            </span>
+          </sc-for>
+        </div>
+        <button onClick="{{ startNow }}" style="font-family:inherit;cursor:pointer;border:none;border-radius:14px;padding:17px 44px;font-size:17px;font-weight:700;color:#ffffff;background:linear-gradient(100deg,#1E4FD6,#22B8D8);box-shadow:0 10px 26px -8px rgba(30,79,214,.55);transition:transform .15s,box-shadow .15s" style-hover="transform:translateY(-2px);box-shadow:0 16px 32px -8px rgba(30,79,214,.6)">Jetzt starten</button>
+        <div style="margin-top:34px;width:100%;max-width:440px">
+          <label style="display:block;font-size:12.5px;font-weight:600;color:#7A879B;margin-bottom:7px">Haben Sie schon eine Website? Link einfügen (optional)</label>
+          <input value="{{ urlVal }}" onChange="{{ onUrl }}" placeholder="z. B. www.meine-firma.de" style="width:100%;font-family:inherit;font-size:14.5px;padding:12px 14px;border:1.5px solid #E4E9F2;border-radius:11px;background:#ffffff;color:#0F2440"></input>
+        </div>
+      </section>
+    </sc-if>
+
+    <!-- ============ STEP 1: PERSONA ============ -->
+    <sc-if value="{{ isPersona }}" hint-placeholder-val="{{ false }}">
+      <section data-screen-label="Schritt 1 – Persona" style="animation:ipFade .4s ease both;padding:52px 0 72px">
+        <button onClick="{{ backIntro }}" style="font-family:inherit;cursor:pointer;background:none;border:none;color:#7A879B;font-size:13.5px;font-weight:600;padding:0;margin-bottom:22px" style-hover="color:#1E5EFF">← Zurück</button>
+        <h2 style="font-size:32px;font-weight:800;letter-spacing:-0.8px;margin:0 0 8px">Wer sind Sie?</h2>
+        <p style="font-size:15.5px;color:#4A5872;margin:0 0 32px">Wählen Sie Ihre Branche — wir schlagen passende Optionen vor.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px">
+          <sc-for list="{{ personaCards }}" as="p" hint-placeholder-count="7">
+            <button onClick="{{ p.pick }}" style="font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:14px;text-align:left;background:#ffffff;border:1.5px solid {{ p.bc }};border-radius:16px;padding:20px 18px;min-height:76px;transition:border-color .15s,transform .15s,box-shadow .15s" style-hover="border-color:#1E5EFF;transform:translateY(-2px);box-shadow:0 10px 24px -12px rgba(15,36,64,.25)">
+              <span style="flex:none;width:44px;height:44px;border-radius:12px;background:#EDF3FF;display:flex;align-items:center;justify-content:center">
+                <svg width="23" height="23" viewBox="0 0 24 24" fill="none"><path d="{{ p.icon }}" stroke="#1E5EFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+              </span>
+              <span style="font-size:15px;font-weight:700;line-height:1.3">{{ p.label }}</span>
+            </button>
+          </sc-for>
+        </div>
+      </section>
+    </sc-if>
+
+    <!-- ============ STEP 2: FRAGEN ============ -->
+    <sc-if value="{{ isQuestions }}" hint-placeholder-val="{{ false }}">
+      <section data-screen-label="Schritt 2 – Fragen" style="animation:ipFade .4s ease both;padding:52px 0 72px;max-width:720px">
+        <button onClick="{{ backPersona }}" style="font-family:inherit;cursor:pointer;background:none;border:none;color:#7A879B;font-size:13.5px;font-weight:600;padding:0;margin-bottom:22px" style-hover="color:#1E5EFF">← Zurück</button>
+        <h2 style="font-size:32px;font-weight:800;letter-spacing:-0.8px;margin:0 0 8px">Ein paar kurze Fragen</h2>
+        <p style="font-size:15.5px;color:#4A5872;margin:0 0 34px">Wir haben passende Antworten für Sie vorausgewählt — passen Sie einfach an.</p>
+        <div style="display:flex;flex-direction:column;gap:26px">
+          <sc-for list="{{ questions }}" as="q" hint-placeholder-count="6">
+            <div style="background:#ffffff;border:1px solid #E4E9F2;border-radius:16px;padding:22px 24px">
+              <div style="font-size:16px;font-weight:700;margin-bottom:12px">{{ q.title }}</div>
+              <sc-if value="{{ q.hint }}" hint-placeholder-val="{{ false }}">
+                <div style="font-size:12.5px;color:#7A879B;line-height:1.5;margin:-6px 0 12px">{{ q.hint }}</div>
+              </sc-if>
+              <div style="display:flex;flex-wrap:wrap;gap:10px">
+                <sc-for list="{{ q.opts }}" as="o" hint-placeholder-count="3">
+                  <button onClick="{{ o.pick }}" style="font-family:inherit;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 20px;border-radius:999px;border:1.5px solid {{ o.bc }};background:{{ o.bg }};color:{{ o.fg }};transition:all .15s" style-hover="border-color:#1E5EFF">{{ o.label }}</button>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <button onClick="{{ toConfig }}" style="font-family:inherit;cursor:pointer;margin-top:34px;border:none;border-radius:13px;padding:16px 38px;font-size:16px;font-weight:700;color:#ffffff;background:linear-gradient(100deg,#1E4FD6,#22B8D8);box-shadow:0 10px 24px -8px rgba(30,79,214,.5);transition:transform .15s" style-hover="transform:translateY(-2px)">Empfehlung anzeigen →</button>
+      </section>
+    </sc-if>
+
+    <!-- ============ STEP 3: KONFIGURATOR ============ -->
+    <sc-if value="{{ isConfig }}" hint-placeholder-val="{{ false }}">
+      <section data-screen-label="Schritt 3 – Empfehlung und Konfigurator" style="animation:ipFade .4s ease both;padding:44px 0 90px">
+        <button onClick="{{ backQuestions }}" style="font-family:inherit;cursor:pointer;background:none;border:none;color:#7A879B;font-size:13.5px;font-weight:600;padding:0;margin-bottom:20px" style-hover="color:#1E5EFF">← Zurück zu den Fragen</button>
+
+        <div data-cfg-grid="1" style="display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:28px;align-items:start">
+          <div style="display:flex;flex-direction:column;gap:26px;min-width:0">
+
+            <!-- A: Empfehlungsbanner -->
+            <div style="background:linear-gradient(115deg,#0F2440,#1E4FD6 90%);border-radius:20px;padding:26px 28px;color:#ffffff">
+              <div style="font-size:12px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:#8FD8EA;margin-bottom:8px">Unsere Empfehlung für Sie</div>
+              <div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:12px">
+                <span style="font-size:30px;font-weight:800;letter-spacing:-0.6px">{{ recName }}</span>
+                <span style="font-size:20px;font-weight:700;color:#8FD8EA">{{ recPrice }}</span>
+                <span style="font-size:11.5px;font-weight:700;background:#C9A227;color:#0F2440;border-radius:999px;padding:4px 11px;letter-spacing:.4px">EMPFEHLUNG</span>
+              </div>
+              <p style="margin:10px 0 0;font-size:14.5px;line-height:1.5;color:#C7D6F2;max-width:560px">{{ recReason }}</p>
+            </div>
+
+            <!-- Bundle-Umschalter -->
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+              <sc-for list="{{ bundleTabs }}" as="b" hint-placeholder-count="3">
+                <button onClick="{{ b.pick }}" style="font-family:inherit;cursor:pointer;text-align:left;background:{{ b.bg }};border:2px solid {{ b.bc }};border-radius:16px;padding:16px;position:relative;transition:all .15s" style-hover="border-color:#1E5EFF">
+                  <sc-if value="{{ b.isRec }}" hint-placeholder-val="{{ false }}">
+                    <span style="position:absolute;top:-9px;right:12px;font-size:10px;font-weight:800;letter-spacing:.6px;background:#C9A227;color:#0F2440;border-radius:999px;padding:3px 9px">EMPFOHLEN</span>
+                  </sc-if>
+                  <div style="font-size:15px;font-weight:800;color:{{ b.fg }}">{{ b.name }}</div>
+                  <div style="font-size:13.5px;font-weight:600;color:{{ b.sub }};margin-top:3px">{{ b.price }}</div>
+                  <div style="font-size:12px;color:{{ b.sub }};margin-top:5px">{{ b.tag }}</div>
+                </button>
+              </sc-for>
+            </div>
+
+            <!-- B: Enthalten -->
+            <div style="background:#ffffff;border:1px solid #E4E9F2;border-radius:18px;padding:24px 26px">
+              <h3 style="margin:0 0 4px;font-size:18px;font-weight:800;letter-spacing:-0.3px">Das ist alles enthalten</h3>
+              <p style="margin:0 0 16px;font-size:13.5px;color:#7A879B">Ihr Basispaket <strong style="color:#0F2440">{{ curName }}</strong> — ohne Aufpreis.</p>
+              <div style="display:flex;flex-wrap:wrap;gap:9px">
+                <sc-for list="{{ includedChips }}" as="c" hint-placeholder-count="6">
+                  <span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#0F2440;background:#F0F7F2;border:1px solid #D3E8DA;border-radius:999px;padding:7px 13px">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 13l4.5 4.5L19 8" stroke="#2E8B57" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                    {{ c.label }}
+                  </span>
+                </sc-for>
+              </div>
+            </div>
+
+            <!-- C: Extras -->
+            <div style="background:#ffffff;border:1px solid #E4E9F2;border-radius:18px;padding:24px 26px">
+              <h3 style="margin:0 0 4px;font-size:18px;font-weight:800;letter-spacing:-0.3px">Extras hinzufügen</h3>
+              <p style="margin:0 0 20px;font-size:13.5px;color:#7A879B">Wie beim Autokauf: Wählen Sie nur, was Sie brauchen. Empfohlenes ist markiert.</p>
+              <div style="display:flex;flex-direction:column;gap:22px">
+                <sc-for list="{{ addonGroups }}" as="g" hint-placeholder-count="3">
+                  <div>
+                    <div style="font-size:11.5px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:#7A879B;margin-bottom:10px">{{ g.cat }}</div>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">
+                      <sc-for list="{{ g.items }}" as="a" hint-placeholder-count="4">
+                        <div onClick="{{ a.toggle }}" role="button" tabIndex="0" style="cursor:{{ a.cursor }};display:flex;align-items:center;gap:12px;background:{{ a.bg }};border:1.5px solid {{ a.bc }};border-radius:13px;padding:13px 14px;transition:all .15s;user-select:none" style-hover="border-color:{{ a.hbc }}">
+                          <div style="flex:1;min-width:0">
+                            <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+                              <span style="font-size:13.5px;font-weight:700;color:{{ a.fg }};line-height:1.3">{{ a.name }}</span>
+                              <sc-if value="{{ a.isRec }}" hint-placeholder-val="{{ false }}">
+                                <span style="font-size:10px;font-weight:800;letter-spacing:.4px;background:#FDF4DC;color:#8A6D12;border:1px solid #EAD9A0;border-radius:999px;padding:2px 8px">empfohlen</span>
+                              </sc-if>
+                            </div>
+                            <div style="font-size:12.5px;font-weight:600;color:{{ a.priceFg }};margin-top:3px">{{ a.priceLabel }}</div>
+                            <sc-if value="{{ a.note }}" hint-placeholder-val="{{ false }}">
+                              <div style="font-size:10.5px;color:#9AA7BC;line-height:1.45;margin-top:4px">{{ a.note }}</div>
+                            </sc-if>
+                            <sc-if value="{{ a.showQty }}" hint-placeholder-val="{{ false }}">
+                              <div style="display:flex;align-items:center;gap:9px;margin-top:10px">
+                                <button onClick="{{ a.decQ }}" style="font-family:inherit;cursor:pointer;width:27px;height:27px;border-radius:8px;border:1.5px solid #CBD5E4;background:#ffffff;color:#0F2440;font-size:16px;font-weight:800;line-height:1;display:flex;align-items:center;justify-content:center;padding:0" style-hover="border-color:#1E5EFF;color:#1E5EFF">−</button>
+                                <span style="font-size:12.5px;font-weight:800;min-width:92px;text-align:center;font-variant-numeric:tabular-nums">{{ a.qtyLabel }}</span>
+                                <button onClick="{{ a.incQ }}" style="font-family:inherit;cursor:pointer;width:27px;height:27px;border-radius:8px;border:1.5px solid #CBD5E4;background:#ffffff;color:#0F2440;font-size:16px;font-weight:800;line-height:1;display:flex;align-items:center;justify-content:center;padding:0" style-hover="border-color:#1E5EFF;color:#1E5EFF">+</button>
+                              </div>
+                            </sc-if>
+                          </div>
+                          <sc-if value="{{ a.isIncluded }}" hint-placeholder-val="{{ false }}">
+                            <span style="flex:none;font-size:12px;font-weight:700;color:#2E8B57">✓ enthalten</span>
+                          </sc-if>
+                          <sc-if value="{{ a.showSwitch }}" hint-placeholder-val="{{ true }}">
+                            <span style="flex:none;width:40px;height:23px;border-radius:999px;background:{{ a.swBg }};position:relative;transition:background .2s">
+                              <span style="position:absolute;top:2.5px;left:{{ a.swLeft }}px;width:18px;height:18px;border-radius:50%;background:#ffffff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:left .2s cubic-bezier(.4,0,.2,1)"></span>
+                            </span>
+                          </sc-if>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+
+            <!-- D: Pflege -->
+            <div style="background:#ffffff;border:1px solid #E4E9F2;border-radius:18px;padding:24px 26px">
+              <h3 style="margin:0 0 4px;font-size:18px;font-weight:800;letter-spacing:-0.3px">Pflege &amp; Sicherheit</h3>
+              <p style="margin:0 0 18px;font-size:13.5px;color:#7A879B">Wir halten Ihre Website sicher &amp; abmahnsicher. {{ billingHint }}</p>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+                <sc-for list="{{ carePlans }}" as="cp" hint-placeholder-count="3">
+                  <button onClick="{{ cp.pick }}" style="font-family:inherit;cursor:pointer;text-align:left;background:{{ cp.bg }};border:2px solid {{ cp.bc }};border-radius:15px;padding:16px;position:relative;transition:all .15s" style-hover="border-color:#1E5EFF">
+                    <sc-if value="{{ cp.isRec }}" hint-placeholder-val="{{ false }}">
+                      <span style="position:absolute;top:-9px;right:12px;font-size:10px;font-weight:800;letter-spacing:.6px;background:#C9A227;color:#0F2440;border-radius:999px;padding:3px 9px">EMPFEHLUNG</span>
+                    </sc-if>
+                    <div style="display:flex;align-items:baseline;gap:8px">
+                      <span style="font-size:15px;font-weight:800">{{ cp.name }}</span>
+                      <span style="font-size:13.5px;font-weight:700;color:#1E5EFF">{{ cp.price }}</span>
+                    </div>
+                    <div style="font-size:12.5px;color:#4A5872;line-height:1.5;margin-top:6px">{{ cp.desc }}</div>
+                  </button>
+                </sc-for>
+              </div>
+            </div>
+
+            <!-- E: AI Ultimate -->
+            <div style="background:linear-gradient(120deg,#101A3C,#1E4FD6 55%,#22B8D8 130%);border-radius:20px;padding:26px 28px;color:#ffffff;position:relative;overflow:hidden">
+              <div style="position:absolute;top:-60px;right:-40px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(34,184,216,.35),transparent 70%)"></div>
+              <div style="position:relative">
+                <div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:10px">
+                  <span style="font-size:12px;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:4px 12px">AI Ultimate</span>
+                  <span style="font-size:16px;font-weight:700;color:#8FD8EA">{{ aiPriceLabel }}</span>
+                </div>
+                <div style="font-size:22px;font-weight:800;letter-spacing:-0.4px;margin:12px 0 4px">Die Website, die mitdenkt.</div>
+                <p style="margin:0;font-size:14px;color:#C7D6F2;line-height:1.55;max-width:520px">Eine agentische Website, die sich selbst verbessert — für Unternehmen, die vorne mitspielen wollen.</p>
+                <sc-if value="{{ aiOpen }}" hint-placeholder-val="{{ false }}">
+                  <ul style="margin:16px 0 0;padding:0;list-style:none;display:grid;gap:9px">
+                    <sc-for list="{{ aiBullets }}" as="ab" hint-placeholder-count="4">
+                      <li style="display:flex;gap:10px;font-size:14px;line-height:1.5;color:#E6F0FF"><span style="color:#8FD8EA;font-weight:800">✦</span>{{ ab.label }}</li>
+                    </sc-for>
+                  </ul>
+                </sc-if>
+                <button onClick="{{ toggleAi }}" style="font-family:inherit;cursor:pointer;margin-top:16px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.35);color:#ffffff;border-radius:11px;padding:10px 20px;font-size:13.5px;font-weight:700;transition:background .15s" style-hover="background:rgba(255,255,255,.22)">{{ aiBtnLabel }}</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- F: Preis-Sidebar -->
+          <aside data-cfg-side="1" style="position:sticky;top:86px;background:#ffffff;border:1px solid #E4E9F2;border-radius:18px;padding:22px 22px 20px;box-shadow:0 14px 34px -20px rgba(15,36,64,.3)">
+            <div style="font-size:12px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:#7A879B;margin-bottom:14px">Ihre Konfiguration</div>
+            <div style="display:flex;justify-content:space-between;gap:10px;font-size:13.5px;font-weight:600;padding:7px 0">
+              <span>Paket {{ curName }}</span><span style="white-space:nowrap">{{ curPrice }}</span>
+            </div>
+            <sc-for list="{{ summaryExtras }}" as="s" hint-placeholder-count="2">
+              <div style="display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:#4A5872;padding:4.5px 0">
+                <span style="min-width:0">{{ s.name }}</span><span style="white-space:nowrap">{{ s.price }}</span>
+              </div>
+            </sc-for>
+            <div style="border-top:1px solid #E4E9F2;margin:12px 0 10px"></div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;padding:3px 0">
+              <span style="font-size:13.5px;font-weight:700">Einmalig</span>
+              <span style="font-size:24px;font-weight:800;letter-spacing:-0.5px;font-variant-numeric:tabular-nums">{{ dispEinmalig }}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;padding:3px 0">
+              <div>
+                <span style="font-size:13.5px;font-weight:700">Monatlich</span>
+                <div style="font-size:10.5px;font-weight:600;color:#7A879B">laufende Zahlung — jeden Monat</div>
+              </div>
+              <span style="font-size:18px;font-weight:800;color:#1E5EFF;font-variant-numeric:tabular-nums">{{ dispMonatlich }}</span>
+            </div>
+            <div style="display:flex;background:#F0F3F9;border-radius:10px;padding:3px;margin-top:10px">
+              <button onClick="{{ setYearly }}" style="flex:1;font-family:inherit;cursor:pointer;border:none;border-radius:8px;padding:8px 6px;font-size:12px;font-weight:700;background:{{ ybBg }};color:{{ ybFg }};box-shadow:{{ ybSh }};transition:all .15s">Jährlich zahlen −18 %</button>
+              <button onClick="{{ setMonthly }}" style="flex:1;font-family:inherit;cursor:pointer;border:none;border-radius:8px;padding:8px 6px;font-size:12px;font-weight:700;background:{{ mbBg }};color:{{ mbFg }};box-shadow:{{ mbSh }};transition:all .15s">Monatlich</button>
+            </div>
+            <div style="font-size:11px;line-height:1.5;color:#8A6D12;background:#FDF8EA;border:1px solid #EAD9A0;border-radius:9px;padding:8px 11px;margin-top:8px">{{ yearlyNote }}</div>
+            <p style="margin:12px 0 16px;font-size:11.5px;line-height:1.5;color:#7A879B">Unverbindliche Schätzung inkl. gewählter Extras. Alle Preise sind Endpreise — es kommt keine USt. hinzu (Reverse-Charge-Verfahren, Leistung der IntelliPaaS Inc., USA).</p>
+            <button onClick="{{ toLead }}" style="font-family:inherit;cursor:pointer;width:100%;border:none;border-radius:12px;padding:15px;font-size:15.5px;font-weight:700;color:#ffffff;background:linear-gradient(100deg,#1E4FD6,#22B8D8);box-shadow:0 10px 22px -8px rgba(30,79,214,.5);transition:transform .15s" style-hover="transform:translateY(-1px)">Weiter zur Anfrage →</button>
+            <div style="display:flex;justify-content:center;align-items:center;gap:6px;margin-top:11px">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" style="flex:none"><rect x="4" y="10" width="16" height="11" rx="2.5" stroke="#2E8B57" stroke-width="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="#2E8B57" stroke-width="2"></path></svg>
+              <span style="font-size:10.5px;font-weight:600;color:#7A879B">Sichere Übertragung · SSL 256-Bit · Secured by Cloudflare</span>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </sc-if>
+
+    <!-- ============ STEP 4: LEAD ============ -->
+    <sc-if value="{{ isLead }}" hint-placeholder-val="{{ false }}">
+      <section data-screen-label="Schritt 4 – Anfrage" style="animation:ipFade .4s ease both;padding:52px 0 80px;max-width:640px">
+        <button onClick="{{ backConfig }}" style="font-family:inherit;cursor:pointer;background:none;border:none;color:#7A879B;font-size:13.5px;font-weight:600;padding:0;margin-bottom:22px" style-hover="color:#1E5EFF">← Zurück zum Konfigurator</button>
+        <h2 style="font-size:32px;font-weight:800;letter-spacing:-0.8px;margin:0 0 8px">Fast geschafft!</h2>
+        <p style="font-size:15.5px;color:#4A5872;margin:0 0 12px">Wir melden uns persönlich bei Ihnen — unverbindlich und kostenlos.</p>
+        <div style="display:inline-flex;align-items:baseline;gap:14px;background:#ffffff;border:1px solid #E4E9F2;border-radius:12px;padding:12px 18px;margin-bottom:30px">
+          <span style="font-size:13px;font-weight:700">{{ curName }}</span>
+          <span style="font-size:13px;color:#4A5872">Einmalig <strong>{{ einmaligFmt }}</strong></span>
+          <span style="font-size:13px;color:#4A5872">Monatlich <strong>{{ monatlichFmt }}</strong></span>
+        </div>
+        <div style="background:#ffffff;border:1px solid #E4E9F2;border-radius:18px;padding:26px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <sc-for list="{{ leadFields }}" as="f" hint-placeholder-count="5">
+              <div style="grid-column:{{ f.span }};min-width:0">
+                <label style="display:block;font-size:13px;font-weight:700;margin-bottom:6px">{{ f.label }}<span style="color:#D6493E">{{ f.req }}</span></label>
+                <input type="{{ f.type }}" value="{{ f.value }}" onChange="{{ f.onChange }}" placeholder="{{ f.ph }}" style="width:100%;font-family:inherit;font-size:14.5px;padding:12px 13px;border:1.5px solid {{ f.bc }};border-radius:10px;background:#ffffff;color:#0F2440"></input>
+                <sc-if value="{{ f.error }}" hint-placeholder-val="{{ false }}">
+                  <div style="font-size:12px;font-weight:600;color:#D6493E;margin-top:5px">{{ f.error }}</div>
+                </sc-if>
+              </div>
+            </sc-for>
+            <div style="grid-column:1 / -1">
+              <label style="display:block;font-size:13px;font-weight:700;margin-bottom:6px">Was möchten Sie erreichen? <span style="color:#7A879B;font-weight:500">(optional)</span></label>
+              <textarea value="{{ zielVal }}" onChange="{{ onZiel }}" rows="2" placeholder="z. B. Mehr Anfragen über Google erhalten" style="width:100%;font-family:inherit;font-size:14.5px;padding:12px 13px;border:1.5px solid #E4E9F2;border-radius:10px;background:#ffffff;color:#0F2440;resize:vertical"></textarea>
+            </div>
+            <div style="grid-column:1 / -1">
+              <label style="display:flex;gap:11px;align-items:flex-start;cursor:pointer">
+                <input type="checkbox" checked="{{ consentVal }}" onChange="{{ onConsent }}" style="margin-top:3px;width:17px;height:17px;accent-color:#1E5EFF;flex:none"></input>
+                <span style="font-size:13px;line-height:1.5;color:#4A5872">Ich stimme der Verarbeitung meiner Daten gemäß <a href="#datenschutz" style="color:#1E5EFF;font-weight:600">Datenschutzerklärung</a> zu.<span style="color:#D6493E"> *</span></span>
+              </label>
+              <sc-if value="{{ consentError }}" hint-placeholder-val="{{ false }}">
+                <div style="font-size:12px;font-weight:600;color:#D6493E;margin-top:5px">{{ consentError }}</div>
+              </sc-if>
+            </div>
+          </div>
+          <button onClick="{{ submitLead }}" style="font-family:inherit;cursor:pointer;width:100%;margin-top:22px;border:none;border-radius:12px;padding:16px;font-size:15.5px;font-weight:700;color:#ffffff;background:linear-gradient(100deg,#1E4FD6,#22B8D8);box-shadow:0 10px 22px -8px rgba(30,79,214,.5);transition:transform .15s" style-hover="transform:translateY(-1px)">Anfrage absenden &amp; Gespräch vereinbaren</button>
+          <p style="margin:12px 0 0;text-align:center;font-size:12px;color:#7A879B">Kein Risiko — das Erstgespräch ist unverbindlich.</p>
+          <div style="display:flex;justify-content:center;align-items:center;gap:7px;margin-top:14px;flex-wrap:wrap;border-top:1px solid #E4E9F2;padding-top:14px">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="flex:none"><rect x="4" y="10" width="16" height="11" rx="2.5" stroke="#2E8B57" stroke-width="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="#2E8B57" stroke-width="2"></path></svg>
+            <span style="font-size:11.5px;font-weight:700;color:#2E8B57">Ihre Daten sind sicher</span>
+            <span style="font-size:11.5px;color:#7A879B">SSL/TLS-verschlüsselt (256-Bit) · Secured by Cloudflare · Server in DE/EU · DSGVO-konform</span>
+          </div>
+        </div>
+      </section>
+    </sc-if>
+
+    <!-- ============ STEP 5: STAGE 2 INHALTE ============ -->
+    <sc-if value="{{ isStage2 }}" hint-placeholder-val="{{ false }}">
+      <section data-screen-label="Schritt 5 – Inhalte" style="animation:ipFade .4s ease both;padding:52px 0 80px;max-width:760px">
+        <div style="background:linear-gradient(115deg,#0F2440,#1E4FD6 95%);border-radius:20px;padding:26px 28px;color:#ffffff;margin-bottom:26px">
+          <div style="font-size:22px;font-weight:800;letter-spacing:-0.4px">Geschafft! Wir melden uns in Kürze.</div>
+          <p style="margin:10px 0 0;font-size:14.5px;line-height:1.55;color:#C7D6F2;max-width:600px">Möchten Sie schneller live gehen? Je mehr Sie jetzt teilen, desto beeindruckender wird Ihr erster Entwurf. Alles freiwillig — Sie können auch später ergänzen.</p>
+        </div>
+        <h2 style="font-size:26px;font-weight:800;letter-spacing:-0.6px;margin:0 0 18px">Machen Sie Ihre Website großartig</h2>
+        <div style="background:#ffffff;border:1px solid #E4E9F2;border-radius:14px;padding:16px 20px;margin-bottom:22px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px">
+            <span style="font-size:13.5px;font-weight:700">Website-Bereitschaft</span>
+            <span style="font-size:15px;font-weight:800;color:#1E5EFF;font-variant-numeric:tabular-nums">{{ readiness }}%</span>
+          </div>
+          <div style="height:9px;border-radius:999px;background:#E4E9F2;overflow:hidden">
+            <div style="height:100%;border-radius:999px;background:linear-gradient(90deg,#1E4FD6,#22B8D8);width:{{ readiness }}%;transition:width .5s cubic-bezier(.4,0,.2,1)"></div>
+          </div>
+          <div style="font-size:12px;color:#7A879B;margin-top:8px">{{ readinessHint }}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <sc-for list="{{ s2sections }}" as="sec" hint-placeholder-count="5">
+            <div style="background:#ffffff;border:1px solid #E4E9F2;border-radius:16px;overflow:hidden">
+              <button onClick="{{ sec.toggle }}" style="font-family:inherit;cursor:pointer;width:100%;display:flex;align-items:center;gap:12px;background:none;border:none;padding:17px 20px;text-align:left">
+                <span style="flex:1;font-size:15px;font-weight:800">{{ sec.title }}</span>
+                <span style="font-size:12px;font-weight:600;color:#7A879B">{{ sec.hint }}</span>
+                <span style="font-size:13px;color:#1E5EFF;font-weight:800;transform:rotate({{ sec.rot }}deg);transition:transform .2s;display:inline-block">▾</span>
+              </button>
+              <sc-if value="{{ sec.open }}" hint-placeholder-val="{{ false }}">
+                <div style="padding:2px 20px 20px;display:flex;flex-direction:column;gap:14px">
+                  <sc-if value="{{ sec.note }}" hint-placeholder-val="{{ false }}">
+                    <div style="font-size:12.5px;color:#4A5872;background:#F5F7FB;border-radius:9px;padding:9px 13px">{{ sec.note }}</div>
+                  </sc-if>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:13px">
+                    <sc-for list="{{ sec.fields }}" as="f" hint-placeholder-count="4">
+                      <div style="grid-column:{{ f.span }};min-width:0">
+                        <label style="display:block;font-size:12.5px;font-weight:700;margin-bottom:5px">{{ f.label }}</label>
+                        <sc-if value="{{ f.multi }}" hint-placeholder-val="{{ false }}">
+                          <textarea value="{{ f.value }}" onChange="{{ f.onChange }}" rows="3" placeholder="{{ f.ph }}" style="width:100%;font-family:inherit;font-size:14px;padding:11px 12px;border:1.5px solid #E4E9F2;border-radius:10px;background:#ffffff;color:#0F2440;resize:vertical"></textarea>
+                        </sc-if>
+                        <sc-if value="{{ f.single }}" hint-placeholder-val="{{ true }}">
+                          <input value="{{ f.value }}" onChange="{{ f.onChange }}" placeholder="{{ f.ph }}" style="width:100%;font-family:inherit;font-size:14px;padding:11px 12px;border:1.5px solid #E4E9F2;border-radius:10px;background:#ffffff;color:#0F2440"></input>
+                        </sc-if>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <sc-if value="{{ sec.uploads }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:13px">
+                      <sc-for list="{{ uploadZones }}" as="u" hint-placeholder-count="2">
+                        <div style="min-width:0">
+                          <label style="display:block;font-size:12.5px;font-weight:700;margin-bottom:5px">{{ u.label }}</label>
+                          <div onDrop="{{ u.onDrop }}" onDragOver="{{ preventDefault }}" style="border:1.5px dashed #B9C6DB;border-radius:12px;padding:18px 14px;text-align:center;background:#FAFBFE;transition:border-color .15s" style-hover="border-color:#1E5EFF">
+                            <div style="font-size:13px;color:#4A5872;margin-bottom:9px">Dateien hierher ziehen oder</div>
+                            <label style="display:inline-block;cursor:pointer;font-size:13px;font-weight:700;color:#1E5EFF;background:#EDF3FF;border-radius:9px;padding:8px 16px">
+                              Dateien auswählen
+                              <input type="file" multiple="{{ true }}" accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx" onChange="{{ u.onFiles }}" style="display:none"></input>
+                            </label>
+                            <div style="font-size:11px;color:#9AA7BC;margin-top:8px">JPG, PNG, WebP, PDF, DOC · max. 25 MB pro Datei</div>
+                          </div>
+                          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+                            <sc-for list="{{ u.files }}" as="fl" hint-placeholder-count="0">
+                              <span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;background:#EDF3FF;color:#1E4FD6;border-radius:999px;padding:5px 11px">📎 {{ fl.name }}</span>
+                            </sc-for>
+                          </div>
+                        </div>
+                      </sc-for>
+                    </div>
+                    <div>
+                      <label style="display:block;font-size:12.5px;font-weight:700;margin-bottom:5px">Viel Material? Stattdessen Google-Drive-/Dropbox-Link einfügen</label>
+                      <input value="{{ driveVal }}" onChange="{{ onDrive }}" placeholder="https://drive.google.com/…" style="width:100%;font-family:inherit;font-size:14px;padding:11px 12px;border:1.5px solid #E4E9F2;border-radius:10px;background:#ffffff;color:#0F2440"></input>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ sec.goals }}" hint-placeholder-val="{{ false }}">
+                    <div>
+                      <label style="display:block;font-size:12.5px;font-weight:700;margin-bottom:8px">Hauptziel Ihrer Website</label>
+                      <div style="display:flex;flex-wrap:wrap;gap:9px">
+                        <sc-for list="{{ goalOpts }}" as="go" hint-placeholder-count="4">
+                          <button onClick="{{ go.pick }}" style="font-family:inherit;cursor:pointer;font-size:13.5px;font-weight:600;padding:10px 18px;border-radius:999px;border:1.5px solid {{ go.bc }};background:{{ go.bg }};color:{{ go.fg }};transition:all .15s" style-hover="border-color:#1E5EFF">{{ go.label }}</button>
+                        </sc-for>
+                      </div>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:28px;align-items:center">
+          <button onClick="{{ toDone }}" style="font-family:inherit;cursor:pointer;border:none;border-radius:12px;padding:15px 32px;font-size:15px;font-weight:700;color:#ffffff;background:linear-gradient(100deg,#1E4FD6,#22B8D8);box-shadow:0 10px 22px -8px rgba(30,79,214,.5);transition:transform .15s" style-hover="transform:translateY(-1px)">Inhalte senden &amp; abschließen</button>
+          <button onClick="{{ toDone }}" style="font-family:inherit;cursor:pointer;background:none;border:none;color:#7A879B;font-size:13.5px;font-weight:600" style-hover="color:#1E5EFF">Später ergänzen →</button>
+        </div>
+      </section>
+    </sc-if>
+
+    <!-- ============ STEP 6: BESTÄTIGUNG ============ -->
+    <sc-if value="{{ isDone }}" hint-placeholder-val="{{ false }}">
+      <section data-screen-label="Bestätigung" style="animation:ipFade .5s ease both;padding:64px 0 90px;max-width:680px;margin:0 auto;text-align:center">
+        <div style="width:76px;height:76px;border-radius:50%;background:linear-gradient(120deg,#1E4FD6,#22B8D8);display:flex;align-items:center;justify-content:center;margin:0 auto 22px;box-shadow:0 14px 32px -10px rgba(30,79,214,.5)">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none"><path d="M5 13l4.5 4.5L19 8" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        </div>
+        <h2 style="font-size:34px;font-weight:800;letter-spacing:-0.9px;margin:0 0 10px">Vielen Dank! Ihre Anfrage ist bei uns.</h2>
+        <p style="font-size:15.5px;color:#4A5872;margin:0 0 36px">Kein Risiko — das Erstgespräch ist unverbindlich.</p>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:left;margin-bottom:28px">
+          <sc-for list="{{ nextSteps }}" as="ns" hint-placeholder-count="3">
+            <div style="background:#ffffff;border:1px solid #E4E9F2;border-radius:15px;padding:18px">
+              <div style="width:28px;height:28px;border-radius:50%;background:#EDF3FF;color:#1E5EFF;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-bottom:10px">{{ ns.num }}</div>
+              <div style="font-size:13px;font-weight:600;line-height:1.5;color:#0F2440">{{ ns.label }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="background:#ffffff;border:1px solid #E4E9F2;border-radius:18px;padding:24px;text-align:left">
+          <div style="font-size:12px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:#7A879B;margin-bottom:14px">Ihre Konfiguration</div>
+          <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;padding:5px 0">
+            <span>Paket {{ curName }}</span><span>{{ curPrice }}</span>
+          </div>
+          <sc-for list="{{ summaryExtras }}" as="s" hint-placeholder-count="2">
+            <div style="display:flex;justify-content:space-between;font-size:13px;color:#4A5872;padding:4px 0">
+              <span>{{ s.name }}</span><span>{{ s.price }}</span>
+            </div>
+          </sc-for>
+          <div style="border-top:1px solid #E4E9F2;margin:12px 0"></div>
+          <div style="display:flex;justify-content:space-between;font-size:14.5px;font-weight:800;padding:3px 0">
+            <span>Einmalig</span><span>{{ einmaligFmt }}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:14.5px;font-weight:800;color:#1E5EFF;padding:3px 0">
+            <span>Monatlich</span><span>{{ monatlichFmt }}</span>
+          </div>
+          <p style="margin:12px 0 0;font-size:11.5px;color:#7A879B">Unverbindliche Schätzung · Endpreise, keine USt. (Reverse-Charge, Rechnung der IntelliPaaS Inc., USA) · Wir senden Ihnen die Übersicht auch per E-Mail.</p>
+        </div>
+        <button onClick="{{ restart }}" style="font-family:inherit;cursor:pointer;margin-top:26px;background:none;border:1.5px solid #E4E9F2;border-radius:11px;color:#4A5872;font-size:13.5px;font-weight:700;padding:11px 22px;transition:all .15s" style-hover="border-color:#1E5EFF;color:#1E5EFF">Neue Konfiguration starten</button>
+      </section>
+    </sc-if>
+  </main>
+
+  <!-- ============ FOOTER ============ -->
+  <footer style="border-top:1px solid #E4E9F2;background:#ffffff">
+    <div style="max-width:1100px;margin:0 auto;padding:18px 24px;display:flex;flex-wrap:wrap;align-items:center;gap:18px;font-size:12.5px;color:#7A879B">
+      <span style="font-weight:700;color:#0F2440">IntelliPaaS.io Web Studio</span>
+      <a href="#impressum" style="color:#7A879B;text-decoration:none" style-hover="color:#1E5EFF">Impressum</a>
+      <a href="#datenschutz" style="color:#7A879B;text-decoration:none" style-hover="color:#1E5EFF">Datenschutz</a>
+      <span style="margin-left:auto;display:inline-flex;align-items:center;gap:6px">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" style="flex:none"><rect x="4" y="10" width="16" height="11" rx="2.5" stroke="#7A879B" stroke-width="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="#7A879B" stroke-width="2"></path></svg>
+        DSGVO-konform · SSL-verschlüsselt (256-Bit) · Secured by Cloudflare · Server in DE/EU
+      </span>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;aiPriceDisplay&quot;: { &quot;editor&quot;: &quot;enum&quot;, &quot;options&quot;: [&quot;ab €8.500 + ab €299/Mon.&quot;, &quot;auf Anfrage&quot;], &quot;default&quot;: &quot;ab €8.500 + ab €299/Mon.&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Pricing&quot; },
+  &quot;defaultCarePlan&quot;: { &quot;editor&quot;: &quot;enum&quot;, &quot;options&quot;: [&quot;basis&quot;, &quot;plus&quot;, &quot;pro&quot;], &quot;default&quot;: &quot;plus&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Pricing&quot; }
+}">
+class Component extends DCLogic {
+  state = {
+    step: 'intro',
+    url: '',
+    persona: null,
+    answers: { pages: null, langs: null, booking: null, shop: null, blog: null, assets: null },
+    bundle: null,
+    sel: {},
+    care: null,
+    payYearly: true,
+    qty: {},
+    aiOpen: false,
+    lead: { vorname: '', nachname: '', firma: '', email: '', tel: '', ziel: '', consent: false },
+    leadErr: {},
+    s2: {},
+    goal: null,
+    drive: '',
+    logoFiles: [],
+    fotoFiles: [],
+    openSec: 'unternehmen',
+    dispE: 0,
+    dispM: 0
+  };
+
+  // ---------- data ----------
+  BUNDLES = {
+    silver:   { name: 'Silver',   price: 1790, tag: 'Der solide Start', chips: ['Bis 3 Seiten', '1 Sprache', 'Kontaktformular (Secured by Cloudflare)', 'Social-Media-Links', 'Impressum & Datenschutz', 'Hosting-ready in DE/EU'] },
+    gold:     { name: 'Gold',     price: 2290, tag: 'Für die meisten ideal', chips: ['Bis 5 Seiten', 'Blog / Neuigkeiten', '1 Sprache', 'Online-Buchungssystem', 'Cookie-Consent + Analytics', 'Lokale SEO-Grundlagen', '€150 Integrations-Guthaben', '3 Korrekturrunden'] },
+    platinum: { name: 'Platinum', price: 2990, tag: 'Alles drin', chips: ['Bis 10 Seiten', 'Blog / Neuigkeiten', '2 Sprachen', '2 Formulare', 'Online-Buchungssystem', 'Social-Galerien', 'eCommerce / Stripe-Checkout', '€500 Integrations-Guthaben', '5 Korrekturrunden'] }
+  };
+
+  ADDONS = [
+    { id: 'page',       name: 'Zusätzliche Webseiten', price: 75, cat: 'Inhalte', qty: { min: 1, max: 25 } },
+    { id: 'blogsetup',  name: 'Blog-Einrichtung', price: 300, cat: 'Inhalte', inc: ['gold', 'platinum'] },
+    { id: 'blogsub',    name: 'Blogartikel-Abo, SEO-optimiert', price: 49, cat: 'Inhalte', monthly: true, tiers: [{ n: 1, p: 49 }, { n: 2, p: 89 }, { n: 4, p: 159 }, { n: 8, p: 279 }] },
+    { id: 'foto',       name: 'Foto-/Bildpaket', price: 185, cat: 'Inhalte' },
+    { id: 'logo',       name: 'Logo / Branding-Auffrischung', price: 250, cat: 'Inhalte' },
+    { id: 'lang',       name: 'Weitere Sprache', price: 450, cat: 'Funktionen', inc: ['platinum'] },
+    { id: 'booking',    name: 'Online-Buchungssystem', price: 250, cat: 'Funktionen', inc: ['gold', 'platinum'] },
+    { id: 'form',       name: 'Zusätzliches Kontaktformular', price: 120, cat: 'Funktionen', inc: ['platinum'] },
+    { id: 'newsletter', name: 'Newsletter-Anbindung (Brevo)', price: 250, cat: 'Funktionen' },
+    { id: 'ecom',       name: 'eCommerce / Stripe-Checkout', price: 900, cat: 'Funktionen', inc: ['platinum'] },
+    { id: 'maps',       name: 'Google-Maps-Einbindung (API)', price: 120, cat: 'Funktionen' },
+    { id: 'widgets',    name: 'Widgets (WhatsApp, Bewertungen, Click-to-Call)', price: 120, cat: 'Funktionen' },
+    { id: 'cookie',     name: 'Cookie-Consent + Analytics', price: 250, cat: 'Compliance', inc: ['gold', 'platinum'] },
+    { id: 'bfsg',       name: 'BFSG-Barrierefreiheitspaket', price: 500, cat: 'Compliance' },
+    { id: 'dsgvo',      name: 'DSGVO-/Abmahn-Check (Bestandssite)', price: 300, cat: 'Compliance' },
+    { id: 'cfsec',      name: 'Cloudflare Security (WAF, DDoS- & Bot-Schutz)', price: 29, cat: 'Compliance', monthly: true, incCare: ['pro'] },
+    { id: 'gseo',       name: 'Google-Profil + lokale SEO (Einrichtung)', price: 350, cat: 'Marketing' },
+    { id: 'seoonce',    name: 'SEO-Onpage-Optimierung (einmalig)', price: 450, cat: 'Marketing' },
+    { id: 'seomon',     name: 'SEO-Suite: Optimierung, Keyword- & Wettbewerbs-Monitoring, Ranking-Reports', price: 299, cat: 'Marketing', monthly: true },
+    { id: 'ads',        name: 'Google/Meta Ads (Management, zzgl. Budget)', price: 300, cat: 'Marketing', monthly: true },
+    { id: 'newsmon',    name: 'Newsletter-Betreuung', price: 150, cat: 'Marketing', monthly: true },
+    { id: 'gws',        name: 'E-Mail-Einrichtung Google Workspace', price: 150, cat: 'E-Mail', qty: { min: 3, max: 25 }, note: 'Google-Lizenzgebühren nicht inbegriffen — Abrechnung erfolgt separat direkt durch Google.' },
+    { id: 'gadmin',     name: 'Google-Admin-Betreuung (wir als Admin)', price: 10, cat: 'E-Mail', monthly: true },
+    { id: 'chatbot',    name: 'KI-Chatbot / Concierge (Setup)', price: 450, cat: 'KI' },
+    { id: 'chatbotmon', name: 'KI-Chatbot laufend', price: 99, cat: 'KI', monthly: true },
+    { id: 'engine',     name: 'KI-Content-Engine', price: 300, cat: 'KI', monthly: true },
+    { id: 'reviews',    name: 'KI-Bewertungsantworten', price: 99, cat: 'KI', monthly: true }
+  ];
+
+  CARE = [
+    { id: 'basis', name: 'Basis', price: 49,  desc: 'Hosting DE/EU, SSL, Backups, Updates, Monitoring' },
+    { id: 'plus',  name: 'Plus',  price: 79,  desc: '+ Compliance-Updates, 2 Std. Änderungen/Mon., lokale SEO-Pflege', rec: true },
+    { id: 'pro',   name: 'Pro',   price: 199, desc: '+ Priorität, 5 Std. Änderungen, monatl. Report, 24-Std.-Support, Cloudflare Security inklusive' }
+  ];
+
+  QUESTIONS = [
+    { id: 'pages',   title: 'Wie viele Seiten brauchen Sie ungefähr?', hint: 'Zählen Sie grob mit: Startseite, Kontakt, Team, Leistungen/Produkte, einzelne Produkt- oder Leistungsseiten … Impressum & Datenschutz sind immer inklusive.', opts: [['13', '1–3'], ['45', '4–5'], ['610', '6–10'], ['10p', 'Mehr als 10']] },
+    { id: 'langs',   title: 'In wie vielen Sprachen?', opts: [['1', '1 Sprache'], ['2', '2 Sprachen'], ['3', '3+']] },
+    { id: 'booking', title: 'Brauchen Sie eine Online-Terminbuchung?', opts: [['ja', 'Ja'], ['nein', 'Nein']] },
+    { id: 'shop',    title: 'Möchten Sie online verkaufen?', hint: 'Produkte oder Dienstleistungen — auch Service-Betriebe verkaufen online: Beratungspakete, Kurse, Gutscheine, buchbare Termine.', opts: [['nein', 'Nein'], ['paar', 'Einige Produkte / Dienstleistungen'], ['shop', 'Voller Online-Shop']] },
+    { id: 'blog',    title: 'Möchten Sie einen Blog / Neuigkeiten-Bereich?', opts: [['ja', 'Ja'], ['nein', 'Nein']] },
+    { id: 'assets',  title: 'Haben Sie bereits ein Logo & Bildmaterial?', opts: [['ja', 'Ja'], ['teil', 'Teilweise'], ['nein', 'Nein']] }
+  ];
+
+  PERSONAS = [
+    { id: 'handwerk', label: 'Handwerk & Betrieb', icon: 'M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17v3h3l5.3-5.3a4 4 0 0 0 5.4-5.4l-2.8 2.8-2.4-2.4 2.2-3.4z', ans: { pages: '45', langs: '1', booking: 'nein', shop: 'nein', blog: 'nein', assets: 'teil' }, pre: ['foto', 'gseo'] },
+    { id: 'gastro',   label: 'Gastronomie & Hotellerie', icon: 'M7 3v7a2 2 0 0 0 2 2v9M7 3v4M11 3v4M11 3v7M17 3c-1.5 1.5-2 4-2 7h2v11M17 3v18', ans: { pages: '45', langs: '2', booking: 'ja', shop: 'nein', blog: 'nein', assets: 'teil' }, pre: ['maps', 'foto'] },
+    { id: 'praxis',   label: 'Praxis & Gesundheit', icon: 'M10 3h4v7h7v4h-7v7h-4v-7H3v-4h7z', ans: { pages: '45', langs: '1', booking: 'ja', shop: 'nein', blog: 'nein', assets: 'teil' }, pre: ['bfsg'] },
+    { id: 'kanzlei',  label: 'Kanzlei & Beratung', icon: 'M12 3v18M8 21h8M6 6h12M6 6L3.5 12a3.2 3.2 0 0 0 5 0L6 6zM18 6l-2.5 6a3.2 3.2 0 0 0 5 0L18 6z', ans: { pages: '45', langs: '2', booking: 'nein', shop: 'nein', blog: 'ja', assets: 'ja' }, pre: ['lang'] },
+    { id: 'handel',   label: 'Einzelhandel & Online-Shop', icon: 'M6 7h12l1.2 13H4.8L6 7zM9 10V6.5a3 3 0 0 1 6 0V10', ans: { pages: '610', langs: '1', booking: 'nein', shop: 'shop', blog: 'nein', assets: 'teil' }, pre: ['ecom', 'foto', 'bfsg'] },
+    { id: 'coach',    label: 'Coach & Dienstleister', icon: 'M12 3l2.2 5.6L20 10.8l-5.8 2.2L12 18.6l-2.2-5.6L4 10.8l5.8-2.2z', ans: { pages: '45', langs: '1', booking: 'ja', shop: 'nein', blog: 'ja', assets: 'teil' }, pre: ['newsletter'] },
+    { id: 'other',    label: 'Etwas anderes', icon: 'M5 12h.01M12 12h.01M19 12h.01', ans: { pages: '45', langs: '1', booking: 'nein', shop: 'nein', blog: 'nein', assets: 'teil' }, pre: [] }
+  ];
+
+  S2FIELDS = {
+    unternehmen: [
+      ['firmenname', 'Firmenname', 'z. B. Müller Sanitär GmbH'],
+      ['rechtsform', 'Rechtsform', 'GmbH, e.K., GbR …'],
+      ['anschrift', 'Anschrift', 'Straße, PLZ, Ort', 'full'],
+      ['inhaber', 'Geschäftsführer / Inhaber', 'Vor- und Nachname'],
+      ['ustid', 'USt-IdNr.', 'DE…'],
+      ['oeffnung', 'Öffnungszeiten', 'Mo–Fr 8–17 Uhr'],
+      ['gebiet', 'Einzugsgebiet / Standorte', 'z. B. München + 30 km']
+    ],
+    marke: [
+      ['farben', 'Markenfarben (falls vorhanden)', 'z. B. Dunkelblau + Orange', 'full']
+    ],
+    geschichte: [
+      ['einsatz', 'Was Sie in einem Satz tun', 'z. B. Wir sanieren Bäder — schnell und sauber.', 'full', 'multi'],
+      ['leistungen', 'Leistungen / Produkte (jede wird ein Abschnitt)', 'Eine pro Zeile', 'full', 'multi'],
+      ['usps', 'Warum Kunden Sie wählen (USPs)', 'z. B. 24-h-Notdienst, Festpreisgarantie …', 'full', 'multi'],
+      ['zertifikate', 'Zertifikate, Meister-Titel, Innungen, TÜV, Auszeichnungen', '', 'full']
+    ],
+    social: [
+      ['gprofil', 'Google-Unternehmensprofil-Link', 'https://g.page/…'],
+      ['socialp', 'Social-Profile', 'Instagram, Facebook, LinkedIn …'],
+      ['bewertungen', 'Bewertungen / Testimonials', 'Oder: „aus meinem Google-Profil übernehmen"', 'full', 'multi']
+    ],
+    ziel: [
+      ['beispiele', '1–2 Beispiel-Websites, die Ihnen gefallen (oder missfallen)', 'www.beispiel.de — gefällt mir wegen …', 'full', 'multi']
+    ]
+  };
+
+  // ---------- helpers ----------
+  fmt(n) { return '€' + Math.round(n).toLocaleString('de-DE'); }
+
+  disc(p) { return this.state.payYearly ? p * 0.82 : p; }
+
+  qtyOf(a) {
+    const q = this.state.qty[a.id];
+    if (q != null) return q;
+    if (a.tiers) return a.tiers[0].n;
+    return a.qty ? a.qty.min : 1;
+  }
+
+  addonCost(a) {
+    const n = this.qtyOf(a);
+    if (a.id === 'page') return 75 * n;
+    if (a.id === 'gws') return 150 + (n - 3) * 30;
+    if (a.tiers) { const t = a.tiers.find(t => t.n === n) || a.tiers[0]; return t.p; }
+    return a.price;
+  }
+
+  qtyText(a) {
+    const n = this.qtyOf(a);
+    if (a.id === 'page') return n + (n === 1 ? ' Seite' : ' Seiten');
+    if (a.id === 'gws') return n + ' Adressen';
+    if (a.tiers) return n + ' Artikel/Mon.';
+    return String(n);
+  }
+
+  stepQty(a, dir) {
+    if (a.tiers) {
+      const ns = a.tiers.map(t => t.n);
+      const i = Math.max(0, ns.indexOf(this.qtyOf(a)));
+      const j = Math.min(ns.length - 1, Math.max(0, i + dir));
+      this.setState({ qty: { ...this.state.qty, [a.id]: ns[j] } });
+      return;
+    }
+    const n = Math.min(a.qty.max, Math.max(a.qty.min, this.qtyOf(a) + dir));
+    this.setState({ qty: { ...this.state.qty, [a.id]: n } });
+  }
+
+  recommend() {
+    const a = this.state.answers;
+    let b = { '13': 'silver', '45': 'gold', '610': 'platinum', '10p': 'platinum' }[a.pages] || 'gold';
+    let reasons = [];
+    if (a.blog === 'ja' && b === 'silver') { b = 'gold'; reasons.push('Blog inklusive'); }
+    if (a.shop === 'paar' && b === 'silver') { b = 'gold'; reasons.push('bereit für Online-Verkauf'); }
+    if (a.shop === 'shop') { b = 'platinum'; reasons.push('voller Online-Shop mit Stripe inklusive'); }
+    const base = { silver: 'Ideal für einen schlanken, professionellen Auftritt mit bis zu 3 Seiten.', gold: 'Ideal für die meisten Unternehmen mit bis zu 5 Seiten und Blog.', platinum: 'Für den großen Auftritt: bis 10 Seiten, 2 Sprachen, Shop & Buchung inklusive.' }[b];
+    let reason = base + (reasons.length ? ' Gewählt, weil: ' + reasons.join(', ') + '.' : '');
+    if (a.pages === '10p') reason += ' Bei mehr als 10 Seiten lohnt sich auch ein Blick auf AI Ultimate — unbegrenzte Seiten.';
+    return { bundle: b, reason };
+  }
+
+  recSet(bundleKey) {
+    const a = this.state.answers;
+    const p = this.PERSONAS.find(x => x.id === this.state.persona);
+    const s = {};
+    const incl = id => { const ad = this.ADDONS.find(x => x.id === id); return ad.inc && ad.inc.includes(bundleKey); };
+    const add = id => { if (!incl(id)) s[id] = true; };
+    if (p) p.pre.forEach(add);
+    if (a.langs === '2' || a.langs === '3') add('lang');
+    if (a.booking === 'ja') add('booking');
+    if (a.shop === 'paar' || a.shop === 'shop') add('ecom');
+    if (a.assets === 'nein') { add('logo'); add('foto'); }
+    if (a.assets === 'teil') add('foto');
+    if (bundleKey === 'silver') add('cookie');
+    if (this.state.url) add('dsgvo');
+    return s;
+  }
+
+  curBundle() { return this.state.bundle || (this._rec ? this._rec.bundle : 'gold'); }
+
+  calcTotals() {
+    const bk = this.curBundle();
+    const careId = this.state.care || 'plus';
+    let e = this.BUNDLES[bk].price, m = 0;
+    m += this.CARE.find(c => c.id === careId).price;
+    this.ADDONS.forEach(a => {
+      const included = (a.inc && a.inc.includes(bk)) || (a.incCare && a.incCare.includes(careId));
+      if (!included && this.state.sel[a.id]) { const c = this.addonCost(a); if (a.monthly) m += c; else e += c; }
+    });
+    const mEff = this.state.payYearly ? m * 0.82 : m;
+    return { e, m, mEff };
+  }
+
+  go(step) { this.setState({ step }); if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'instant' }); }
+
+  tweenTotals() {
+    const { e, mEff: m } = this.calcTotals();
+    if (this._tE === e && this._tM === m) return;
+    this._tE = e; this._tM = m;
+    if (this._raf) cancelAnimationFrame(this._raf);
+    if (this._snapT) clearTimeout(this._snapT);
+    this._tweening = true;
+    const sE = this.state.dispE, sM = this.state.dispM, t0 = performance.now(), dur = 450;
+    const tick = now => {
+      const t = Math.min(1, (now - t0) / dur), k = 1 - Math.pow(1 - t, 3);
+      this.setState({ dispE: sE + (e - sE) * k, dispM: sM + (m - sM) * k });
+      if (t < 1) this._raf = requestAnimationFrame(tick);
+      else this._tweening = false;
+    };
+    this._raf = requestAnimationFrame(tick);
+    this._snapT = setTimeout(() => {
+      this._tweening = false;
+      if (this.state.dispE !== e || this.state.dispM !== m) this.setState({ dispE: e, dispM: m });
+    }, dur + 200);
+  }
+
+  componentDidUpdate() {
+    if (this.state.step === 'config') this.tweenTotals();
+    try { const { dispE, dispM, logoFiles, fotoFiles, ...rest } = this.state; localStorage.setItem('ipaas-konfigurator', JSON.stringify(rest)); } catch (e) {}
+  }
+
+  componentDidMount() {
+    try {
+      const saved = JSON.parse(localStorage.getItem('ipaas-konfigurator') || 'null');
+      if (saved && saved.step && saved.step !== 'done') {
+        this._rec = null;
+        this.setState(saved);
+        if (saved.persona) this._rec = null;
+      }
+    } catch (e) {}
+  }
+
+  // ---------- renderVals ----------
+  renderVals() {
+    const st = this.state;
+    const step = st.step;
+    if (!this._rec && st.persona) this._rec = this.recommend();
+    const rec = this._rec || { bundle: 'gold', reason: '' };
+    const bk = this.curBundle();
+    const bundle = this.BUNDLES[bk];
+    const { e: einmalig, m: monatlichRaw, mEff: monatlich } = this.calcTotals();
+    const recSetNow = this._recSet || {};
+    const stepNums = { persona: 1, questions: 2, config: 3, lead: 4, stage2: 5 };
+    const aiPrice = this.props.aiPriceDisplay ?? 'ab €8.500 + ab €299/Mon.';
+
+    // persona cards
+    const personaCards = this.PERSONAS.map(p => ({
+      label: p.label, icon: p.icon,
+      bc: st.persona === p.id ? '#1E5EFF' : '#E4E9F2',
+      pick: () => {
+        this._rec = null;
+        this.setState({ persona: p.id, answers: { ...p.ans } });
+        this.go('questions');
+      }
+    }));
+
+    // questions
+    const questions = this.QUESTIONS.map(q => ({
+      title: q.title,
+      hint: q.hint || false,
+      opts: q.opts.map(([val, label]) => {
+        const sel = st.answers[q.id] === val;
+        return {
+          label,
+          bc: sel ? '#1E5EFF' : '#E4E9F2',
+          bg: sel ? '#1E5EFF' : '#ffffff',
+          fg: sel ? '#ffffff' : '#0F2440',
+          pick: () => { this._rec = null; this.setState({ answers: { ...st.answers, [q.id]: val } }); }
+        };
+      })
+    }));
+
+    // bundles
+    const bundleTabs = ['silver', 'gold', 'platinum'].map(k => {
+      const b = this.BUNDLES[k];
+      const selected = bk === k;
+      const isPlat = k === 'platinum';
+      return {
+        name: b.name, price: this.fmt(b.price) + ' einmalig', tag: b.tag,
+        isRec: rec.bundle === k,
+        bg: selected ? (isPlat ? '#0F2440' : '#EDF3FF') : '#ffffff',
+        bc: selected ? '#1E5EFF' : '#E4E9F2',
+        fg: selected && isPlat ? '#ffffff' : '#0F2440',
+        sub: selected && isPlat ? '#8FD8EA' : '#4A5872',
+        pick: () => {
+          this._recSet = this.recSet(k);
+          this.setState({ bundle: k, sel: { ...this._recSet, ...this.userSel(k) } });
+        }
+      };
+    });
+
+    // addons
+    const cats = ['Inhalte', 'Funktionen', 'Compliance', 'Marketing', 'E-Mail', 'KI'];
+    const addonGroups = cats.map(cat => ({
+      cat,
+      items: this.ADDONS.filter(a => a.cat === cat).map(a => {
+        const careId = st.care || 'plus';
+        const included = !!((a.inc && a.inc.includes(bk)) || (a.incCare && a.incCare.includes(careId)));
+        const selected = !included && !!st.sel[a.id];
+        const isRec = !included && !!recSetNow[a.id];
+        const hasQty = !!(a.qty || a.tiers);
+        let priceLabel;
+        if (included) priceLabel = a.incCare ? 'Im Pflege-Plan Pro enthalten' : 'Im Paket ' + bundle.name + ' enthalten';
+        else if (hasQty && selected) priceLabel = '+ ' + this.fmt(a.monthly ? this.disc(this.addonCost(a)) : this.addonCost(a)) + (a.monthly ? '/Mon.' : ' einmalig');
+        else if (a.id === 'page') priceLabel = '+ €75 pro Seite';
+        else if (a.id === 'gws') priceLabel = '+ €150 einmalig · inkl. 3 Adressen, je weitere +€30';
+        else if (a.tiers) priceLabel = 'ab ' + this.fmt(this.disc(a.tiers[0].p)) + '/Mon. · 1 bis 8 Artikel';
+        else priceLabel = '+ ' + this.fmt(a.monthly ? this.disc(a.price) : a.price) + (a.monthly ? '/Mon.' : ' einmalig');
+        return {
+          name: a.name,
+          priceLabel,
+          note: a.note || false,
+          isIncluded: included,
+          showSwitch: !included,
+          showQty: hasQty && selected,
+          qtyLabel: this.qtyText(a),
+          decQ: ev => { ev.stopPropagation(); this.stepQty(a, -1); },
+          incQ: ev => { ev.stopPropagation(); this.stepQty(a, 1); },
+          isRec,
+          bg: included ? '#F7FAF8' : selected ? '#F4F8FF' : '#ffffff',
+          bc: included ? '#D3E8DA' : selected ? '#1E5EFF' : '#E4E9F2',
+          hbc: included ? '#D3E8DA' : '#1E5EFF',
+          fg: included ? '#4A5872' : '#0F2440',
+          priceFg: included ? '#2E8B57' : '#7A879B',
+          cursor: included ? 'default' : 'pointer',
+          swBg: selected ? '#1E5EFF' : '#CBD5E4',
+          swLeft: selected ? 19 : 3,
+          toggle: () => { if (included) return; this.setState({ sel: { ...st.sel, [a.id]: !st.sel[a.id] } }); }
+        };
+      })
+    })).filter(g => g.items.length);
+
+    // care
+    const carePlans = this.CARE.map(c => {
+      const selected = (st.care || 'plus') === c.id;
+      return {
+        name: c.name, price: this.fmt(this.disc(c.price)) + '/Mon.', desc: c.desc, isRec: !!c.rec,
+        bg: selected ? '#EDF3FF' : '#ffffff', bc: selected ? '#1E5EFF' : '#E4E9F2',
+        pick: () => this.setState({ care: c.id })
+      };
+    });
+
+    // summary extras
+    const summaryExtras = [];
+    this.ADDONS.forEach(a => {
+      const included = (a.inc && a.inc.includes(bk)) || (a.incCare && a.incCare.includes(st.care || 'plus'));
+      if (!included && st.sel[a.id]) {
+        const qtyTag = (a.qty || a.tiers) ? ' (' + this.qtyText(a) + ')' : '';
+        summaryExtras.push({ name: a.name + qtyTag, price: this.fmt(a.monthly ? this.disc(this.addonCost(a)) : this.addonCost(a)) + (a.monthly ? '/Mon.' : '') });
+      }
+    });
+    const care = this.CARE.find(c => c.id === (st.care || 'plus'));
+    summaryExtras.push({ name: 'Pflege-Plan ' + care.name, price: this.fmt(this.disc(care.price)) + '/Mon.' });
+
+    // lead form
+    const LF = [
+      ['vorname', 'Vorname', '', 'auto', false], ['nachname', 'Nachname', '', 'auto', false],
+      ['firma', 'Firmenname', '', 'full', false],
+      ['email', 'E-Mail', 'ihre@email.de', 'auto', true], ['tel', 'Telefon', '+49 …', 'auto', true]
+    ];
+    const leadFields = LF.map(([key, label, ph, span, req]) => ({
+      label, ph, req: req ? ' *' : '',
+      type: key === 'email' ? 'email' : key === 'tel' ? 'tel' : 'text',
+      span: span === 'full' ? '1 / -1' : 'auto',
+      value: st.lead[key],
+      error: st.leadErr[key] || false,
+      bc: st.leadErr[key] ? '#D6493E' : '#E4E9F2',
+      onChange: ev => this.setState({ lead: { ...this.state.lead, [key]: ev.target.value }, leadErr: { ...this.state.leadErr, [key]: null } })
+    }));
+
+    // stage 2 sections
+    const mkFields = arr => arr.map(([key, label, ph, span, multi]) => ({
+      label, ph: ph || '',
+      span: span === 'full' ? '1 / -1' : 'auto',
+      multi: multi === 'multi', single: multi !== 'multi',
+      value: st.s2[key] || '',
+      onChange: ev => this.setState({ s2: { ...this.state.s2, [key]: ev.target.value } })
+    }));
+    const secDefs = [
+      { id: 'unternehmen', title: 'Unternehmen', note: 'Diese Angaben fließen auch in Ihr Impressum.', fields: this.S2FIELDS.unternehmen },
+      { id: 'marke', title: 'Marke & Bilder', uploads: true, fields: this.S2FIELDS.marke, note: st.url ? 'Wir prüfen ' + st.url + ' und übernehmen automatisch, was wir dort finden.' : false },
+      { id: 'geschichte', title: 'Ihre Geschichte', fields: this.S2FIELDS.geschichte },
+      { id: 'social', title: 'Nachweise & Social', fields: this.S2FIELDS.social },
+      { id: 'ziel', title: 'Ziel & Geschmack', goals: true, fields: this.S2FIELDS.ziel }
+    ];
+    const countFilled = def => {
+      let n = def.fields.filter(f => (st.s2[f[0]] || '').trim()).length;
+      if (def.uploads) n += (st.logoFiles.length ? 1 : 0) + (st.fotoFiles.length ? 1 : 0) + (st.drive.trim() ? 1 : 0);
+      if (def.goals) n += st.goal ? 1 : 0;
+      return n;
+    };
+    const totalFields = def => def.fields.length + (def.uploads ? 3 : 0) + (def.goals ? 1 : 0);
+    const s2sections = secDefs.map(def => {
+      const open = st.openSec === def.id;
+      const filled = countFilled(def);
+      return {
+        title: def.title,
+        note: def.note || false,
+        hint: filled + ' / ' + totalFields(def) + ' ausgefüllt',
+        open, rot: open ? 180 : 0,
+        uploads: !!def.uploads, goals: !!def.goals,
+        fields: mkFields(def.fields),
+        toggle: () => this.setState({ openSec: open ? null : def.id })
+      };
+    });
+
+    // readiness
+    let filledAll = 0, totalAll = 0;
+    secDefs.forEach(d => { filledAll += countFilled(d); totalAll += totalFields(d); });
+    const readiness = Math.min(100, Math.round(25 + (filledAll / totalAll) * 75));
+    const readinessHint = readiness < 40 ? 'Guter Start! Schon Ihr Logo und 2–3 Sätze machen einen großen Unterschied.'
+      : readiness < 70 ? 'Stark! Ihr erster Entwurf wird schon deutlich persönlicher.'
+      : 'Hervorragend — damit bauen wir Ihnen einen beeindruckenden ersten Entwurf.';
+
+    const goalOpts = ['Anrufe', 'Terminbuchungen', 'Online-Verkäufe', 'Anfragen'].map(g => {
+      const sel = st.goal === g;
+      return { label: g, bc: sel ? '#1E5EFF' : '#E4E9F2', bg: sel ? '#1E5EFF' : '#ffffff', fg: sel ? '#ffffff' : '#0F2440', pick: () => this.setState({ goal: sel ? null : g }) };
+    });
+
+    const readFiles = (list, key) => {
+      const names = Array.from(list || []).filter(f => f.size <= 25 * 1024 * 1024).map(f => ({ name: f.name }));
+      if (names.length) this.setState({ [key]: [...this.state[key], ...names] });
+    };
+    const uploadZones = [
+      { label: 'Logo (Upload) — oder wir gestalten eins', files: st.logoFiles, onFiles: ev => readFiles(ev.target.files, 'logoFiles'), onDrop: ev => { ev.preventDefault(); readFiles(ev.dataTransfer.files, 'logoFiles'); } },
+      { label: 'Fotos: Team, Räume, Produkte, Arbeitsbeispiele', files: st.fotoFiles, onFiles: ev => readFiles(ev.target.files, 'fotoFiles'), onDrop: ev => { ev.preventDefault(); readFiles(ev.dataTransfer.files, 'fotoFiles'); } }
+    ];
+
+    return {
+      isIntro: step === 'intro', isPersona: step === 'persona', isQuestions: step === 'questions',
+      isConfig: step === 'config', isLead: step === 'lead', isStage2: step === 'stage2', isDone: step === 'done',
+      showProgress: !!stepNums[step], stepNum: stepNums[step] || 0, stepPct: ((stepNums[step] || 0) / 5) * 100,
+
+      trustItems: [{ label: 'DSGVO-konform' }, { label: 'SSL-verschlüsselt (256-Bit)' }, { label: 'Secured by Cloudflare' }, { label: 'Server in DE/EU' }, { label: 'Live in 14 Tagen' }, { label: 'Festpreis' }],
+      startNow: () => this.go('persona'),
+      urlVal: st.url,
+      onUrl: ev => this.setState({ url: ev.target.value }),
+
+      backIntro: () => this.go('intro'),
+      backPersona: () => this.go('persona'),
+      backQuestions: () => this.go('questions'),
+      backConfig: () => this.go('config'),
+      personaCards, questions,
+
+      toConfig: () => {
+        this._rec = this.recommend();
+        this._recSet = this.recSet(this._rec.bundle);
+        this.setState({ bundle: null, sel: { ...this._recSet }, care: this.state.care || (this.props.defaultCarePlan ?? 'plus'), dispE: 0, dispM: 0 });
+        this._tE = null; this._tM = null;
+        this.go('config');
+      },
+
+      recName: this.BUNDLES[rec.bundle].name, recPrice: this.fmt(this.BUNDLES[rec.bundle].price),
+      recReason: rec.reason,
+      curName: bundle.name, curPrice: this.fmt(bundle.price),
+      bundleTabs,
+      includedChips: bundle.chips.map(c => ({ label: c })),
+      addonGroups, carePlans, summaryExtras,
+
+      aiOpen: st.aiOpen,
+      aiPriceLabel: aiPrice,
+      aiBtnLabel: st.aiOpen ? 'Weniger anzeigen' : 'Mehr erfahren',
+      toggleAi: () => this.setState({ aiOpen: !st.aiOpen }),
+      aiBullets: [
+        { label: 'Selbstoptimierende SEO — Ihre Website verbessert ihre Rankings eigenständig' },
+        { label: 'KI-Concierge beantwortet Kundenanfragen rund um die Uhr' },
+        { label: 'Self-Healing: Fehler werden erkannt und automatisch behoben' },
+        { label: 'Voller Stripe-Shop mit intelligenten Produktempfehlungen' }
+      ],
+
+      dispEinmalig: this.fmt(this._tweening ? st.dispE : einmalig),
+      dispMonatlich: this.fmt(this._tweening ? st.dispM : monatlich) + '/Mon.',
+      einmaligFmt: this.fmt(einmalig),
+      monatlichFmt: this.fmt(monatlich) + '/Mon.' + (st.payYearly ? ' (bei jährlicher Zahlung)' : ''),
+      setYearly: () => this.setState({ payYearly: true }),
+      setMonthly: () => this.setState({ payYearly: false }),
+      ybBg: st.payYearly ? '#ffffff' : 'transparent',
+      ybFg: st.payYearly ? '#0F2440' : '#7A879B',
+      ybSh: st.payYearly ? '0 1px 3px rgba(15,36,64,.18)' : 'none',
+      mbBg: st.payYearly ? 'transparent' : '#ffffff',
+      mbFg: st.payYearly ? '#7A879B' : '#0F2440',
+      mbSh: st.payYearly ? 'none' : '0 1px 3px rgba(15,36,64,.18)',
+      billingHint: st.payYearly ? 'Alle Monatspreise bei jährlicher Zahlung (−18 %).' : 'Monatspreise bei monatlicher Zahlung — jährlich sparen Sie 18 %.',
+      yearlyNote: st.payYearly
+        ? 'Abrechnung jährlich: ' + this.fmt(monatlichRaw * 0.82 * 12) + '/Jahr statt ' + this.fmt(monatlichRaw * 12) + ' — Sie sparen ' + this.fmt(monatlichRaw * 0.18 * 12) + '/Jahr.'
+        : 'Tipp: Bei jährlicher Zahlung nur ' + this.fmt(monatlichRaw * 0.82) + '/Mon. statt ' + this.fmt(monatlichRaw) + ' — 18 % gespart.',
+      toLead: () => this.go('lead'),
+
+      leadFields,
+      zielVal: st.lead.ziel,
+      onZiel: ev => this.setState({ lead: { ...this.state.lead, ziel: ev.target.value } }),
+      consentVal: st.lead.consent,
+      onConsent: ev => this.setState({ lead: { ...this.state.lead, consent: ev.target.checked }, leadErr: { ...this.state.leadErr, consent: null } }),
+      consentError: st.leadErr.consent || false,
+      submitLead: () => {
+        const l = this.state.lead, err = {};
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(l.email)) err.email = 'Bitte geben Sie eine gültige E-Mail-Adresse ein.';
+        if (!l.tel || l.tel.replace(/\D/g, '').length < 6) err.tel = 'Bitte geben Sie Ihre Telefonnummer ein — wir rufen Sie an.';
+        if (!l.consent) err.consent = 'Bitte stimmen Sie der Datenverarbeitung zu.';
+        if (Object.keys(err).length) { this.setState({ leadErr: err }); return; }
+        // Lead payload (source: configurator) — hier würde die Benachrichtigung an Thorsten ausgelöst
+        console.log('LEAD →', JSON.stringify({ source: 'configurator', lead: l, persona: this.state.persona, answers: this.state.answers, bundle: bk, addons: Object.keys(this.state.sel).filter(k => this.state.sel[k]), care: this.state.care, einmalig, monatlich, url: this.state.url, ts: new Date().toISOString() }));
+        this.go('stage2');
+      },
+
+      s2sections, readiness, readinessHint, goalOpts, uploadZones,
+      driveVal: st.drive,
+      onDrive: ev => this.setState({ drive: ev.target.value }),
+      preventDefault: ev => ev.preventDefault(),
+      toDone: () => this.go('done'),
+
+      nextSteps: [
+        { num: '1', label: 'Wir melden uns persönlich bei Ihnen — meist noch am selben Tag.' },
+        { num: '2', label: 'Wir stimmen Details & Anzahlung (50 %) gemeinsam ab.' },
+        { num: '3', label: 'Ihre Website ist in 14 Tagen live.' }
+      ],
+      restart: () => {
+        this._rec = null; this._recSet = null; this._tE = null; this._tM = null;
+        this.setState({ step: 'intro', url: '', persona: null, answers: { pages: null, langs: null, booking: null, shop: null, blog: null, assets: null }, bundle: null, sel: {}, care: null, payYearly: true, qty: {}, aiOpen: false, lead: { vorname: '', nachname: '', firma: '', email: '', tel: '', ziel: '', consent: false }, leadErr: {}, s2: {}, goal: null, drive: '', logoFiles: [], fotoFiles: [], openSec: 'unternehmen', dispE: 0, dispM: 0 });
+      }
+    };
+  }
+
+  userSel(bk) {
+    // keep user's manual selections when switching bundles, minus now-included items
+    const out = {};
+    Object.keys(this.state.sel).forEach(id => {
+      const a = this.ADDONS.find(x => x.id === id);
+      if (a && this.state.sel[id] && !(a.inc && a.inc.includes(bk))) out[id] = true;
+    });
+    return out;
+  }
+}
+</script>
+</body>
+</html>

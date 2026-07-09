@@ -1,0 +1,54 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import type { Catalog } from '@/lib/types';
+import { useFunnel } from '@/stores/funnel';
+import { Header } from './Header';
+import { Footer } from './Footer';
+import { IntroScreen } from './IntroScreen';
+import { PersonaStep } from './PersonaStep';
+import { QuestionsStep } from './QuestionsStep';
+import { ConfiguratorStep } from './ConfiguratorStep';
+import { LeadStep } from './LeadStep';
+import { Stage2Step } from './Stage2Step';
+import { DoneScreen } from './DoneScreen';
+
+export function FunnelShell({ catalog }: { catalog: Catalog }) {
+  const step = useFunnel((s) => s.step);
+  // Avoid hydration mismatches: the persisted store only exists client-side.
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
+
+  return (
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        background: '#F5F7FB',
+        fontFamily: "var(--font-inter), Inter, 'Helvetica Neue', sans-serif",
+        color: '#0F2440',
+      }}
+    >
+      <Header />
+      <main style={{ flex: 1, width: '100%', maxWidth: 1140, margin: '0 auto', padding: '0 24px' }}>
+        {!hydrated || step === 'intro' ? (
+          <IntroScreen catalog={catalog} />
+        ) : step === 'persona' ? (
+          <PersonaStep catalog={catalog} />
+        ) : step === 'questions' ? (
+          <QuestionsStep catalog={catalog} />
+        ) : step === 'config' ? (
+          <ConfiguratorStep catalog={catalog} />
+        ) : step === 'lead' ? (
+          <LeadStep catalog={catalog} />
+        ) : step === 'stage2' ? (
+          <Stage2Step />
+        ) : (
+          <DoneScreen catalog={catalog} />
+        )}
+      </main>
+      <Footer />
+    </div>
+  );
+}
