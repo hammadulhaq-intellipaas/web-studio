@@ -3,7 +3,7 @@
     "back": "← Zurück",
     "logoAlt": "IntelliPaaS.io — zur Startseite",
     "webStudio": "Web Studio",
-    "stepOf": "Schritt {num} von 5",
+    "stepOf": "Schritt {num} von {total}",
     "footerBrand": "IntelliPaaS.io Web Studio",
     "impressum": "Impressum",
     "datenschutz": "Datenschutz",
@@ -30,6 +30,8 @@
       "concept": "Link zu Ihrem Entwurf (Figma, PDF, Google Docs …)",
       "default": "Link einfügen"
     },
+    "siteNotesPh": "Was soll bleiben, was stört Sie? (z. B. „Design veraltet“, „Texte übernehmen“)",
+    "siteUploadLabel": "Datei hochladen (optional) — Entwurf, Screenshots, Briefing",
     "hasSite": {
       "title": "Haben Sie bereits eine Website, Social-Seite oder ein Konzept?",
       "hint": "Damit wir am richtigen Punkt ansetzen. Wenn ja, fügen Sie den Link ein.",
@@ -87,12 +89,21 @@
     "pages": {
       "title": "Wie viele Seiten brauchen Sie ungefähr?",
       "hint": "Zählen Sie grob mit: Startseite, Kontakt, Team, Leistungen/Produkte, einzelne Produkt- oder Leistungsseiten … Impressum & Datenschutz sind immer inklusive.",
-      "opts": { "14": "1–4", "58": "5–8", "912": "9–12", "12p": "Mehr als 12" }
+      "opts": {
+        "14": "1–4",
+        "58": "5–8",
+        "912": "9–12",
+        "12p": "Mehr als 12"
+      }
     },
     "langs": {
       "title": "In wie vielen Sprachen?",
       "titleByow": "In wie vielen Sprachen soll die Seite verfügbar sein?",
-      "opts": { "1": "1 Sprache", "2": "2 Sprachen", "3": "3+" }
+      "opts": {
+        "1": "1 Sprache",
+        "2": "2 Sprachen",
+        "3": "3+"
+      }
     },
     "contact": {
       "title": "Wie sollen Ihre Kunden Kontakt aufnehmen?",
@@ -104,7 +115,10 @@
     "fees": {
       "title": "Fallen für die Termine Gebühren an?",
       "hint": "z. B. Beratung, Coaching, Behandlung — dann richten wir eine sichere Bezahlung (Stripe) direkt bei der Buchung ein. Kostet extra.",
-      "opts": { "nein": "Nein, kostenlose Termine", "ja": "Ja, kostenpflichtige Termine" }
+      "opts": {
+        "nein": "Nein, kostenlose Termine",
+        "ja": "Ja, kostenpflichtige Termine"
+      }
     },
     "shop": {
       "title": "Möchten Sie online verkaufen?",
@@ -117,11 +131,18 @@
     },
     "blog": {
       "title": "Möchten Sie einen Blog / Neuigkeiten-Bereich?",
-      "opts": { "ja": "Ja", "nein": "Nein" }
+      "opts": {
+        "ja": "Ja",
+        "nein": "Nein"
+      }
     },
     "assets": {
       "title": "Haben Sie bereits ein Logo & Bildmaterial?",
-      "opts": { "ja": "Ja", "teil": "Teilweise", "nein": "Nein" }
+      "opts": {
+        "ja": "Ja",
+        "teil": "Teilweise",
+        "nein": "Nein"
+      }
     }
   },
   "configurator": {
@@ -201,6 +222,9 @@
     "promoSavingsAmount": "{once} einmalig + {monthly}/Mon.",
     "promoErrEmpty": "Bitte geben Sie einen Code ein.",
     "promoErrInvalid": "Dieser Code ist leider ungültig.",
+    "shareButton": "Konfiguration teilen",
+    "shareCopied": "Link kopiert",
+    "shareHint": "Öffnen Sie diesen Link auf einem anderen Gerät, um genau hier weiterzumachen.",
     "disclaimer": "Unverbindliche Schätzung. Endpreise, keine USt. (Reverse-Charge, Leistung der IntelliPaaS Inc., USA).",
     "ctaLead": "Weiter zur Anfrage →",
     "sslShort": "SSL 256-Bit · Secured by Cloudflare"
@@ -253,6 +277,8 @@
     "zielLabel": "Was möchten Sie erreichen?",
     "zielOptional": "(optional)",
     "zielPh": "z. B. Mehr Anfragen über Google erhalten",
+    "optionalIntakeTitle": "Weitere Angaben zu Ihrem Projekt",
+    "optionalIntakeSub": "Alles optional — je mehr wir vorab wissen, desto schneller steht Ihre Website.",
     "consent": "Ich stimme der Verarbeitung meiner Daten gemäß <link>Datenschutzerklärung</link> zu.",
     "errEmail": "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
     "errTel": "Bitte geben Sie Ihre Telefonnummer ein — wir rufen Sie an.",
@@ -290,22 +316,70 @@
       "markeWithUrl": "Wir prüfen {url} und übernehmen automatisch, was wir dort finden."
     },
     "fields": {
-      "firmenname": { "label": "Firmenname", "ph": "z. B. Müller Sanitär GmbH" },
-      "rechtsform": { "label": "Rechtsform", "ph": "GmbH, e.K., GbR …" },
-      "anschrift": { "label": "Anschrift", "ph": "Straße, PLZ, Ort" },
-      "inhaber": { "label": "Geschäftsführer / Inhaber", "ph": "Vor- und Nachname" },
-      "ustid": { "label": "USt-IdNr.", "ph": "DE…" },
-      "oeffnung": { "label": "Öffnungszeiten", "ph": "Mo–Fr 8–17 Uhr" },
-      "gebiet": { "label": "Einzugsgebiet / Standorte", "ph": "z. B. München + 30 km" },
-      "farben": { "label": "Markenfarben (falls vorhanden)", "ph": "z. B. Dunkelblau + Orange" },
-      "einsatz": { "label": "Was Sie in einem Satz tun", "ph": "z. B. Wir sanieren Bäder — schnell und sauber." },
-      "leistungen": { "label": "Leistungen / Produkte (jede wird ein Abschnitt)", "ph": "Eine pro Zeile" },
-      "usps": { "label": "Warum Kunden Sie wählen (USPs)", "ph": "z. B. 24-h-Notdienst, Festpreisgarantie …" },
-      "zertifikate": { "label": "Zertifikate, Meister-Titel, Innungen, TÜV, Auszeichnungen", "ph": "" },
-      "gprofil": { "label": "Google-Unternehmensprofil-Link", "ph": "https://g.page/…" },
-      "socialp": { "label": "Social-Profile", "ph": "Instagram, Facebook, LinkedIn …" },
-      "bewertungen": { "label": "Bewertungen / Testimonials", "ph": "Oder: „aus meinem Google-Profil übernehmen\"" },
-      "beispiele": { "label": "1–2 Beispiel-Websites, die Ihnen gefallen (oder missfallen)", "ph": "www.beispiel.de — gefällt mir wegen …" }
+      "firmenname": {
+        "label": "Firmenname",
+        "ph": "z. B. Müller Sanitär GmbH"
+      },
+      "rechtsform": {
+        "label": "Rechtsform",
+        "ph": "GmbH, e.K., GbR …"
+      },
+      "anschrift": {
+        "label": "Anschrift",
+        "ph": "Straße, PLZ, Ort"
+      },
+      "inhaber": {
+        "label": "Geschäftsführer / Inhaber",
+        "ph": "Vor- und Nachname"
+      },
+      "ustid": {
+        "label": "USt-IdNr.",
+        "ph": "DE…"
+      },
+      "oeffnung": {
+        "label": "Öffnungszeiten",
+        "ph": "Mo–Fr 8–17 Uhr"
+      },
+      "gebiet": {
+        "label": "Einzugsgebiet / Standorte",
+        "ph": "z. B. München + 30 km"
+      },
+      "farben": {
+        "label": "Markenfarben (falls vorhanden)",
+        "ph": "z. B. Dunkelblau + Orange"
+      },
+      "einsatz": {
+        "label": "Was Sie in einem Satz tun",
+        "ph": "z. B. Wir sanieren Bäder — schnell und sauber."
+      },
+      "leistungen": {
+        "label": "Leistungen / Produkte (jede wird ein Abschnitt)",
+        "ph": "Eine pro Zeile"
+      },
+      "usps": {
+        "label": "Warum Kunden Sie wählen (USPs)",
+        "ph": "z. B. 24-h-Notdienst, Festpreisgarantie …"
+      },
+      "zertifikate": {
+        "label": "Zertifikate, Meister-Titel, Innungen, TÜV, Auszeichnungen",
+        "ph": ""
+      },
+      "gprofil": {
+        "label": "Google-Unternehmensprofil-Link",
+        "ph": "https://g.page/…"
+      },
+      "socialp": {
+        "label": "Social-Profile",
+        "ph": "Instagram, Facebook, LinkedIn …"
+      },
+      "bewertungen": {
+        "label": "Bewertungen / Testimonials",
+        "ph": "Oder: „aus meinem Google-Profil übernehmen\""
+      },
+      "beispiele": {
+        "label": "1–2 Beispiel-Websites, die Ihnen gefallen (oder missfallen)",
+        "ph": "www.beispiel.de — gefällt mir wegen …"
+      }
     },
     "uploadLogo": "Logo (Upload) — oder wir gestalten eins",
     "uploadFotos": "Fotos: Team, Räume, Produkte, Arbeitsbeispiele",

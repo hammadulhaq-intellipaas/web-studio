@@ -52,11 +52,50 @@ export interface Addon {
   qty: AddonQty | null;
   tiers: AddonTier[] | null;
   included_in: string[];
+  /** Addons covered by this one: selecting it includes them at no extra cost. */
+  bundle_members: string[];
   byow_only: boolean;
   not_byow: boolean;
   ai_bundle_member: boolean;
   sort: number;
   active: boolean;
+}
+
+/**
+ * One clause of a CMS rule. Every clause of a rule must match (AND).
+ * `key` is an `Answers` field or a derived key: `byow` ('true'|'false'), `url` ('__set').
+ */
+export interface RuleCondition {
+  key: string;
+  values: string[];
+  negate?: boolean;
+}
+
+export interface BundleRule {
+  id: string;
+  rule_kind: 'base' | 'upgrade';
+  conditions: RuleCondition[];
+  result_bundle: string;
+  reason_key: string | null;
+  priority: number;
+  active: boolean;
+}
+
+export interface AddonRule {
+  id: string;
+  conditions: RuleCondition[];
+  add_addon_ids: string[];
+  remove_addon_ids: string[];
+  note: string | null;
+  active: boolean;
+  sort: number;
+}
+
+export interface LegalPage {
+  page_key: string;
+  locale: Locale;
+  title: string;
+  content_markdown: string;
 }
 
 export interface CarePlan {
@@ -125,12 +164,21 @@ export interface Catalog {
   cloudflarePlans: CloudflarePlan[];
   supportPlans: SupportPlan[];
   personas: Persona[];
+  bundleRules: BundleRule[];
+  addonRules: AddonRule[];
+  legalPages: LegalPage[];
   yearlyDiscountPct: number;
   aiBundle: AiBundleConfig;
   aiBundleBullets: LocalizedText[];
   trustItems: LocalizedText[];
   nextSteps: LocalizedText[];
   calendlyEventUrl: string;
+  /** Fallback bundle when no base rule matches. */
+  defaultBundle: string;
+  defaultCarePlan: string;
+  defaultCloudflarePlan: string;
+  /** Addon category that hosts the AI Agentic Bundle CTA. */
+  aiBundleCategory: string;
 }
 
 /** Answers collected in the question step (ported 1:1 from the prototype). */
@@ -232,6 +280,8 @@ export interface Lead {
 
 export interface LeadConfig {
   answers: Answers;
+  /** Free-text notes about the customer's existing website / draft concept. */
+  siteNotes?: string;
   bundle: string;
   bundleName: string;
   addons: { id: string; name: string; qty: number | null; billing: string; price: number }[];

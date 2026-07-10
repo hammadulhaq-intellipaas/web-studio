@@ -120,6 +120,11 @@ insert into addons (id, category_id, name_de, name_en, note_de, note_en, billing
 ('aicontent', 'ki', 'KI-Content-Engine (4 AI-Drafts/Mon.)', 'AI content engine (4 AI drafts/mo.)', null, null, 'monthly', 299, null, null, null, '{}', false, false, true, 30),
 ('aireviews', 'ki', 'KI-Bewertungsantworten (Google/Yelp, automatisiert)', 'AI review responses (Google/Yelp, automated)', null, null, 'monthly', 129, null, null, null, '{}', false, false, true, 40);
 
+-- The two "combo" add-ons cover their individual counterparts: selecting one includes the
+-- members at no extra cost (only the combo price counts).
+update addons set bundle_members = '{seosetup,geosetup}' where id = 'seogeosetup';
+update addons set bundle_members = '{seostarter,geomon}' where id = 'seogeokombi';
+
 -- ------------------------------------------------------------- care plans
 insert into care_plans (id, name, price_monthly, desc_de, desc_en, short_de, short_en, recommended, sort) values
 ('basis', 'Basis', 55, 'Hosting DE/EU, SSL, Updates, Monitoring, Backups (monatlich)', 'Hosting DE/EU, SSL, updates, monitoring, backups (monthly)', 'Hosting, SSL, Updates, Monitoring', 'Hosting, SSL, updates, monitoring', false, 10),

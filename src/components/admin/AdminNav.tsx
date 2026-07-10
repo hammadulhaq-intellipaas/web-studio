@@ -27,7 +27,7 @@ export function AdminNav() {
   };
 
   return (
-    <nav className="border-b border-slate-200 bg-white">
+    <nav className="sticky top-0 z-50 border-b border-slate-200 bg-white">
       <div className="mx-auto flex max-w-6xl items-center gap-6 px-6 py-3">
         <Link href="/admin" className="flex items-center gap-2">
           <Image src="/intellipaas-logo.png" alt="" width={30} height={30} className="h-[30px] w-[30px] object-cover" />

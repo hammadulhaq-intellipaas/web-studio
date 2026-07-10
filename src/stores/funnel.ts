@@ -6,15 +6,9 @@ import type { Answers, Catalog, Voucher } from '@/lib/types';
 import { EMPTY_ANSWERS, pickAnswer, type QuestionDef } from '@/lib/questions';
 import { isAddonIncluded, isAddonVisible } from '@/lib/pricing/engine';
 import { recommend, recSet } from '@/lib/pricing/recommend';
+import { generateSessionId } from '@/lib/session-id';
 
-export type FunnelStep =
-  | 'intro'
-  | 'persona'
-  | 'questions'
-  | 'config'
-  | 'lead'
-  | 'stage2'
-  | 'done';
+export type FunnelStep = 'intro' | 'persona' | 'questions' | 'config' | 'lead' | 'done';
 
 export interface LeadForm {
   vorname: string;
@@ -30,9 +24,17 @@ export interface UploadedFile {
   name: string;
 }
 
+/** Files uploaded before a lead exists; keyed to the funnel session. */
+export type FileKind = 'logo' | 'foto' | 'site';
+
 interface FunnelState {
+  /** nanoid; identifies the shareable server-side copy of this funnel state. */
+  sessionId: string | null;
   step: FunnelStep;
   url: string;
+  /** Free-text notes about the existing website / concept (question 1). */
+  siteNotes: string;
+  siteFiles: UploadedFile[];
   persona: string | null;
   answers: Answers;
   bundle: string | null; // explicit user choice; null = follow recommendation
@@ -60,7 +62,10 @@ interface FunnelState {
   openSec: string | null;
 
   go: (step: FunnelStep) => void;
+  setSessionId: (id: string) => void;
+  hydrateFromSession: (state: Partial<FunnelState>) => void;
   setUrl: (url: string) => void;
+  setSiteNotes: (v: string) => void;
   pickPersona: (catalog: Catalog, personaId: string) => void;
   answer: (q: QuestionDef, val: string) => void;
   toConfig: (catalog: Catalog) => void;
@@ -83,7 +88,7 @@ interface FunnelState {
   setS2: (key: string, value: string) => void;
   setGoal: (goal: string | null) => void;
   setDrive: (v: string) => void;
-  addFiles: (kind: 'logo' | 'foto', files: UploadedFile[]) => void;
+  addFiles: (kind: FileKind, files: UploadedFile[]) => void;
   setOpenSec: (id: string | null) => void;
   restart: () => void;
 }
@@ -98,18 +103,24 @@ const initialLead: LeadForm = {
   consent: false,
 };
 
-/** Resolve the effective bundle: explicit choice, else recommendation, else gold. */
-export function currentBundle(state: Pick<FunnelState, 'bundle' | 'answers' | 'persona'>): string {
+/** Resolve the effective bundle: explicit choice, else recommendation, else the CMS default. */
+export function currentBundle(
+  state: Pick<FunnelState, 'bundle' | 'answers' | 'persona' | 'url'>,
+  catalog: Catalog,
+): string {
   if (state.bundle) return state.bundle;
-  if (state.persona) return recommend(state.answers).bundle;
-  return 'gold';
+  if (state.persona) return recommend(catalog, state.answers, state.url).bundle;
+  return catalog.defaultBundle;
 }
 
 export const useFunnel = create<FunnelState>()(
   persist(
     (set, get) => ({
+      sessionId: null,
       step: 'intro',
       url: '',
+      siteNotes: '',
+      siteFiles: [],
       persona: null,
       answers: { ...EMPTY_ANSWERS },
       bundle: null,
@@ -134,13 +145,16 @@ export const useFunnel = create<FunnelState>()(
       drive: '',
       logoFiles: [],
       fotoFiles: [],
-      openSec: 'unternehmen',
+      openSec: null,
 
       go: (step) => {
         set({ step });
         if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'instant' });
       },
+      setSessionId: (id) => set({ sessionId: id }),
+      hydrateFromSession: (state) => set(state as Partial<FunnelState>),
       setUrl: (url) => set({ url }),
+      setSiteNotes: (siteNotes) => set({ siteNotes }),
 
       pickPersona: (catalog, personaId) => {
         const persona = catalog.personas.find((p) => p.id === personaId);
@@ -160,14 +174,14 @@ export const useFunnel = create<FunnelState>()(
 
       toConfig: (catalog) => {
         const { answers, persona, url, care, cf } = get();
-        const rec = recommend(answers);
+        const rec = recommend(catalog, answers, url);
         const recommendedSet = recSet(catalog, answers, persona, rec.bundle, url);
         set({
           bundle: null,
           sel: { ...recommendedSet },
           recSel: recommendedSet,
-          care: care || 'plus',
-          cf: cf !== 'none' ? cf : 'shield',
+          care: care || catalog.defaultCarePlan,
+          cf: cf !== 'none' ? cf : catalog.defaultCloudflarePlan,
         });
         get().go('config');
       },
@@ -212,16 +226,21 @@ export const useFunnel = create<FunnelState>()(
       setS2: (key, value) => set({ s2: { ...get().s2, [key]: value } }),
       setGoal: (goal) => set({ goal }),
       setDrive: (v) => set({ drive: v }),
-      addFiles: (kind, files) =>
-        kind === 'logo'
-          ? set({ logoFiles: [...get().logoFiles, ...files] })
-          : set({ fotoFiles: [...get().fotoFiles, ...files] }),
+      addFiles: (kind, files) => {
+        if (kind === 'logo') set({ logoFiles: [...get().logoFiles, ...files] });
+        else if (kind === 'foto') set({ fotoFiles: [...get().fotoFiles, ...files] });
+        else set({ siteFiles: [...get().siteFiles, ...files] });
+      },
       setOpenSec: (id) => set({ openSec: id }),
 
       restart: () =>
         set({
+          // A fresh questionnaire gets a fresh shareable session.
+          sessionId: generateSessionId(),
           step: 'intro',
           url: '',
+          siteNotes: '',
+          siteFiles: [],
           persona: null,
           answers: { ...EMPTY_ANSWERS },
           bundle: null,
@@ -246,15 +265,14 @@ export const useFunnel = create<FunnelState>()(
           drive: '',
           logoFiles: [],
           fotoFiles: [],
-          openSec: 'unternehmen',
+          openSec: null,
         }),
     }),
     {
-      name: 'ipaas-konfigurator-v3',
+      // v4: added sessionId/siteNotes/siteFiles and removed the stage2 step.
+      name: 'ipaas-konfigurator-v4',
       partialize: (state) => {
-        const { logoFiles, fotoFiles, leadErr, ...rest } = state;
-        void logoFiles;
-        void fotoFiles;
+        const { leadErr, ...rest } = state;
         void leadErr;
         // Never restore into the finished state (matches the prototype).
         return { ...rest, step: rest.step === 'done' ? 'intro' : rest.step };
@@ -262,3 +280,65 @@ export const useFunnel = create<FunnelState>()(
     },
   ),
 );
+
+/**
+ * The slice of funnel state mirrored to `funnel_sessions` so a shared `?c=<id>` link
+ * reopens the questionnaire exactly as it was left — answers, configuration, voucher
+ * and contact details included.
+ */
+export interface SessionState {
+  step: FunnelStep;
+  url: string;
+  siteNotes: string;
+  siteFiles: UploadedFile[];
+  persona: string | null;
+  answers: Answers;
+  bundle: string | null;
+  sel: Record<string, boolean>;
+  recSel: Record<string, boolean>;
+  qty: Record<string, number>;
+  care: string | null;
+  support: string;
+  cf: string;
+  backupUp: boolean;
+  aiBundle: boolean;
+  payYearly: boolean;
+  promoInput: string;
+  voucher: Voucher | null;
+  lead: LeadForm;
+  s2: Record<string, string>;
+  goal: string | null;
+  drive: string;
+  logoFiles: UploadedFile[];
+  fotoFiles: UploadedFile[];
+}
+
+export function toSessionState(s: SessionState): SessionState {
+  return {
+    // A shared link never drops the recipient into the finished screen.
+    step: s.step === 'done' ? 'lead' : s.step,
+    url: s.url,
+    siteNotes: s.siteNotes,
+    siteFiles: s.siteFiles,
+    persona: s.persona,
+    answers: s.answers,
+    bundle: s.bundle,
+    sel: s.sel,
+    recSel: s.recSel,
+    qty: s.qty,
+    care: s.care,
+    support: s.support,
+    cf: s.cf,
+    backupUp: s.backupUp,
+    aiBundle: s.aiBundle,
+    payYearly: s.payYearly,
+    promoInput: s.promoInput,
+    voucher: s.voucher,
+    lead: s.lead,
+    s2: s.s2,
+    goal: s.goal,
+    drive: s.drive,
+    logoFiles: s.logoFiles,
+    fotoFiles: s.fotoFiles,
+  };
+}

@@ -53,7 +53,16 @@ You are given a fixed pipeline of phases and a customer lead. For EACH phase, wr
 3. Write with minimum ambiguity: concrete page lists, exact texts to use (quote the customer's own wording where available), explicit acceptance criteria, and explicit out-of-scope notes.
 4. Where a phase depends on an earlier phase's result, embed the literal placeholder token exactly as specified (e.g. {{phase_1.output}}) at the spot where that result should be pasted, and list every used token in that phase's "inputs" array.
 5. Prompts are written in English. Customer-facing website content stays in the customer's language (German unless stated otherwise).
-6. Do not invent facts about the customer. Where information is missing, instruct the operator to use a clearly marked TODO placeholder instead of guessing.`,
+6. Do not invent facts about the customer. Where information is missing, instruct the operator to use a clearly marked TODO placeholder instead of guessing.
+7. Every "prompt_markdown" is valid Markdown following EXACTLY this section skeleton, in this order, each introduced by a level-3 heading:
+
+### Context
+### Task
+### Requirements
+### Acceptance criteria
+### Out of scope
+
+Formatting rules for the prompt body: use "###" for these section headings and never any other heading level; use "-" for bullet lists; wrap file paths, commands and code in backticks or fenced code blocks; never emit HTML. Put the placeholder tokens (e.g. {{phase_1.output}}) inside the "### Context" section where the earlier phase's result belongs.`,
     prompt: `# Pipeline to generate prompts for\n\n${pipelineSpec}\n\n# Customer lead\n\n${context}`,
   });
 

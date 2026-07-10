@@ -41,6 +41,13 @@ const selectionSchema = z.object({
     .nullable(),
 });
 
+/** Optional intake, collected in the collapsed sections of the inquiry form. */
+const stage2Schema = z.object({
+  fields: z.record(z.string(), z.string().max(5000)),
+  goal: z.string().max(100).nullable(),
+  driveLink: z.string().max(2000),
+});
+
 const bodySchema = z.object({
   locale: z.enum(['de', 'en']),
   lead: z.object({
@@ -53,6 +60,10 @@ const bodySchema = z.object({
     consent: z.literal(true),
   }),
   selection: selectionSchema,
+  sessionId: z.string().nullable().optional(),
+  /** Free-text notes about the customer's existing website / draft concept. */
+  siteNotes: z.string().max(5000).optional(),
+  stage2: stage2Schema.optional(),
 });
 
 export async function POST(request: Request) {
@@ -60,7 +71,7 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: 'invalid_body', details: parsed.error.flatten() }, { status: 400 });
   }
-  const { locale, lead, selection: rawSelection } = parsed.data;
+  const { locale, lead, selection: rawSelection, sessionId, siteNotes, stage2 } = parsed.data;
 
   const catalog = await getCatalog();
   if (!catalog.bundles.some((b) => b.id === rawSelection.bundle)) {
@@ -95,11 +106,12 @@ export async function POST(request: Request) {
   const bundleRow = catalog.bundles.find((b) => b.id === selection.bundle)!;
   const persona = catalog.personas.find((p) => p.id === selection.personaId);
 
+  const inclusionCtx = { addons: catalog.addons, selectedAddons: selection.selectedAddons };
   const chosenAddons = catalog.addons
     .filter(
       (a) =>
         isAddonVisible(a, selection.bundle) &&
-        !isAddonIncluded(a, selection.bundle, selection.aiBundle) &&
+        !isAddonIncluded(a, selection.bundle, selection.aiBundle, inclusionCtx) &&
         selection.selectedAddons[a.id],
     )
     .map((a) => ({
@@ -112,6 +124,7 @@ export async function POST(request: Request) {
 
   const config = {
     answers: selection.answers,
+    siteNotes: siteNotes || '',
     bundle: selection.bundle,
     bundleName: bundleRow.name,
     addons: chosenAddons,
@@ -148,6 +161,9 @@ export async function POST(request: Request) {
       total_monthly: totals.monthlyEffective,
       total_yearly: totals.yearlyEffective,
       voucher_id: voucherId,
+      stage2: stage2 ?? null,
+      goal: stage2?.goal ?? null,
+      drive_link: stage2?.driveLink || null,
     })
     .select('id')
     .single();
@@ -155,6 +171,17 @@ export async function POST(request: Request) {
   if (error || !inserted) {
     console.error('[leads] insert failed:', error);
     return NextResponse.json({ error: 'insert_failed' }, { status: 500 });
+  }
+
+  // Files were uploaded against the funnel session before the lead existed: adopt them,
+  // then retire the session so its shareable link stops resolving.
+  if (sessionId) {
+    const { error: adoptError } = await supabase
+      .from('lead_files')
+      .update({ lead_id: inserted.id, session_id: null })
+      .eq('session_id', sessionId);
+    if (adoptError) console.error('[leads] file adoption failed:', adoptError);
+    await supabase.from('funnel_sessions').delete().eq('id', sessionId);
   }
 
   if (voucherId) {

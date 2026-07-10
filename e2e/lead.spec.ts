@@ -26,7 +26,7 @@ test.describe('public funnel — lead capture', () => {
     await expect(page.getByTestId('lead-err-email')).toBeVisible();
   });
 
-  test('successful submit shows the Calendly panel and continues to stage 2', async ({ page }) => {
+  test('successful submit shows the Calendly panel, which completes the funnel', async ({ page }) => {
     // eslint-disable-next-line no-console
     console.log('[e2e]', EMAIL_VERIFICATION_NOTE);
     await walkToConfigurator(page, GASTRO.persona);
@@ -39,6 +39,6 @@ test.describe('public funnel — lead capture', () => {
     await expect(page.locator('iframe[src*="calendly.com"]')).toBeVisible();
 
     await cont.click();
-    await expect(page.getByTestId('readiness')).toBeVisible();
+    await expect(page.getByText('Vielen Dank! Ihre Anfrage ist bei uns.')).toBeVisible();
   });
 });

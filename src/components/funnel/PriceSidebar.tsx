@@ -8,6 +8,7 @@ import { calcTotals } from '@/lib/pricing/engine';
 import { buildReceipt } from '@/lib/pricing/summary';
 import { useFunnel } from '@/stores/funnel';
 import { useAppLocale, useSelection, useSummaryLabels } from './hooks';
+import { sessionShareUrl } from './useSessionSync';
 import { BLUE, BORDER, GREEN, INK, LockIcon, MUTED, MUTED2, gradButton } from './ui';
 
 export function PromoBox({ optional }: { optional?: boolean }) {
@@ -92,6 +93,84 @@ export function PromoBox({ optional }: { optional?: boolean }) {
           style={{ fontSize: 11.5, fontWeight: 700, color: '#D6493E', marginTop: 6 }}
         >
           {store.promoMsg === 'empty' ? t('promoErrEmpty') : t('promoErrInvalid')}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Copies a link that reopens this exact configuration — answers, add-ons and voucher —
+ * on any device. The link is the funnel session id (`?c=…`), kept in sync by useSessionSync.
+ */
+export function ShareBox() {
+  const t = useTranslations('configurator');
+  const sessionId = useFunnel((s) => s.sessionId);
+  const [link, setLink] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  if (!sessionId) return null;
+
+  const share = async () => {
+    const url = sessionShareUrl(sessionId);
+    setLink(url);
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard blocked (insecure context / permissions): the link is still shown.
+      setCopied(false);
+    }
+  };
+
+  return (
+    <div style={{ marginTop: 10 }}>
+      <button
+        onClick={share}
+        data-testid="share-config"
+        className="hov-blue-border"
+        style={{
+          fontFamily: 'inherit',
+          cursor: 'pointer',
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+          background: '#ffffff',
+          border: `1.5px solid ${BORDER}`,
+          borderRadius: 11,
+          padding: '11px 12px',
+          fontSize: 12.5,
+          fontWeight: 800,
+          color: copied ? GREEN : INK,
+          transition: 'color .15s',
+        }}
+      >
+        {copied ? `✓ ${t('shareCopied')}` : t('shareButton')}
+      </button>
+      {link && (
+        <div style={{ marginTop: 8 }}>
+          <input
+            readOnly
+            value={link}
+            data-testid="share-link"
+            onFocus={(ev) => ev.currentTarget.select()}
+            style={{
+              width: '100%',
+              fontFamily: 'inherit',
+              fontSize: 11,
+              padding: '9px 10px',
+              border: `1px solid ${BORDER}`,
+              borderRadius: 9,
+              background: '#F7F9FC',
+              color: MUTED,
+            }}
+          />
+          <div style={{ fontSize: 10.5, color: MUTED2, marginTop: 5, lineHeight: 1.45 }}>
+            {t('shareHint')}
+          </div>
         </div>
       )}
     </div>
@@ -418,6 +497,8 @@ export function PriceSidebar({ catalog }: { catalog: Catalog }) {
           </button>
         </div>
       )}
+
+      <ShareBox />
 
       <p style={{ margin: '14px 0 14px', fontSize: 11, lineHeight: 1.5, color: MUTED2 }}>
         {t('disclaimer')}

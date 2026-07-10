@@ -30,10 +30,16 @@ export async function fillLeadAndSubmit(page: Page, email: string) {
   await page.getByTestId('lead-submit').click();
 }
 
-/** After a successful submit the Calendly panel may show; move on to stage 2 either way. */
+const DONE_HEADLINE = 'Vielen Dank! Ihre Anfrage ist bei uns.';
+
+/**
+ * After a successful submit the Calendly booking panel shows when configured; booking (or
+ * skipping) completes the funnel. Without Calendly the done screen appears immediately.
+ */
 export async function passCalendlyPanel(page: Page) {
   const cont = page.getByTestId('calendly-continue');
-  await expect(cont.or(page.getByTestId('readiness'))).toBeVisible();
+  const done = page.getByText(DONE_HEADLINE);
+  await expect(cont.or(done)).toBeVisible();
   if (await cont.isVisible()) await cont.click();
-  await expect(page.getByTestId('readiness')).toBeVisible();
+  await expect(done).toBeVisible();
 }

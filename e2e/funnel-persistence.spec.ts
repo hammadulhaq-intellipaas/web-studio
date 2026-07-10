@@ -2,7 +2,8 @@ import { expect, test } from '@playwright/test';
 import { walkToConfigurator } from './helpers/funnel';
 import { GASTRO } from './fixtures';
 
-// Suite F — persistence. The funnel state lives in localStorage (ipaas-konfigurator-v3).
+// Suite F — persistence. The funnel state lives in localStorage (ipaas-konfigurator-v4);
+// the server-side copy behind the shareable `?c=` link is covered in share-session.spec.ts.
 // Note: the "Done screen never restores into itself" rule is enforced at write-time via the
 // store's partialize (step done→intro), and the restart→intro reset is covered in
 // funnel-happy; both require reaching Done (creating a lead), so they aren't duplicated here.

@@ -11,9 +11,36 @@ export function isAddonVisible(addon: Addon, bundleId: string): boolean {
   return true;
 }
 
-export function isAddonIncluded(addon: Addon, bundleId: string, aiBundle: boolean): boolean {
+/** Context needed to resolve "included because a selected bundle-addon covers it". */
+export interface InclusionContext {
+  addons: Addon[];
+  selectedAddons: Record<string, boolean>;
+}
+
+/**
+ * The selected "bundle addon" (e.g. `seogeosetup`) that covers `addonId`, if any.
+ * Its members are then included at no cost — only the parent's price counts.
+ */
+export function coveringBundleAddon(addonId: string, ctx: InclusionContext): Addon | null {
+  return (
+    ctx.addons.find(
+      (parent) =>
+        parent.id !== addonId &&
+        ctx.selectedAddons[parent.id] &&
+        (parent.bundle_members ?? []).includes(addonId),
+    ) ?? null
+  );
+}
+
+export function isAddonIncluded(
+  addon: Addon,
+  bundleId: string,
+  aiBundle: boolean,
+  ctx?: InclusionContext,
+): boolean {
   if (addon.included_in.includes(bundleId)) return true;
   if (aiBundle && addon.ai_bundle_member) return true;
+  if (ctx && coveringBundleAddon(addon.id, ctx)) return true;
   return false;
 }
 
@@ -74,7 +101,8 @@ export function calcTotals(catalog: Catalog, sel: Selection): Totals {
   let m = 0;
   let y = 0;
 
-  const careId = sel.care || 'plus';
+  const inclusionCtx: InclusionContext = { addons: catalog.addons, selectedAddons: sel.selectedAddons };
+  const careId = sel.care || catalog.defaultCarePlan;
   const care = catalog.carePlans.find((c) => c.id === careId);
   if (care) m += Number(care.price_monthly);
 
@@ -99,7 +127,7 @@ export function calcTotals(catalog: Catalog, sel: Selection): Totals {
 
   for (const addon of catalog.addons) {
     if (!isAddonVisible(addon, sel.bundle)) continue;
-    if (isAddonIncluded(addon, sel.bundle, sel.aiBundle)) continue;
+    if (isAddonIncluded(addon, sel.bundle, sel.aiBundle, inclusionCtx)) continue;
     if (!sel.selectedAddons[addon.id]) continue;
     const cost = addonCost(addon, sel.qty);
     if (addon.billing === 'yearly') y += cost;

@@ -3,7 +3,7 @@
     "back": "← Back",
     "logoAlt": "IntelliPaaS.io — to the homepage",
     "webStudio": "Web Studio",
-    "stepOf": "Step {num} of 5",
+    "stepOf": "Step {num} of {total}",
     "footerBrand": "IntelliPaaS.io Web Studio",
     "impressum": "Legal notice",
     "datenschutz": "Privacy policy",
@@ -30,6 +30,8 @@
       "concept": "Link to your draft (Figma, PDF, Google Docs …)",
       "default": "Paste a link"
     },
+    "siteNotesPh": "What should stay, what bothers you? (e.g. “outdated design”, “keep the copy”)",
+    "siteUploadLabel": "Upload a file (optional) — draft, screenshots, briefing",
     "hasSite": {
       "title": "Do you already have a website, social page or a concept?",
       "hint": "So we start at the right point. If yes, paste the link.",
@@ -87,12 +89,21 @@
     "pages": {
       "title": "Roughly how many pages do you need?",
       "hint": "Count roughly: homepage, contact, team, services/products, individual product or service pages … Legal notice & privacy policy are always included.",
-      "opts": { "14": "1–4", "58": "5–8", "912": "9–12", "12p": "More than 12" }
+      "opts": {
+        "14": "1–4",
+        "58": "5–8",
+        "912": "9–12",
+        "12p": "More than 12"
+      }
     },
     "langs": {
       "title": "In how many languages?",
       "titleByow": "In how many languages should the site be available?",
-      "opts": { "1": "1 language", "2": "2 languages", "3": "3+" }
+      "opts": {
+        "1": "1 language",
+        "2": "2 languages",
+        "3": "3+"
+      }
     },
     "contact": {
       "title": "How should your customers get in touch?",
@@ -104,7 +115,10 @@
     "fees": {
       "title": "Are the appointments paid?",
       "hint": "e.g. consulting, coaching, treatment — then we set up secure payment (Stripe) right at booking. Costs extra.",
-      "opts": { "nein": "No, free appointments", "ja": "Yes, paid appointments" }
+      "opts": {
+        "nein": "No, free appointments",
+        "ja": "Yes, paid appointments"
+      }
     },
     "shop": {
       "title": "Do you want to sell online?",
@@ -117,11 +131,18 @@
     },
     "blog": {
       "title": "Do you want a blog / news section?",
-      "opts": { "ja": "Yes", "nein": "No" }
+      "opts": {
+        "ja": "Yes",
+        "nein": "No"
+      }
     },
     "assets": {
       "title": "Do you already have a logo & imagery?",
-      "opts": { "ja": "Yes", "teil": "Partially", "nein": "No" }
+      "opts": {
+        "ja": "Yes",
+        "teil": "Partially",
+        "nein": "No"
+      }
     }
   },
   "configurator": {
@@ -201,6 +222,9 @@
     "promoSavingsAmount": "{once} one-time + {monthly}/mo.",
     "promoErrEmpty": "Please enter a code.",
     "promoErrInvalid": "Unfortunately, this code is invalid.",
+    "shareButton": "Share configuration",
+    "shareCopied": "Link copied",
+    "shareHint": "Open this link on another device to pick up exactly where you left off.",
     "disclaimer": "Non-binding estimate. Final prices, no VAT (reverse charge, service provided by IntelliPaaS Inc., USA).",
     "ctaLead": "Continue to inquiry →",
     "sslShort": "SSL 256-bit · Secured by Cloudflare"
@@ -253,6 +277,8 @@
     "zielLabel": "What do you want to achieve?",
     "zielOptional": "(optional)",
     "zielPh": "e.g. Get more inquiries via Google",
+    "optionalIntakeTitle": "More about your project",
+    "optionalIntakeSub": "All optional — the more we know up front, the faster your website goes live.",
     "consent": "I consent to the processing of my data in accordance with the <link>privacy policy</link>.",
     "errEmail": "Please enter a valid email address.",
     "errTel": "Please enter your phone number — we will call you.",
@@ -290,22 +316,70 @@
       "markeWithUrl": "We'll review {url} and automatically take over what we find there."
     },
     "fields": {
-      "firmenname": { "label": "Company name", "ph": "e.g. Müller Sanitär GmbH" },
-      "rechtsform": { "label": "Legal form", "ph": "GmbH, e.K., GbR …" },
-      "anschrift": { "label": "Address", "ph": "Street, postcode, city" },
-      "inhaber": { "label": "Managing director / owner", "ph": "First and last name" },
-      "ustid": { "label": "VAT ID", "ph": "DE…" },
-      "oeffnung": { "label": "Opening hours", "ph": "Mon–Fri 8am–5pm" },
-      "gebiet": { "label": "Service area / locations", "ph": "e.g. Munich + 30 km" },
-      "farben": { "label": "Brand colors (if available)", "ph": "e.g. dark blue + orange" },
-      "einsatz": { "label": "What you do in one sentence", "ph": "e.g. We renovate bathrooms — fast and clean." },
-      "leistungen": { "label": "Services / products (each becomes a section)", "ph": "One per line" },
-      "usps": { "label": "Why customers choose you (USPs)", "ph": "e.g. 24h emergency service, fixed-price guarantee …" },
-      "zertifikate": { "label": "Certificates, master titles, guilds, TÜV, awards", "ph": "" },
-      "gprofil": { "label": "Google Business Profile link", "ph": "https://g.page/…" },
-      "socialp": { "label": "Social profiles", "ph": "Instagram, Facebook, LinkedIn …" },
-      "bewertungen": { "label": "Reviews / testimonials", "ph": "Or: \"take them from my Google profile\"" },
-      "beispiele": { "label": "1–2 example websites you like (or dislike)", "ph": "www.example.com — I like it because …" }
+      "firmenname": {
+        "label": "Company name",
+        "ph": "e.g. Müller Sanitär GmbH"
+      },
+      "rechtsform": {
+        "label": "Legal form",
+        "ph": "GmbH, e.K., GbR …"
+      },
+      "anschrift": {
+        "label": "Address",
+        "ph": "Street, postcode, city"
+      },
+      "inhaber": {
+        "label": "Managing director / owner",
+        "ph": "First and last name"
+      },
+      "ustid": {
+        "label": "VAT ID",
+        "ph": "DE…"
+      },
+      "oeffnung": {
+        "label": "Opening hours",
+        "ph": "Mon–Fri 8am–5pm"
+      },
+      "gebiet": {
+        "label": "Service area / locations",
+        "ph": "e.g. Munich + 30 km"
+      },
+      "farben": {
+        "label": "Brand colors (if available)",
+        "ph": "e.g. dark blue + orange"
+      },
+      "einsatz": {
+        "label": "What you do in one sentence",
+        "ph": "e.g. We renovate bathrooms — fast and clean."
+      },
+      "leistungen": {
+        "label": "Services / products (each becomes a section)",
+        "ph": "One per line"
+      },
+      "usps": {
+        "label": "Why customers choose you (USPs)",
+        "ph": "e.g. 24h emergency service, fixed-price guarantee …"
+      },
+      "zertifikate": {
+        "label": "Certificates, master titles, guilds, TÜV, awards",
+        "ph": ""
+      },
+      "gprofil": {
+        "label": "Google Business Profile link",
+        "ph": "https://g.page/…"
+      },
+      "socialp": {
+        "label": "Social profiles",
+        "ph": "Instagram, Facebook, LinkedIn …"
+      },
+      "bewertungen": {
+        "label": "Reviews / testimonials",
+        "ph": "Or: \"take them from my Google profile\""
+      },
+      "beispiele": {
+        "label": "1–2 example websites you like (or dislike)",
+        "ph": "www.example.com — I like it because …"
+      }
     },
     "uploadLogo": "Logo (upload) — or we design one",
     "uploadFotos": "Photos: team, premises, products, work samples",

@@ -6,6 +6,7 @@ import { pickLocale } from '@/lib/types';
 import { fmt, mon } from '@/lib/format';
 import {
   addonCost,
+  coveringBundleAddon,
   discMonthly,
   isAddonIncluded,
   isAddonVisible,
@@ -64,10 +65,19 @@ function AddonCard({ addon, catalog }: { addon: Addon; catalog: Catalog }) {
   const locale = useAppLocale();
   const labels = useSummaryLabels();
   const store = useFunnel();
-  const bundleId = currentBundle(store);
+  const bundleId = currentBundle(store, catalog);
   const bundle = catalog.bundles.find((b) => b.id === bundleId)!;
 
-  const included = isAddonIncluded(addon, bundleId, store.aiBundle);
+  // A selected "bundle addon" (e.g. SEO + GEO Setup Bundle) covers its members:
+  // they show as included and are never charged again.
+  const coveringAddon = coveringBundleAddon(addon.id, {
+    addons: catalog.addons,
+    selectedAddons: store.sel,
+  });
+  const included = isAddonIncluded(addon, bundleId, store.aiBundle, {
+    addons: catalog.addons,
+    selectedAddons: store.sel,
+  });
   const selected = !included && !!store.sel[addon.id];
   const isRec = !included && !!store.recSel[addon.id];
   const hasQty = !!(addon.qty || addon.tiers);
@@ -78,10 +88,16 @@ function AddonCard({ addon, catalog }: { addon: Addon; catalog: Catalog }) {
 
   let priceLabel: string;
   if (included) {
-    priceLabel =
-      store.aiBundle && addon.ai_bundle_member
-        ? t('includedInAi')
-        : t('includedInBundle', { name: bundle.name });
+    if (coveringAddon && !addon.included_in.includes(bundleId)) {
+      priceLabel = t('includedInBundle', {
+        name: pickLocale(coveringAddon as unknown as Record<string, unknown>, 'name', locale),
+      });
+    } else {
+      priceLabel =
+        store.aiBundle && addon.ai_bundle_member
+          ? t('includedInAi')
+          : t('includedInBundle', { name: bundle.name });
+    }
   } else if (addon.tiers && addon.tiers.length) {
     priceLabel = t('tierFrom', { price: mon(disc(addon.tiers[0].price), locale) });
   } else if (addon.qty && !selected) {
@@ -253,7 +269,7 @@ export function ConfiguratorStep({ catalog }: { catalog: Catalog }) {
   const store = useFunnel();
   const selection = useSelection();
 
-  const rec = recommend(store.answers);
+  const rec = recommend(catalog, store.answers, store.url);
   const bundleId = selection.bundle;
   const bundle = catalog.bundles.find((b) => b.id === bundleId)!;
   const recBundle = catalog.bundles.find((b) => b.id === rec.bundle)!;
@@ -271,16 +287,14 @@ export function ConfiguratorStep({ catalog }: { catalog: Catalog }) {
             })
           : '');
 
-  const bundleKeys = ['silver', 'gold', 'platinum'];
-  if (byowPath) bundleKeys.push('byow');
+  // Bundles come from the CMS in `sort` order; BYOW is only offered on the BYOW path.
+  const bundleKeys = catalog.bundles
+    .filter((b) => (b.id === 'byow' ? byowPath : true))
+    .map((b) => b.id);
 
   const visibleCategories = catalog.addonCategories.filter((cat) =>
     catalog.addons.some((a) => a.category_id === cat.id && isAddonVisible(a, bundleId)),
   );
-
-  const aiSingleSum = catalog.addons
-    .filter((a) => a.ai_bundle_member && a.billing === 'monthly')
-    .reduce((sum, a) => sum + Number(a.price_now), 0);
 
   const bakSel = store.backupUp && bundle.backup_upgrade_price != null;
 
@@ -518,12 +532,12 @@ export function ConfiguratorStep({ catalog }: { catalog: Catalog }) {
                 const items = catalog.addons.filter(
                   (a) => a.category_id === cat.id && isAddonVisible(a, bundleId),
                 );
-                const note =
-                  cat.id === 'ki'
-                    ? store.aiBundle
-                      ? t('catNoteKiInBundle')
-                      : t('catNoteKiTip')
-                    : pickLocale(cat as unknown as Record<string, unknown>, 'note', locale);
+                const isAiCategory = cat.id === catalog.aiBundleCategory;
+                const note = isAiCategory
+                  ? store.aiBundle
+                    ? t('catNoteKiInBundle')
+                    : t('catNoteKiTip')
+                  : pickLocale(cat as unknown as Record<string, unknown>, 'note', locale);
                 return (
                   <div key={cat.id}>
                     <div style={{ ...sectionLabel, marginBottom: 4 }}>
@@ -532,6 +546,7 @@ export function ConfiguratorStep({ catalog }: { catalog: Catalog }) {
                     {note && (
                       <div style={{ fontSize: 11.5, color: MUTED2, marginBottom: 8 }}>{note}</div>
                     )}
+                    {isAiCategory && <AiBundleCta catalog={catalog} />}
                     <div
                       style={{
                         display: 'grid',
@@ -768,7 +783,30 @@ export function ConfiguratorStep({ catalog }: { catalog: Catalog }) {
             </div>
           </div>
 
-          {/* AI Agentic Bundle */}
+        </div>
+
+        <PriceSidebar catalog={catalog} />
+      </div>
+    </section>
+  );
+}
+
+/**
+ * The AI Agentic Bundle CTA. Rendered inside its addon category ("AI building blocks")
+ * so the bundle sits with the individual blocks it replaces.
+ */
+function AiBundleCta({ catalog }: { catalog: Catalog }) {
+  const t = useTranslations('configurator');
+  const locale = useAppLocale();
+  const store = useFunnel();
+  const disc = (p: number) => discMonthly(p, store.payYearly, catalog.yearlyDiscountPct);
+
+  const aiSingleSum = catalog.addons
+    .filter((a) => a.ai_bundle_member && a.billing === 'monthly')
+    .reduce((sum, a) => sum + Number(a.price_now), 0);
+
+  return (
+    <div style={{ marginBottom: 14 }}>
           <div
             style={{
               background: 'linear-gradient(120deg,#101A3C,#1E4FD6 55%,#22B8D8 130%)',
@@ -878,11 +916,7 @@ export function ConfiguratorStep({ catalog }: { catalog: Catalog }) {
               </button>
             </div>
           </div>
-        </div>
-
-        <PriceSidebar catalog={catalog} />
-      </div>
-    </section>
+    </div>
   );
 }
 

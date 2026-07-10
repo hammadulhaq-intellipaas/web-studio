@@ -88,3 +88,33 @@ body {
   border-color: #1e5eff !important;
   color: #1e5eff !important;
 }
+
+/* Rendered legal copy (privacy policy), sourced as markdown from the CMS. */
+.legal-markdown {
+  font-size: 15px;
+  line-height: 1.65;
+  color: #4a5872;
+}
+.legal-markdown h3 {
+  font-size: 17px;
+  font-weight: 700;
+  color: #0f2440;
+  margin: 28px 0 8px;
+}
+.legal-markdown p {
+  margin: 0 0 12px;
+}
+.legal-markdown ul {
+  margin: 0 0 12px;
+  padding-left: 20px;
+}
+.legal-markdown li {
+  margin-bottom: 4px;
+}
+.legal-markdown strong {
+  color: #0f2440;
+}
+.legal-markdown a {
+  color: #1e5eff;
+  font-weight: 600;
+}

@@ -2,24 +2,24 @@ import { expect, test } from '@playwright/test';
 import { walkToConfigurator, fillLeadAndSubmit, passCalendlyPanel } from './helpers/funnel';
 import { GASTRO, testEmail } from './fixtures';
 
-// Suite D — stage-2 enrichment: readiness meter, real file upload to Supabase
-// storage, oversize rejection, and finish.
+// Suite D — the optional intake sections, now collapsed inside the single inquiry form:
+// they start closed, accept a real upload to the lead-uploads bucket (keyed to the funnel
+// session, before any lead exists), reject oversize files, and submit with the form.
 
-test.describe('public funnel — stage 2', () => {
-  test('readiness rises, file upload works, oversize is rejected, finish → done', async ({ page }) => {
+test.describe('public funnel — optional intake sections', () => {
+  test('sections are collapsed, upload works, oversize is rejected, submit → done', async ({ page }) => {
     await walkToConfigurator(page, GASTRO.persona);
     await page.getByTestId('to-lead').click();
-    await fillLeadAndSubmit(page, testEmail('stage2'));
-    await passCalendlyPanel(page);
 
-    // Readiness starts at 25% and rises as fields fill (Unternehmen is open by default).
-    await expect(page.getByTestId('readiness')).toHaveText('25%');
+    // Optional intake is collapsed: no field is reachable until a section is opened.
+    await expect(page.getByTestId('s2-firmenname')).toHaveCount(0);
+
+    await page.getByTestId('s2-section-unternehmen').click();
     await page.getByTestId('s2-firmenname').fill('E2E Gasthaus GmbH');
-    await expect(page.getByTestId('readiness')).not.toHaveText('25%');
 
-    // Marke section: real upload to the lead-uploads bucket via POST /api/leads/[id]/uploads.
+    // Marke section: real upload via POST /api/sessions/[id]/uploads, pre-lead.
     await page.getByTestId('s2-section-marke').click();
-    const fileInput = page.locator('input[type="file"]').first();
+    const fileInput = page.getByTestId('upload-logo').locator('input[type="file"]');
     await fileInput.setInputFiles({
       name: 'e2e-logo.png',
       mimeType: 'image/png',
@@ -35,7 +35,8 @@ test.describe('public funnel — stage 2', () => {
     });
     await expect(page.getByText('e2e-huge.png')).toHaveCount(0);
 
-    await page.getByTestId('s2-finish').click();
-    await expect(page.getByText('Vielen Dank! Ihre Anfrage ist bei uns.')).toBeVisible();
+    // The intake travels with the single submit — there is no second form.
+    await fillLeadAndSubmit(page, testEmail('intake'));
+    await passCalendlyPanel(page);
   });
 });

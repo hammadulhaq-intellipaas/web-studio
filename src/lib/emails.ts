@@ -127,7 +127,19 @@ export function renderTeamEmail(ctx: EmailContext, adminUrl: string): { subject:
   return { subject: interp(m.subject, { firma: ctx.lead.firma || '—', bundle: ctx.bundleName }), html };
 }
 
-export async function sendLeadEmails(ctx: EmailContext, teamEmail: string): Promise<void> {
+/**
+ * Team notification recipients: the `RESEND_TO_EMAIL` CSV, falling back to the
+ * `team_email` app setting when the env var is unset.
+ */
+export function teamRecipients(teamEmailSetting = ''): string[] {
+  const raw = process.env.RESEND_TO_EMAIL || teamEmailSetting;
+  return raw
+    .split(',')
+    .map((address) => address.trim())
+    .filter(Boolean);
+}
+
+export async function sendLeadEmails(ctx: EmailContext, teamEmailSetting: string): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM_EMAIL;
   if (!apiKey || !from) {
@@ -137,17 +149,80 @@ export async function sendLeadEmails(ctx: EmailContext, teamEmail: string): Prom
   const resend = new Resend(apiKey);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? '';
   const adminUrl = `${siteUrl}/admin/leads/${ctx.lead.id}`;
+  const team = teamRecipients(teamEmailSetting);
 
   const customer = renderCustomerEmail(ctx);
-  const team = renderTeamEmail(ctx, adminUrl);
+  const teamMail = renderTeamEmail(ctx, adminUrl);
 
   const results = await Promise.allSettled([
     resend.emails.send({ from, to: ctx.lead.email, subject: customer.subject, html: customer.html }),
-    teamEmail
-      ? resend.emails.send({ from, to: teamEmail, subject: team.subject, html: team.html })
+    team.length
+      ? resend.emails.send({ from, to: team, subject: teamMail.subject, html: teamMail.html })
       : Promise.resolve(null),
   ]);
   for (const r of results) {
     if (r.status === 'rejected') console.error('[emails] send failed:', r.reason);
+  }
+}
+
+export interface BookingEmailContext {
+  lead: { id: string; vorname: string; nachname: string; firma: string; email: string } | null;
+  inviteeName: string | null;
+  inviteeEmail: string | null;
+  startTime: string;
+}
+
+export function renderBookingEmail(
+  ctx: BookingEmailContext,
+  adminUrl: string | null,
+): { subject: string; html: string } {
+  const who =
+    [ctx.lead?.vorname, ctx.lead?.nachname].filter(Boolean).join(' ') ||
+    ctx.inviteeName ||
+    ctx.inviteeEmail ||
+    'Unknown';
+  const firma = ctx.lead?.firma ? ` (${ctx.lead.firma})` : '';
+  const when = new Date(ctx.startTime).toUTCString();
+  const subject = `Appointment booked: ${who}${firma} — ${when}`;
+
+  const html = wrap(`
+    <h2 style="margin:0 0 12px">${subject}</h2>
+    <p style="margin:0">
+      ${who}${firma}<br/>
+      ${ctx.inviteeEmail ? `<a href="mailto:${ctx.inviteeEmail}">${ctx.inviteeEmail}</a><br/>` : ''}
+      Start: ${when}
+    </p>
+    ${
+      adminUrl
+        ? `<p style="margin-top:18px"><a href="${adminUrl}" style="color:#1E5EFF;font-weight:700">Open lead in admin</a></p>`
+        : ''
+    }
+  `);
+
+  return { subject, html };
+}
+
+/** Fired from the Calendly webhook once a booking is confirmed. */
+export async function sendBookingEmail(
+  ctx: BookingEmailContext,
+  teamEmailSetting: string,
+): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.RESEND_FROM_EMAIL;
+  const team = teamRecipients(teamEmailSetting);
+  if (!apiKey || !from || !team.length) {
+    console.warn('[emails] booking notification skipped — Resend or recipients not configured');
+    return;
+  }
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? '';
+  const adminUrl = ctx.lead && siteUrl ? `${siteUrl}/admin/leads/${ctx.lead.id}` : null;
+  const mail = renderBookingEmail(ctx, adminUrl);
+
+  const resend = new Resend(apiKey);
+  try {
+    await resend.emails.send({ from, to: team, subject: mail.subject, html: mail.html });
+  } catch (e) {
+    console.error('[emails] booking notification failed:', e);
   }
 }

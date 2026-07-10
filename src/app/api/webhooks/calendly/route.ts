@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import crypto from 'node:crypto';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import { sendBookingEmail } from '@/lib/emails';
 
 /**
  * Calendly webhook (invitee.created / invitee.canceled).
@@ -86,6 +87,13 @@ export async function POST(request: Request) {
   }
 
   if (body.event === 'invitee.created') {
+    // Calendly retries webhooks; only a first-time booking should notify the team.
+    const { data: existing } = await supabase
+      .from('appointments')
+      .select('id')
+      .eq('calendly_event_uri', event.uri)
+      .maybeSingle();
+
     const { error } = await supabase.from('appointments').upsert(
       {
         lead_id: leadId,
@@ -104,6 +112,33 @@ export async function POST(request: Request) {
     if (error) {
       console.error('[calendly] upsert failed:', error);
       return NextResponse.json({ error: 'db_error' }, { status: 500 });
+    }
+
+    if (!existing) {
+      // Notifications must never fail the webhook (Calendly would retry the whole thing).
+      try {
+        const [{ data: lead }, { data: teamSetting }] = await Promise.all([
+          leadId
+            ? supabase
+                .from('leads')
+                .select('id, vorname, nachname, firma, email')
+                .eq('id', leadId)
+                .maybeSingle()
+            : Promise.resolve({ data: null }),
+          supabase.from('app_settings').select('value').eq('key', 'team_email').maybeSingle(),
+        ]);
+        await sendBookingEmail(
+          {
+            lead: lead ?? null,
+            inviteeName: invitee.name ?? null,
+            inviteeEmail: invitee.email ?? null,
+            startTime: event.start_time!,
+          },
+          typeof teamSetting?.value === 'string' ? teamSetting.value : '',
+        );
+      } catch (e) {
+        console.error('[calendly] booking notification failed:', e);
+      }
     }
   } else {
     const { error } = await supabase

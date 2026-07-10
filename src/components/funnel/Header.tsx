@@ -11,8 +11,9 @@ const STEP_NUMS: Partial<Record<FunnelStep, number>> = {
   questions: 2,
   config: 3,
   lead: 4,
-  stage2: 5,
 };
+
+const TOTAL_STEPS = 4;
 
 function LanguageToggle() {
   const locale = useLocale();
@@ -140,7 +141,7 @@ export function Header() {
                   whiteSpace: 'nowrap',
                 }}
               >
-                {t('stepOf', { num: stepNum })}
+                {t('stepOf', { num: stepNum, total: TOTAL_STEPS })}
               </span>
               <div
                 style={{
@@ -156,7 +157,7 @@ export function Header() {
                     height: '100%',
                     borderRadius: 999,
                     background: 'linear-gradient(90deg,#1E4FD6,#22B8D8)',
-                    width: `${(stepNum / 5) * 100}%`,
+                    width: `${(stepNum / TOTAL_STEPS) * 100}%`,
                     transition: 'width .45s cubic-bezier(.4,0,.2,1)',
                   }}
                 />

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { InlineWidget, useCalendlyEventListener } from 'react-calendly';
+import ReactMarkdown from 'react-markdown';
 import type { Catalog } from '@/lib/types';
 import { fmt, mon } from '@/lib/format';
 import { calcTotals } from '@/lib/pricing/engine';
@@ -10,6 +11,7 @@ import { buildReceipt } from '@/lib/pricing/summary';
 import { Link } from '@/i18n/navigation';
 import { useFunnel, type LeadForm } from '@/stores/funnel';
 import { useAppLocale, useSelection, useSummaryLabels } from './hooks';
+import { IntakeSections } from './IntakeSections';
 import { PromoBox } from './PriceSidebar';
 import { backButton, BLUE, BODY, BORDER, GREEN, gradButton, INK, LockIcon, MUTED, MUTED2 } from './ui';
 
@@ -70,6 +72,37 @@ function CalendlyPanel({ catalog }: { catalog: Catalog }) {
   );
 }
 
+/**
+ * GDPR consent line. The wording is CMS-managed (legal_pages/consent) and rendered as
+ * markdown so its link to the privacy policy stays editable; the i18n key is the fallback.
+ */
+function ConsentText({ catalog }: { catalog: Catalog }) {
+  const t = useTranslations('lead');
+  const locale = useAppLocale();
+  const consent = catalog.legalPages.find(
+    (p) => p.page_key === 'consent' && p.locale === locale,
+  );
+
+  const policyLink = (chunks: React.ReactNode) => (
+    <Link href="/datenschutz" style={{ color: BLUE, fontWeight: 600 }} target="_blank">
+      {chunks}
+    </Link>
+  );
+
+  if (!consent) return <>{t.rich('consent', { link: policyLink })}</>;
+
+  return (
+    <ReactMarkdown
+      components={{
+        p: ({ children }) => <>{children}</>,
+        a: ({ children }) => policyLink(children),
+      }}
+    >
+      {consent.content_markdown}
+    </ReactMarkdown>
+  );
+}
+
 export function LeadStep({ catalog }: { catalog: Catalog }) {
   const t = useTranslations('lead');
   const tc = useTranslations('configurator');
@@ -105,12 +138,17 @@ export function LeadStep({ catalog }: { catalog: Catalog }) {
           locale,
           lead: l,
           selection,
+          sessionId: store.sessionId,
+          siteNotes: store.siteNotes,
+          // Optional intake, collected in the collapsed sections of this same form.
+          stage2: { fields: store.s2, goal: store.goal, driveLink: store.drive },
         }),
       });
       const data = await res.json();
       if (!res.ok || !data.id) throw new Error('submit failed');
       store.setLeadId(data.id);
-      if (!catalog.calendlyEventUrl) store.go('stage2');
+      // Booking is the last step; without Calendly the inquiry is already complete.
+      if (!catalog.calendlyEventUrl) store.go('done');
     } catch {
       setSubmitError(true);
     } finally {
@@ -271,6 +309,19 @@ export function LeadStep({ catalog }: { catalog: Catalog }) {
                 }}
               />
             </div>
+            {/* Optional intake — collapsed; speeds up the build if filled in now. */}
+            <div style={{ gridColumn: '1 / -1' }}>
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 13, fontWeight: 700 }}>
+                  {t('optionalIntakeTitle')}{' '}
+                  <span style={{ color: MUTED, fontWeight: 500 }}>{t('zielOptional')}</span>
+                </div>
+                <div style={{ fontSize: 12, color: MUTED, marginTop: 3, lineHeight: 1.45 }}>
+                  {t('optionalIntakeSub')}
+                </div>
+              </div>
+              <IntakeSections />
+            </div>
             <div style={{ gridColumn: '1 / -1' }}>
               <label style={{ display: 'flex', gap: 11, alignItems: 'flex-start', cursor: 'pointer' }}>
                 <input
@@ -281,17 +332,7 @@ export function LeadStep({ catalog }: { catalog: Catalog }) {
                   style={{ marginTop: 3, width: 17, height: 17, accentColor: BLUE, flex: 'none' }}
                 />
                 <span style={{ fontSize: 13, lineHeight: 1.5, color: BODY }}>
-                  {t.rich('consent', {
-                    link: (chunks) => (
-                      <Link
-                        href="/datenschutz"
-                        style={{ color: BLUE, fontWeight: 600 }}
-                        target="_blank"
-                      >
-                        {chunks}
-                      </Link>
-                    ),
-                  })}
+                  <ConsentText catalog={catalog} />
                   <span style={{ color: '#D6493E' }}> *</span>
                 </span>
               </label>
@@ -354,7 +395,7 @@ export function LeadStep({ catalog }: { catalog: Catalog }) {
           <CalendlyPanel catalog={catalog} />
           <div style={{ display: 'flex', gap: 14, marginTop: 22, alignItems: 'center' }}>
             <button
-              onClick={() => store.go('stage2')}
+              onClick={() => store.go('done')}
               data-testid="calendly-continue"
               className="hov-lift1"
               style={{
@@ -366,11 +407,11 @@ export function LeadStep({ catalog }: { catalog: Catalog }) {
                 boxShadow: '0 10px 22px -8px rgba(30,79,214,.5)',
               }}
             >
-              {store.calendlyBooked ? t('calendlyContinue') : t('calendlyContinue')}
+              {t('calendlyContinue')}
             </button>
             {!store.calendlyBooked && (
               <button
-                onClick={() => store.go('stage2')}
+                onClick={() => store.go('done')}
                 className="hov-blue-text"
                 style={{
                   fontFamily: 'inherit',

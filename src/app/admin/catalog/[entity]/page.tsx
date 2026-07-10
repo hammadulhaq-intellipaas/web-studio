@@ -53,7 +53,7 @@ async function EntityPanel({
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
 }) {
   const entity = ENTITIES[entityKey];
-  const { data } = await supabase.from(entity.table).select('*').order('sort');
+  const { data } = await supabase.from(entity.table).select('*').order(entity.orderBy ?? 'sort');
   return (
     <EntityEditor
       entityKey={entityKey}

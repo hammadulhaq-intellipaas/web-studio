@@ -5,6 +5,7 @@ import type { Catalog, Locale } from '@/lib/types';
 import { buildQuestions } from '@/lib/questions';
 import { isByow } from '@/lib/pricing/engine';
 import { useFunnel } from '@/stores/funnel';
+import { UploadZone } from './UploadZone';
 import { backButton, BLUE, BODY, BORDER, gradButton, INK, MUTED } from './ui';
 
 export function QuestionsStep({ catalog }: { catalog: Catalog }) {
@@ -16,6 +17,8 @@ export function QuestionsStep({ catalog }: { catalog: Catalog }) {
   const answers = useFunnel((s) => s.answers);
   const url = useFunnel((s) => s.url);
   const setUrl = useFunnel((s) => s.setUrl);
+  const siteNotes = useFunnel((s) => s.siteNotes);
+  const setSiteNotes = useFunnel((s) => s.setSiteNotes);
   const answer = useFunnel((s) => s.answer);
   const toConfig = useFunnel((s) => s.toConfig);
 
@@ -23,6 +26,9 @@ export function QuestionsStep({ catalog }: { catalog: Catalog }) {
   const byow = isByow(answers);
 
   const linkPhKey = (['website', 'social', 'concept'] as const).find((k) => k === answers.hasSite);
+  // An existing site or a draft concept can be described further and backed by a file.
+  const siteKind =
+    answers.hasSite === 'website' ? 'website' : answers.hasSite === 'concept' ? 'concept' : null;
 
   return (
     <section
@@ -139,7 +145,14 @@ export function QuestionsStep({ catalog }: { catalog: Catalog }) {
                 })}
               </div>
               {showLink && q.link && (
-                <div style={{ margin: '16px 0 0 34px' }}>
+                <div
+                  style={{
+                    margin: '16px 0 0 34px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 12,
+                  }}
+                >
                   <input
                     value={url}
                     onChange={(ev) => setUrl(ev.target.value)}
@@ -155,6 +168,35 @@ export function QuestionsStep({ catalog }: { catalog: Catalog }) {
                       color: INK,
                     }}
                   />
+                  {/* An existing website can be described beyond its URL. */}
+                  {siteKind === 'website' && (
+                    <textarea
+                      value={siteNotes}
+                      onChange={(ev) => setSiteNotes(ev.target.value)}
+                      data-testid="site-notes"
+                      rows={3}
+                      placeholder={t('siteNotesPh')}
+                      style={{
+                        width: '100%',
+                        fontFamily: 'inherit',
+                        fontSize: 14,
+                        padding: '12px 14px',
+                        border: '1.5px solid #CBD9EE',
+                        borderRadius: 11,
+                        background: '#F8FAFE',
+                        color: INK,
+                        resize: 'vertical',
+                      }}
+                    />
+                  )}
+                  {siteKind && (
+                    <UploadZone
+                      storeKind="site"
+                      serverKind={siteKind}
+                      label={t('siteUploadLabel')}
+                      compact
+                    />
+                  )}
                 </div>
               )}
             </div>

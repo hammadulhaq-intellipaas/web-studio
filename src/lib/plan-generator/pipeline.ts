@@ -142,6 +142,7 @@ export function buildLeadContext(lead: Lead, fileNames: string[]): string {
   lines.push(`- Industry persona: ${lead.persona_id ?? '(none)'}`);
   lines.push(`- Site language(s) requested: ${c.answers.langs ?? '1'}`);
   if (lead.source_url) lines.push(`- Existing site / profile: ${lead.source_url}`);
+  if (c.siteNotes) lines.push(`- Notes on the existing site / concept: ${c.siteNotes}`);
 
   lines.push(`\n## Purchased configuration`);
   lines.push(`- Bundle: ${c.bundleName} (${c.bundle})`);

@@ -87,7 +87,8 @@ function PhaseCard({ plan, phase, index }: { plan: PlanRow; phase: SuggestedPlan
             </button>
           </div>
         ) : (
-          <div className="prose prose-sm max-w-none text-[13px] leading-relaxed [&_code]:rounded [&_code]:bg-slate-100 [&_code]:px-1 [&_h1]:text-base [&_h2]:text-sm [&_h3]:text-sm [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-slate-100 [&_pre]:p-3">
+          // Rendered markdown, not a document layout: ### sections read as clear headings.
+          <div className="max-w-none text-[13px] leading-relaxed text-slate-700 [&>*:first-child]:mt-0 [&_a]:font-medium [&_a]:text-blue-600 [&_code]:rounded [&_code]:bg-slate-100 [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[12px] [&_h3]:mt-5 [&_h3]:mb-1.5 [&_h3]:text-[13px] [&_h3]:font-extrabold [&_h3]:uppercase [&_h3]:tracking-wide [&_h3]:text-slate-900 [&_li]:mb-1 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-2 [&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-slate-900 [&_pre]:p-3 [&_pre_code]:bg-transparent [&_pre_code]:text-slate-100 [&_strong]:font-semibold [&_strong]:text-slate-900 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5">
             <ReactMarkdown>{phase.prompt_markdown}</ReactMarkdown>
           </div>
         )}

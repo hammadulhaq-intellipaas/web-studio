@@ -1,8 +1,9 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import type { EntityDef } from '@/lib/admin/entities';
-import { createEntityRow, saveEntityRow } from '@/app/admin/catalog/actions';
+import { createEntityRow, deleteEntityRow, saveEntityRow } from '@/app/admin/catalog/actions';
 
 type Row = Record<string, unknown> & { id: string };
 
@@ -32,7 +33,9 @@ function RowForm({
   );
   const [newId, setNewId] = useState('');
   const [saving, startSaving] = useTransition();
+  const [deleting, startDeleting] = useTransition();
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const router = useRouter();
 
   const save = () =>
     startSaving(async () => {
@@ -47,6 +50,16 @@ function RowForm({
         setMsg({ ok: false, text: result.error ?? 'Failed' });
       }
     });
+
+  const remove = () => {
+    if (!confirm(`Delete "${row!.id}"? This cannot be undone.`)) return;
+    startDeleting(async () => {
+      setMsg(null);
+      const result = await deleteEntityRow(entityKey, row!.id);
+      if (result.ok) router.refresh();
+      else setMsg({ ok: false, text: result.error ?? 'Failed' });
+    });
+  };
 
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -102,6 +115,16 @@ function RowForm({
         >
           {saving ? 'Saving…' : isNew ? 'Create' : 'Save'}
         </button>
+        {!isNew && entity.canDelete && (
+          <button
+            onClick={remove}
+            disabled={deleting}
+            data-testid={`entity-delete-${row!.id}`}
+            className="rounded-lg border border-red-300 px-4 py-1.5 text-sm font-bold text-red-600 hover:bg-red-50 disabled:opacity-60"
+          >
+            {deleting ? 'Deleting…' : 'Delete'}
+          </button>
+        )}
         {msg && (
           <span className={`text-sm font-semibold ${msg.ok ? 'text-emerald-600' : 'text-red-600'}`}>
             {msg.text}

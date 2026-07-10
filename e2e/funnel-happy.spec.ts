@@ -43,14 +43,12 @@ test.describe('public funnel (de) — happy path', () => {
     await expect(page.getByTestId('lead-err-tel')).toBeVisible();
     await expect(page.getByTestId('lead-err-consent')).toBeVisible();
 
+    // The optional intake travels with this same form; submitting leads to booking, then done.
+    await page.getByTestId('s2-section-unternehmen').click();
+    await page.getByTestId('s2-firmenname').fill('E2E Gasthaus GmbH');
+
     await fillLeadAndSubmit(page, testEmail('happy'));
     await passCalendlyPanel(page);
-    await expect(page.getByTestId('readiness')).toHaveText('25%');
-
-    // Filling a stage-2 field raises the readiness meter; finish → done.
-    await page.getByTestId('s2-firmenname').fill('E2E Gasthaus GmbH');
-    await expect(page.getByTestId('readiness')).not.toHaveText('25%');
-    await page.getByTestId('s2-finish').click();
 
     // Confirmation keeps the discounted recap.
     await expect(page.getByText('Vielen Dank! Ihre Anfrage ist bei uns.')).toBeVisible();

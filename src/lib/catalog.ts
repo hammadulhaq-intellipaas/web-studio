@@ -4,10 +4,13 @@ import { createClient } from '@supabase/supabase-js';
 import type {
   AddonCategory,
   Addon,
+  AddonRule,
   Bundle,
+  BundleRule,
   CarePlan,
   Catalog,
   CloudflarePlan,
+  LegalPage,
   LocalizedText,
   Persona,
   SupportPlan,
@@ -24,7 +27,7 @@ function anonClient() {
 export const getCatalog = cache(async (): Promise<Catalog> => {
   const supabase = anonClient();
 
-  const [bundles, categories, addons, care, cf, support, personas, settings] =
+  const [bundles, categories, addons, care, cf, support, personas, settings, bundleRules, addonRules, legalPages] =
     await Promise.all([
       supabase.from('bundles').select('*').eq('active', true).order('sort'),
       supabase.from('addon_categories').select('*').order('sort'),
@@ -34,11 +37,15 @@ export const getCatalog = cache(async (): Promise<Catalog> => {
       supabase.from('support_plans').select('*').order('sort'),
       supabase.from('personas').select('*').order('sort'),
       supabase.from('app_settings').select('*'),
+      supabase.from('bundle_rules').select('*').eq('active', true).order('priority', { ascending: false }),
+      supabase.from('addon_rules').select('*').eq('active', true).order('sort'),
+      supabase.from('legal_pages').select('*'),
     ]);
 
   const firstError =
     bundles.error ?? categories.error ?? addons.error ?? care.error ??
-    cf.error ?? support.error ?? personas.error ?? settings.error;
+    cf.error ?? support.error ?? personas.error ?? settings.error ??
+    bundleRules.error ?? addonRules.error ?? legalPages.error;
   if (firstError) throw new Error(`Failed to load catalog: ${firstError.message}`);
 
   const settingsMap = Object.fromEntries(
@@ -53,11 +60,18 @@ export const getCatalog = cache(async (): Promise<Catalog> => {
     cloudflarePlans: (cf.data ?? []) as CloudflarePlan[],
     supportPlans: (support.data ?? []) as SupportPlan[],
     personas: (personas.data ?? []) as Persona[],
+    bundleRules: (bundleRules.data ?? []) as BundleRule[],
+    addonRules: (addonRules.data ?? []) as AddonRule[],
+    legalPages: (legalPages.data ?? []) as LegalPage[],
     yearlyDiscountPct: Number(settingsMap.yearly_discount_pct ?? 18),
     aiBundle: (settingsMap.ai_bundle ?? { setup_now: 1509, setup_later: 2320, monthly: 499 }) as Catalog['aiBundle'],
     aiBundleBullets: (settingsMap.ai_bundle_bullets ?? []) as LocalizedText[],
     trustItems: (settingsMap.trust_items ?? []) as LocalizedText[],
     nextSteps: (settingsMap.next_steps ?? []) as LocalizedText[],
     calendlyEventUrl: String(settingsMap.calendly_event_url || process.env.CALENDLY_URL || ''),
+    defaultBundle: String(settingsMap.default_bundle ?? 'gold'),
+    defaultCarePlan: String(settingsMap.default_care_plan ?? 'plus'),
+    defaultCloudflarePlan: String(settingsMap.default_cloudflare_plan ?? 'shield'),
+    aiBundleCategory: String(settingsMap.ai_bundle_category ?? 'ki'),
   };
 });

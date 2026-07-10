@@ -8,6 +8,7 @@ import {
   isAddonVisible,
   isCfIncluded,
   qtyOf,
+  type InclusionContext,
 } from './engine';
 
 /** Translated fragments needed to compose receipt line names. */
@@ -57,8 +58,9 @@ export function buildReceipt(
   labels: SummaryLabels,
 ): Receipt {
   const bundle = catalog.bundles.find((b) => b.id === sel.bundle)!;
-  const careId = sel.care || 'plus';
+  const careId = sel.care || catalog.defaultCarePlan;
   const disc = (p: number) => discMonthly(p, sel.payYearly, catalog.yearlyDiscountPct);
+  const inclusionCtx: InclusionContext = { addons: catalog.addons, selectedAddons: sel.selectedAddons };
 
   const oneOff: ReceiptLine[] = [];
   const monthly: ReceiptLine[] = [];
@@ -73,7 +75,7 @@ export function buildReceipt(
 
   for (const addon of catalog.addons) {
     if (!isAddonVisible(addon, sel.bundle)) continue;
-    if (isAddonIncluded(addon, sel.bundle, sel.aiBundle)) continue;
+    if (isAddonIncluded(addon, sel.bundle, sel.aiBundle, inclusionCtx)) continue;
     if (!sel.selectedAddons[addon.id]) continue;
     const name = pickLocale(addon as unknown as Record<string, unknown>, 'name', locale);
     const qtyTag = addon.qty || addon.tiers ? ` (${qtyText(addon, sel.qty, locale, labels)})` : '';

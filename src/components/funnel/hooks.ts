@@ -4,6 +4,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import type { Locale, Selection } from '@/lib/types';
 import type { SummaryLabels } from '@/lib/pricing/summary';
 import { useFunnel, currentBundle } from '@/stores/funnel';
+import { useCatalog } from './CatalogContext';
 
 export function useAppLocale(): Locale {
   return useLocale() as Locale;
@@ -11,6 +12,7 @@ export function useAppLocale(): Locale {
 
 /** Assemble the pricing-engine Selection from the funnel store. */
 export function useSelection(): Selection {
+  const catalog = useCatalog();
   const answers = useFunnel((s) => s.answers);
   const persona = useFunnel((s) => s.persona);
   const url = useFunnel((s) => s.url);
@@ -29,10 +31,10 @@ export function useSelection(): Selection {
     answers,
     personaId: persona,
     sourceUrl: url,
-    bundle: currentBundle({ bundle, answers, persona }),
+    bundle: currentBundle({ bundle, answers, persona, url }, catalog),
     selectedAddons: sel,
     qty,
-    care: care || 'plus',
+    care: care || catalog.defaultCarePlan,
     support,
     cf,
     backupUp,
