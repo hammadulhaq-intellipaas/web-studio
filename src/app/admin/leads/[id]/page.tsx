@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
-import { dateTime, eur } from '@/lib/admin/format';
+import { eur } from '@/lib/admin/format';
+import { LocalTime } from '@/components/admin/LocalTime';
 import { StatusSelect } from '@/components/admin/StatusSelect';
 import { PlanPanel, type PlanRow } from '@/components/admin/PlanPanel';
 import type { Appointment, Lead } from '@/lib/types';
@@ -79,7 +80,7 @@ export default async function LeadDetailPage({
           {lead.firma ? <span className="font-semibold text-slate-400"> · {lead.firma}</span> : null}
         </h1>
         <StatusSelect leadId={lead.id} status={lead.status} />
-        <span className="text-sm text-slate-400">{dateTime(lead.created_at)}</span>
+        <span className="text-sm text-slate-400"><LocalTime iso={lead.created_at} /></span>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -92,7 +93,7 @@ export default async function LeadDetailPage({
           <KV label="Existing site" value={lead.source_url} />
           <KV label="Stated goal" value={lead.ziel} />
           <KV label="Primary goal" value={lead.goal} />
-          <KV label="Consent" value={dateTime(lead.consent_at)} />
+          <KV label="Consent" value={<LocalTime iso={lead.consent_at} />} />
         </Section>
 
         <Section title="Appointment">
@@ -102,7 +103,7 @@ export default async function LeadDetailPage({
             appointments.map((a) => (
               <div key={a.id} className="mb-2 rounded-lg border border-slate-100 bg-slate-50 p-3 text-sm">
                 <div className="font-bold">
-                  {dateTime(a.start_time)}
+                  <LocalTime iso={a.start_time} />
                   {a.status === 'canceled' && (
                     <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">
                       canceled

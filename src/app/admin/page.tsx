@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { dateTime, eur, STATUS_COLORS } from '@/lib/admin/format';
+import { eur, STATUS_COLORS } from '@/lib/admin/format';
+import { LocalTime } from '@/components/admin/LocalTime';
 import type { Lead, Appointment } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -73,7 +74,7 @@ export default async function AdminDashboard() {
                     {l.status}
                   </span>
                   <span className="whitespace-nowrap text-xs text-slate-400">
-                    {dateTime(l.created_at)}
+                    <LocalTime iso={l.created_at} />
                   </span>
                 </Link>
               ))
@@ -89,7 +90,7 @@ export default async function AdminDashboard() {
               appts.map((a) => (
                 <div key={a.id} className="border-b border-slate-100 px-5 py-3 text-sm last:border-0">
                   <div className="font-semibold">{a.invitee_name ?? a.invitee_email}</div>
-                  <div className="text-xs text-slate-500">{dateTime(a.start_time)}</div>
+                  <div className="text-xs text-slate-500"><LocalTime iso={a.start_time} /></div>
                   {a.lead_id && (
                     <Link href={`/admin/leads/${a.lead_id}`} className="text-xs font-semibold text-blue-600">
                       View lead →

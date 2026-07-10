@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { dateTime, eur, STATUS_COLORS } from '@/lib/admin/format';
+import { eur, STATUS_COLORS } from '@/lib/admin/format';
+import { LocalTime } from '@/components/admin/LocalTime';
 import type { Lead } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -103,7 +104,7 @@ export default async function LeadsPage({
                     </span>
                   </td>
                   <td className="whitespace-nowrap px-5 py-3 text-xs text-slate-500">
-                    {dateTime(l.created_at)}
+                    <LocalTime iso={l.created_at} />
                   </td>
                 </tr>
               ))
