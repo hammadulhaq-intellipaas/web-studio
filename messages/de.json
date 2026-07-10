@@ -385,7 +385,12 @@
     "uploadFotos": "Fotos: Team, Räume, Produkte, Arbeitsbeispiele",
     "uploadDrag": "Dateien hierher ziehen oder",
     "uploadPick": "Dateien auswählen",
-    "uploadAccept": "JPG, PNG, WebP, PDF, DOC · max. 25 MB pro Datei",
+    "uploadAccept": "JPG, PNG, WebP, GIF, HEIC, SVG, PDF, DOC · max. 25 MB pro Datei",
+    "uploadErr": {
+      "unsupported_type": "„{name}“ konnte nicht hochgeladen werden — Format nicht unterstützt.",
+      "too_large": "„{name}“ ist zu groß — maximal 25 MB pro Datei.",
+      "upload_failed": "„{name}“ konnte nicht hochgeladen werden. Bitte erneut versuchen."
+    },
     "driveLabel": "Viel Material? Stattdessen Google-Drive-/Dropbox-Link einfügen",
     "drivePh": "https://drive.google.com/…",
     "goalLabel": "Hauptziel Ihrer Website",

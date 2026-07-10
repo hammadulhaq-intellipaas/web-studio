@@ -10,6 +10,12 @@ const MAX_FILE = 25 * 1024 * 1024;
 /** lead_files.kind written on the server for each client-side bucket. */
 export type ServerFileKind = 'logo' | 'photo' | 'concept' | 'website';
 
+type RejectionReason = 'unsupported_type' | 'too_large' | 'upload_failed';
+interface RejectedFile {
+  name: string;
+  reason: RejectionReason;
+}
+
 /**
  * Drag-and-drop upload bound to the funnel session, so files can be attached before a
  * lead exists. On submission the server re-parents them to the created lead.
@@ -28,15 +34,37 @@ export function UploadZone({
   const t = useTranslations('stage2');
   const store = useFunnel();
   const [busy, setBusy] = useState(false);
+  const [errors, setErrors] = useState<string[]>([]);
 
   const files =
     storeKind === 'logo' ? store.logoFiles : storeKind === 'foto' ? store.fotoFiles : store.siteFiles;
 
+  const describe = (rejection: RejectedFile) =>
+    t(`uploadErr.${rejection.reason}`, { name: rejection.name });
+
   const upload = async (list: FileList | null) => {
-    if (!list || !store.sessionId) return;
-    const accepted = Array.from(list).filter((f) => f.size <= MAX_FILE);
-    if (!accepted.length) return;
+    if (!list) return;
+    const picked = Array.from(list);
+    if (!picked.length) return;
+
+    // No session means the visitor never started the questionnaire — nothing to attach to.
+    if (!store.sessionId) {
+      setErrors([t('uploadErr.upload_failed', { name: picked[0].name })]);
+      return;
+    }
+
+    // Oversize files are caught here so a 25 MB upload never leaves the browser.
+    const tooLarge = picked.filter((f) => f.size > MAX_FILE);
+    const accepted = picked.filter((f) => f.size <= MAX_FILE);
+    const problems = tooLarge.map((f) => describe({ name: f.name, reason: 'too_large' }));
+
+    if (!accepted.length) {
+      setErrors(problems);
+      return;
+    }
+
     setBusy(true);
+    setErrors([]);
     try {
       const form = new FormData();
       accepted.forEach((f) => form.append('files', f));
@@ -45,11 +73,15 @@ export function UploadZone({
         method: 'POST',
         body: form,
       });
-      if (res.ok) {
-        const data = await res.json();
-        store.addFiles(storeKind, (data.files as { name: string }[]) ?? []);
-      }
+      if (!res.ok) throw new Error(`upload failed: ${res.status}`);
+
+      const data = (await res.json()) as { files?: { name: string }[]; rejected?: RejectedFile[] };
+      store.addFiles(storeKind, data.files ?? []);
+      problems.push(...(data.rejected ?? []).map(describe));
+    } catch {
+      problems.push(...accepted.map((f) => describe({ name: f.name, reason: 'upload_failed' })));
     } finally {
+      setErrors(problems);
       setBusy(false);
     }
   };
@@ -98,7 +130,7 @@ export function UploadZone({
           <input
             type="file"
             multiple
-            accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx"
+            accept=".jpg,.jpeg,.png,.webp,.gif,.avif,.heic,.heif,.svg,.pdf,.doc,.docx"
             onChange={(ev) => {
               upload(ev.target.files);
               ev.target.value = '';
@@ -108,6 +140,15 @@ export function UploadZone({
         </label>
         <div style={{ fontSize: 11, color: MUTED2, marginTop: 8 }}>{t('uploadAccept')}</div>
       </div>
+      {errors.length > 0 && (
+        <div data-testid={`upload-error-${serverKind}`} style={{ marginTop: 8 }}>
+          {errors.map((message, i) => (
+            <div key={i} style={{ fontSize: 11.5, fontWeight: 600, color: '#D6493E' }}>
+              {message}
+            </div>
+          ))}
+        </div>
+      )}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
         {files.map((f, i) => (
           <span

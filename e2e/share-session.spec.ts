@@ -7,9 +7,27 @@ import { GASTRO } from './fixtures';
 // so opening the link in a fresh browser context resumes exactly where it left off.
 
 test.describe('public funnel — shareable session link', () => {
-  test('the URL carries a session id from the start', async ({ page }) => {
-    await walkToConfigurator(page, GASTRO.persona);
+  test('the landing page is clean; a session is minted when the questionnaire starts', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    await expect(page).not.toHaveURL(/[?&]c=/);
+
+    await page.getByRole('button', { name: 'Jetzt starten' }).click();
     await expect(page).toHaveURL(/[?&]c=[A-Za-z0-9]{21}/);
+  });
+
+  test('each new run gets its own session id', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Jetzt starten' }).click();
+    const first = new URL(page.url()).searchParams.get('c');
+
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Jetzt starten' }).click();
+    const second = new URL(page.url()).searchParams.get('c');
+
+    expect(first).toBeTruthy();
+    expect(second).not.toEqual(first);
   });
 
   test('share button reveals the link, and it restores the configuration elsewhere', async ({

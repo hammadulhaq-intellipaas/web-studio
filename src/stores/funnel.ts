@@ -62,6 +62,7 @@ interface FunnelState {
   openSec: string | null;
 
   go: (step: FunnelStep) => void;
+  startSession: () => void;
   setSessionId: (id: string) => void;
   hydrateFromSession: (state: Partial<FunnelState>) => void;
   setUrl: (url: string) => void;
@@ -102,6 +103,42 @@ const initialLead: LeadForm = {
   ziel: '',
   consent: false,
 };
+
+/** A blank questionnaire back at the intro. The session is minted on `startSession`. */
+function freshState() {
+  return {
+    sessionId: null,
+    step: 'intro' as FunnelStep,
+    url: '',
+    siteNotes: '',
+    siteFiles: [] as UploadedFile[],
+    persona: null,
+    answers: { ...EMPTY_ANSWERS },
+    bundle: null,
+    sel: {},
+    recSel: {},
+    qty: {},
+    care: null,
+    support: 'none',
+    cf: 'none',
+    backupUp: false,
+    aiBundle: false,
+    payYearly: true,
+    promoInput: '',
+    voucher: null,
+    promoMsg: null,
+    lead: { ...initialLead },
+    leadErr: {},
+    leadId: null,
+    calendlyBooked: false,
+    s2: {},
+    goal: null,
+    drive: '',
+    logoFiles: [] as UploadedFile[],
+    fotoFiles: [] as UploadedFile[],
+    openSec: null,
+  };
+}
 
 /** Resolve the effective bundle: explicit choice, else recommendation, else the CMS default. */
 export function currentBundle(
@@ -233,40 +270,14 @@ export const useFunnel = create<FunnelState>()(
       },
       setOpenSec: (id) => set({ openSec: id }),
 
-      restart: () =>
-        set({
-          // A fresh questionnaire gets a fresh shareable session.
-          sessionId: generateSessionId(),
-          step: 'intro',
-          url: '',
-          siteNotes: '',
-          siteFiles: [],
-          persona: null,
-          answers: { ...EMPTY_ANSWERS },
-          bundle: null,
-          sel: {},
-          recSel: {},
-          qty: {},
-          care: null,
-          support: 'none',
-          cf: 'none',
-          backupUp: false,
-          aiBundle: false,
-          payYearly: true,
-          promoInput: '',
-          voucher: null,
-          promoMsg: null,
-          lead: { ...initialLead },
-          leadErr: {},
-          leadId: null,
-          calendlyBooked: false,
-          s2: {},
-          goal: null,
-          drive: '',
-          logoFiles: [],
-          fotoFiles: [],
-          openSec: null,
-        }),
+      // Pressing "start" always begins a brand-new questionnaire instance — and with it
+      // a brand-new shareable session, so a previous run's link keeps its own state.
+      startSession: () => {
+        set({ ...freshState(), sessionId: generateSessionId() });
+        get().go('persona');
+      },
+
+      restart: () => set(freshState()),
     }),
     {
       // v4: added sessionId/siteNotes/siteFiles and removed the stage2 step.

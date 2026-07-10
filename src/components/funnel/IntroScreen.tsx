@@ -10,7 +10,7 @@ import { BODY, BORDER, CheckIcon, gradButton, INK } from './ui';
 export function IntroScreen({ catalog }: { catalog: Catalog }) {
   const t = useTranslations('intro');
   const locale = useLocale() as Locale;
-  const go = useFunnel((s) => s.go);
+  const startSession = useFunnel((s) => s.startSession);
 
   return (
     <section
@@ -89,7 +89,7 @@ export function IntroScreen({ catalog }: { catalog: Catalog }) {
         ))}
       </div>
       <button
-        onClick={() => go('persona')}
+        onClick={() => startSession()}
         className="hov-cta"
         style={{
           ...gradButton,

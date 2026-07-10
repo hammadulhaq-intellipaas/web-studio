@@ -27,13 +27,30 @@ test.describe('public funnel — optional intake sections', () => {
     });
     await expect(page.getByText('e2e-logo.png')).toBeVisible();
 
-    // A >25 MB file is filtered client-side and never uploaded.
+    // A browser that reports no MIME type must still upload by extension.
+    await fileInput.setInputFiles({
+      name: 'e2e-notype.png',
+      mimeType: '',
+      buffer: Buffer.from('89504e470d0a1a0a', 'hex'),
+    });
+    await expect(page.getByText('e2e-notype.png')).toBeVisible();
+
+    // An unsupported type is rejected with a visible message, not silently dropped.
+    await fileInput.setInputFiles({
+      name: 'e2e-notes.txt',
+      mimeType: 'text/plain',
+      buffer: Buffer.from('hello'),
+    });
+    await expect(page.getByTestId('upload-error-logo')).toContainText('e2e-notes.txt');
+    await expect(page.getByText('e2e-notes.txt', { exact: true })).toHaveCount(0);
+
+    // A >25 MB file is caught client-side (never leaves the browser) and reported.
     await fileInput.setInputFiles({
       name: 'e2e-huge.png',
       mimeType: 'image/png',
       buffer: Buffer.alloc(26 * 1024 * 1024, 1),
     });
-    await expect(page.getByText('e2e-huge.png')).toHaveCount(0);
+    await expect(page.getByTestId('upload-error-logo')).toContainText('e2e-huge.png');
 
     // The intake travels with the single submit — there is no second form.
     await fillLeadAndSubmit(page, testEmail('intake'));

@@ -55,13 +55,15 @@ export default async function LeadDetailPage({
   const config = lead.config;
   const s2 = lead.stage2?.fields ?? {};
 
-  // Signed URLs for the private bucket (1 hour).
+  // Signed URLs for the private bucket (1 hour). A customer-supplied SVG can carry script,
+  // so it is served as a download rather than rendered in the browser.
   const admin = createSupabaseAdminClient();
   const files = await Promise.all(
     (filesData ?? []).map(async (f) => {
+      const isSvg = f.mime_type === 'image/svg+xml';
       const { data } = await admin.storage
         .from('lead-uploads')
-        .createSignedUrl(f.storage_path, 3600);
+        .createSignedUrl(f.storage_path, 3600, isSvg ? { download: true } : undefined);
       return { ...f, url: data?.signedUrl ?? null };
     }),
   );
