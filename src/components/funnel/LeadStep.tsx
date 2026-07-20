@@ -61,7 +61,13 @@ function CalendlyPanel({ catalog }: { catalog: Catalog }) {
             name: `${store.lead.vorname} ${store.lead.nachname}`.trim(),
             email: store.lead.email,
           }}
-          utm={{ utmSource: 'web-studio', utmContent: store.leadId ?? undefined }}
+          // utm_source tags the booking for this project; the shared event type's webhook
+          // stream is filtered on it. utm_content carries the lead id.
+          utm={{
+            utmSource: process.env.NEXT_PUBLIC_CALENDLY_ORIGIN,
+            utmCampaign: 'onboarding',
+            utmContent: store.leadId ?? undefined,
+          }}
           pageSettings={{ hideGdprBanner: true, primaryColor: '1E5EFF' }}
           styles={{ height: '640px' }}
           // Calendly picks the display language from the event settings; locale shown for context

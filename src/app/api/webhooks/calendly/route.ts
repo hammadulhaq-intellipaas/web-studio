@@ -35,7 +35,7 @@ interface CalendlyPayload {
       start_time?: string;
       end_time?: string;
     };
-    tracking?: { utm_content?: string | null };
+    tracking?: { utm_source?: string | null; utm_content?: string | null };
     cancellation?: { reason?: string | null };
   };
 }
@@ -60,6 +60,19 @@ export async function POST(request: Request) {
 
   if (body.event !== 'invitee.created' && body.event !== 'invitee.canceled') {
     return NextResponse.json({ ok: true, ignored: body.event });
+  }
+
+  // One Calendly event type is shared across projects and webhook subscriptions are
+  // org-scoped, so every project sees every booking; utm_source marks the ones that are
+  // ours. Must gate every side effect below — matching the invitee by email would
+  // otherwise attach another project's booking to a lead that happens to exist here.
+  const origin = process.env.NEXT_PUBLIC_CALENDLY_ORIGIN;
+  if (origin) {
+    if (body.payload?.tracking?.utm_source !== origin) {
+      return NextResponse.json({ ok: true, ignored: 'foreign origin' });
+    }
+  } else {
+    console.warn('[calendly] NEXT_PUBLIC_CALENDLY_ORIGIN not set — accepting all origins');
   }
 
   const invitee = body.payload;
