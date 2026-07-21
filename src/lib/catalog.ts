@@ -68,7 +68,7 @@ export const getCatalog = cache(async (): Promise<Catalog> => {
     aiBundleBullets: (settingsMap.ai_bundle_bullets ?? []) as LocalizedText[],
     trustItems: (settingsMap.trust_items ?? []) as LocalizedText[],
     nextSteps: (settingsMap.next_steps ?? []) as LocalizedText[],
-    calendlyEventUrl: String(settingsMap.calendly_event_url || process.env.CALENDLY_URL || ''),
+    calendlyEventUrl: String(settingsMap.calendly_event_url || process.env.NEXT_PUBLIC_CALENDLY_URL || ''),
     defaultBundle: String(settingsMap.default_bundle ?? 'gold'),
     defaultCarePlan: String(settingsMap.default_care_plan ?? 'plus'),
     defaultCloudflarePlan: String(settingsMap.default_cloudflare_plan ?? 'shield'),

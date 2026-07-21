@@ -3,6 +3,9 @@ import crypto from 'node:crypto';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { sendBookingEmail } from '@/lib/emails';
 
+/** Calendly's guidance for how much clock skew / delivery lag to accept. */
+const SIGNATURE_TOLERANCE_SECONDS = 300;
+
 /**
  * Calendly webhook (invitee.created / invitee.canceled).
  * Signature header format: "t=<timestamp>,v1=<hmac>", HMAC-SHA256 over `${t}.${rawBody}`.
@@ -10,11 +13,20 @@ import { sendBookingEmail } from '@/lib/emails';
 function verifySignature(rawBody: string, header: string | null, signingKey: string): boolean {
   if (!header) return false;
   const parts = Object.fromEntries(
-    header.split(',').map((p) => p.split('=', 2) as [string, string]),
+    header.split(',').map((p) => {
+      const [k, ...rest] = p.split('=');
+      return [k.trim(), rest.join('=').trim()] as [string, string];
+    }),
   );
   const t = parts.t;
   const v1 = parts.v1;
   if (!t || !v1) return false;
+
+  // The timestamp is inside the HMAC, so it can't be re-dated — but without a window a
+  // captured request stays replayable forever. Reject anything outside the tolerance.
+  const ageSeconds = Math.abs(Date.now() / 1000 - Number(t));
+  if (!Number.isFinite(ageSeconds) || ageSeconds > SIGNATURE_TOLERANCE_SECONDS) return false;
+
   const expected = crypto.createHmac('sha256', signingKey).update(`${t}.${rawBody}`).digest('hex');
   try {
     return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(v1));
@@ -43,13 +55,15 @@ interface CalendlyPayload {
 export async function POST(request: Request) {
   const rawBody = await request.text();
 
+  // Fail closed: an unverified webhook can inject appointments and trigger team email,
+  // so a missing key is a deployment fault, not a reason to trust the caller.
   const signingKey = process.env.CALENDLY_WEBHOOK_SIGNING_KEY;
-  if (signingKey) {
-    const ok = verifySignature(rawBody, request.headers.get('calendly-webhook-signature'), signingKey);
-    if (!ok) return NextResponse.json({ error: 'invalid_signature' }, { status: 401 });
-  } else {
-    console.warn('[calendly] CALENDLY_WEBHOOK_SIGNING_KEY not set — accepting webhook unverified');
+  if (!signingKey) {
+    console.error('[calendly] CALENDLY_WEBHOOK_SIGNING_KEY not set — refusing webhook');
+    return NextResponse.json({ error: 'not_configured' }, { status: 500 });
   }
+  const ok = verifySignature(rawBody, request.headers.get('calendly-webhook-signature'), signingKey);
+  if (!ok) return NextResponse.json({ error: 'invalid_signature' }, { status: 401 });
 
   let body: CalendlyPayload;
   try {
@@ -66,18 +80,22 @@ export async function POST(request: Request) {
   // org-scoped, so every project sees every booking; utm_source marks the ones that are
   // ours. Must gate every side effect below — matching the invitee by email would
   // otherwise attach another project's booking to a lead that happens to exist here.
+  // Fail closed for the same reason: without the slug we cannot tell our bookings from
+  // another project's, and accepting all of them corrupts this project's calendar.
   const origin = process.env.NEXT_PUBLIC_CALENDLY_ORIGIN;
-  if (origin) {
-    if (body.payload?.tracking?.utm_source !== origin) {
-      return NextResponse.json({ ok: true, ignored: 'foreign origin' });
-    }
-  } else {
-    console.warn('[calendly] NEXT_PUBLIC_CALENDLY_ORIGIN not set — accepting all origins');
+  if (!origin) {
+    console.error('[calendly] NEXT_PUBLIC_CALENDLY_ORIGIN not set — refusing webhook');
+    return NextResponse.json({ error: 'not_configured' }, { status: 500 });
+  }
+  if (body.payload?.tracking?.utm_source !== origin) {
+    return NextResponse.json({ ok: true, ignored: 'foreign origin' });
   }
 
   const invitee = body.payload;
   const event = invitee.scheduled_event;
-  if (!event?.uri) return NextResponse.json({ error: 'missing_event' }, { status: 400 });
+  if (!event?.uri || !event.start_time) {
+    return NextResponse.json({ error: 'missing_event' }, { status: 400 });
+  }
 
   const supabase = createSupabaseAdminClient();
 
@@ -145,7 +163,7 @@ export async function POST(request: Request) {
             lead: lead ?? null,
             inviteeName: invitee.name ?? null,
             inviteeEmail: invitee.email ?? null,
-            startTime: event.start_time!,
+            startTime: event.start_time,
           },
           typeof teamSetting?.value === 'string' ? teamSetting.value : '',
         );

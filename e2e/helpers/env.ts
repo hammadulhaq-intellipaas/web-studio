@@ -32,6 +32,8 @@ export const ADMIN_PASSWORD = req('ADMIN_PASSWORD');
 
 // Optional — features degrade gracefully if unset.
 export const CALENDLY_SIGNING_KEY = process.env.CALENDLY_WEBHOOK_SIGNING_KEY ?? '';
+// Must match the running app's slug or the webhook drops our payloads as "foreign origin".
+export const CALENDLY_ORIGIN = process.env.NEXT_PUBLIC_CALENDLY_ORIGIN ?? '';
 export const RESEND_API_KEY = process.env.RESEND_API_KEY ?? '';
 
 export const BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:3111';

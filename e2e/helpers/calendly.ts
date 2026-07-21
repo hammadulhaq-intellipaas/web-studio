@@ -4,7 +4,7 @@
 // server path: signature verify → lead link via utm_content → appointment upsert.
 import crypto from 'node:crypto';
 import { expect, type APIRequestContext } from '@playwright/test';
-import { CALENDLY_SIGNING_KEY } from './env';
+import { CALENDLY_ORIGIN, CALENDLY_SIGNING_KEY } from './env';
 
 /** Reproduces verifySignature() in src/app/api/webhooks/calendly/route.ts. */
 function signature(rawBody: string): string {
@@ -35,7 +35,8 @@ function body(event: 'invitee.created' | 'invitee.canceled', o: WebhookOpts) {
         start_time: o.startTime,
         end_time: new Date(new Date(o.startTime).getTime() + 30 * 60_000).toISOString(),
       },
-      tracking: { utm_content: o.leadId },
+      // utm_source must carry our origin slug — the route ignores foreign-origin bookings.
+      tracking: { utm_source: CALENDLY_ORIGIN, utm_content: o.leadId },
       ...(event === 'invitee.canceled' ? { cancellation: { reason: o.reason ?? 'e2e cancel' } } : {}),
     },
   };
