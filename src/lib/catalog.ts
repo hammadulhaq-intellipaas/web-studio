@@ -30,7 +30,7 @@ export const getCatalog = cache(async (): Promise<Catalog> => {
   const [bundles, categories, addons, care, cf, support, personas, settings, bundleRules, addonRules, legalPages] =
     await Promise.all([
       supabase.from('bundles').select('*').eq('active', true).order('sort'),
-      supabase.from('addon_categories').select('*').order('sort'),
+      supabase.from('addon_categories').select('*').order('parent_id', { nullsFirst: true }).order('sort'),
       supabase.from('addons').select('*').eq('active', true).order('sort'),
       supabase.from('care_plans').select('*').order('sort'),
       supabase.from('cloudflare_plans').select('*').order('sort'),

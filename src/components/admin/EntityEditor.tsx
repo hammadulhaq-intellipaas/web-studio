@@ -17,12 +17,14 @@ function RowForm({
   entityKey,
   entity,
   row,
+  rows,
   isNew,
   onDone,
 }: {
   entityKey: string;
   entity: EntityDef;
   row: Row | null;
+  rows: Row[];
   isNew?: boolean;
   onDone?: () => void;
 }) {
@@ -85,6 +87,21 @@ function RowForm({
             >
               <option value="true">true</option>
               <option value="false">false</option>
+            </select>
+          ) : f.type === 'select' ? (
+            <select
+              value={values[f.key]}
+              onChange={(ev) => setValues({ ...values, [f.key]: ev.target.value })}
+              className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
+            >
+              <option value="">— top level —</option>
+              {(f.optionsFromRows ? rows : [])
+                .filter((r) => r.id !== row?.id)
+                .map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {String(r.name_de ?? r.name ?? r.id)}
+                  </option>
+                ))}
             </select>
           ) : f.type === 'json' || f.type === 'textarea' ? (
             <textarea
@@ -165,7 +182,7 @@ export function EntityEditor({
       </div>
       {creating && (
         <div className="mb-4 rounded-xl border-2 border-dashed border-blue-300 bg-white p-5">
-          <RowForm entityKey={entityKey} entity={entity} row={null} isNew onDone={() => setCreating(false)} />
+          <RowForm entityKey={entityKey} entity={entity} row={null} rows={rows} isNew onDone={() => setCreating(false)} />
         </div>
       )}
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
@@ -176,7 +193,10 @@ export function EntityEditor({
               data-testid={`entity-row-${row.id}`}
               className="flex w-full items-center gap-3 px-5 py-3 text-left text-sm hover:bg-slate-50"
             >
-              <span className="font-bold">{titleOf(row)}</span>
+              {row.parent_id != null && <span className="text-slate-300">↳</span>}
+              <span className={row.parent_id != null ? 'font-semibold text-slate-600' : 'font-bold'}>
+                {titleOf(row)}
+              </span>
               <span className="text-xs text-slate-400">{row.id}</span>
               {'price' in row && row.price != null && (
                 <span className="ml-auto font-semibold">€{String(row.price)}</span>
@@ -199,7 +219,7 @@ export function EntityEditor({
             </button>
             {open === row.id && (
               <div className="border-t border-slate-100 bg-slate-50/50 px-5 py-4">
-                <RowForm entityKey={entityKey} entity={entity} row={row} />
+                <RowForm entityKey={entityKey} entity={entity} row={row} rows={rows} />
               </div>
             )}
           </div>

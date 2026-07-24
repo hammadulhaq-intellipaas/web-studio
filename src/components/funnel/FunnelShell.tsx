@@ -29,6 +29,7 @@ export function FunnelShell({ catalog }: { catalog: Catalog }) {
   return (
     <CatalogProvider catalog={catalog}>
     <div
+      data-funnel-root
       style={{
         minHeight: '100vh',
         display: 'flex',

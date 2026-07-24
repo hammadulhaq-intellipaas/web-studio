@@ -54,11 +54,25 @@ async function EntityPanel({
 }) {
   const entity = ENTITIES[entityKey];
   const { data } = await supabase.from(entity.table).select('*').order(entity.orderBy ?? 'sort');
+  let rows = (data ?? []) as ({ id: string } & Record<string, unknown>)[];
+
+  // Categories form a 2-level tree: list each parent immediately followed by its children,
+  // both sorted by `sort`, so the hierarchy reads top-to-bottom.
+  if (entity.table === 'addon_categories') {
+    const bySort = (a: (typeof rows)[number], b: (typeof rows)[number]) =>
+      Number(a.sort ?? 0) - Number(b.sort ?? 0);
+    const tops = rows.filter((r) => r.parent_id == null).sort(bySort);
+    rows = tops.flatMap((top) => [
+      top,
+      ...rows.filter((r) => r.parent_id === top.id).sort(bySort),
+    ]);
+  }
+
   return (
     <EntityEditor
       entityKey={entityKey}
       entity={entity}
-      rows={(data ?? []) as ({ id: string } & Record<string, unknown>)[]}
+      rows={rows}
     />
   );
 }

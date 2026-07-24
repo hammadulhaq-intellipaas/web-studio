@@ -4,6 +4,8 @@ export type LocalizedText = { de: string; en: string };
 
 export interface AddonCategory {
   id: string;
+  /** Parent category id, or null for a top-level category. Max depth is 2 (parent → child). */
+  parent_id: string | null;
   name_de: string;
   name_en: string;
   note_de: string | null;
@@ -57,6 +59,11 @@ export interface Addon {
   byow_only: boolean;
   not_byow: boolean;
   ai_bundle_member: boolean;
+  /** Static CMS badge shown on the card (e.g. "Best value"). Null = no badge. */
+  badge_de: string | null;
+  badge_en: string | null;
+  /** Give the card visual emphasis (tinted background + gold ring). */
+  highlight: boolean;
   sort: number;
   active: boolean;
 }

@@ -221,15 +221,21 @@ export function PriceSidebar({ catalog }: { catalog: Catalog }) {
     <aside
       data-cfg-side="1"
       style={{
-        position: 'sticky',
-        top: 86,
+        display: 'flex',
+        flexDirection: 'column',
         background: '#ffffff',
         border: `1px solid ${BORDER}`,
         borderRadius: 18,
-        padding: '20px 20px 18px',
         boxShadow: '0 14px 34px -20px rgba(15,36,64,.3)',
+        maxHeight: '100%',
       }}
     >
+      <div
+        data-sidebar-scroll
+        tabIndex={0}
+        aria-label={t('sidebarTitle')}
+        style={{ flex: '1 1 auto', minHeight: 0, padding: '20px 20px 6px' }}
+      >
       <div
         style={{
           fontSize: 12,
@@ -499,37 +505,41 @@ export function PriceSidebar({ catalog }: { catalog: Catalog }) {
       )}
 
       <ShareBox />
+      </div>
 
-      <p style={{ margin: '14px 0 14px', fontSize: 11, lineHeight: 1.5, color: MUTED2 }}>
-        {t('disclaimer')}
-      </p>
-      <button
-        onClick={() => store.go('lead')}
-        data-testid="to-lead"
-        className="hov-lift1"
-        style={{
-          ...gradButton,
-          width: '100%',
-          borderRadius: 12,
-          padding: 15,
-          fontSize: 15.5,
-          fontWeight: 700,
-          boxShadow: '0 10px 22px -8px rgba(30,79,214,.5)',
-        }}
-      >
-        {t('ctaLead')}
-      </button>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          gap: 6,
-          marginTop: 11,
-        }}
-      >
-        <LockIcon />
-        <span style={{ fontSize: 10.5, fontWeight: 600, color: MUTED }}>{t('sslShort')}</span>
+      {/* Pinned to the bottom of the sidebar column so the CTA is always in view. */}
+      <div style={{ flex: 'none', padding: '10px 20px 18px', borderTop: `1px solid ${BORDER}` }}>
+        <p style={{ margin: '4px 0 12px', fontSize: 11, lineHeight: 1.5, color: MUTED2 }}>
+          {t('disclaimer')}
+        </p>
+        <button
+          onClick={() => store.go('lead')}
+          data-testid="to-lead"
+          className="hov-lift1"
+          style={{
+            ...gradButton,
+            width: '100%',
+            borderRadius: 12,
+            padding: 15,
+            fontSize: 15.5,
+            fontWeight: 700,
+            boxShadow: '0 10px 22px -8px rgba(30,79,214,.5)',
+          }}
+        >
+          {t('ctaLead')}
+        </button>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: 6,
+            marginTop: 11,
+          }}
+        >
+          <LockIcon />
+          <span style={{ fontSize: 10.5, fontWeight: 600, color: MUTED }}>{t('sslShort')}</span>
+        </div>
       </div>
     </aside>
   );

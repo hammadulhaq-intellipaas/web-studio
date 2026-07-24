@@ -1,17 +1,28 @@
 -- Seed: 1:1 port of the prototype catalog (IntelliPaaS Web Konfigurator v2)
 -- German texts verbatim from the design export; English authored here.
 
--- ------------------------------------------------------------- categories
-insert into addon_categories (id, name_de, name_en, note_de, note_en, sort) values
-('byos',         'Bring-Your-Own-Website-Leistungen', 'Bring Your Own Website services', null, null, 10),
-('inhalte',      'Inhalte & Funktionen', 'Content & features', null, null, 20),
-('compliance',   'Compliance', 'Compliance', null, null, 30),
-('blogabo',      'Blog-Abo', 'Blog subscription', 'Mindestlaufzeit 12 Monate — im Abo deutlich günstiger als Einzelartikel (60 €).', 'Minimum term 12 months — much cheaper in a subscription than single articles (€60).', 40),
-('seogeo_setup', 'SEO & GEO — Setup', 'SEO & GEO — setup', null, null, 50),
-('seogeo_mon',   'SEO & GEO — laufend', 'SEO & GEO — ongoing', 'Monatlich, 12 Monate Mindestlaufzeit.', 'Monthly, 12-month minimum term.', 60),
-('marketing',    'Marketing — laufend', 'Marketing — ongoing', null, null, 70),
-('email_admin',  'E-Mail & Verwaltung', 'Email & administration', null, null, 80),
-('ki',           'KI-Einzelbausteine', 'AI building blocks', null, null, 90);
+-- ------------------------------------------------------------- categories (2-level tree)
+-- Top-level parents have parent_id null; sub-sections point at their parent.
+insert into addon_categories (id, parent_id, name_de, name_en, note_de, note_en, sort) values
+-- Website content & functionality
+('content',       null,        'Website-Inhalte & Funktionen', 'Website content & functionality', null, null, 10),
+('content_pages', 'content',   'Seiten & Inhalte', 'Pages & content', null, null, 10),
+('inhalte',       'content',   'Funktionen & Integrationen', 'Features & integrations', null, null, 20),
+-- Marketing
+('marketing',     null,        'Marketing', 'Marketing', null, null, 20),
+('seogeo_setup',  'marketing', 'SEO & GEO — Setup', 'SEO & GEO — setup', null, null, 10),
+('seogeo_mon',    'marketing', 'SEO & GEO — laufend', 'SEO & GEO — ongoing', 'Monatlich, 12 Monate Mindestlaufzeit.', 'Monthly, 12-month minimum term.', 20),
+('mkt_social',    'marketing', 'Social Media', 'Social media', null, null, 30),
+('blogabo',       'marketing', 'Blog & Newsletter', 'Blog & newsletter', 'Blog-Abo: Mindestlaufzeit 12 Monate — im Abo deutlich günstiger als Einzelartikel (60 €).', 'Blog subscription: minimum term 12 months — much cheaper than single articles (€60).', 40),
+('mkt_ads',       'marketing', 'Werbung & Reporting', 'Advertising & reporting', null, null, 50),
+-- AI services
+('ki',            null,        'KI-Services', 'AI services', null, null, 30),
+-- Compliance
+('compliance',    null,        'Compliance', 'Compliance', null, null, 40),
+-- Email & administration
+('email_admin',   null,        'E-Mail & Verwaltung', 'Email & administration', null, null, 60),
+-- Bring Your Own Website (shown on the BYOW path only)
+('byos',          null,        'Bring-Your-Own-Website-Leistungen', 'Bring Your Own Website services', null, null, 70);
 
 -- ------------------------------------------------------------- bundles
 insert into bundles (id, name, tag_de, tag_en, price, chips, backup_upgrade_price, backup_upgrade_label_de, backup_upgrade_label_en, backup_base_label_de, backup_base_label_en, sort) values
@@ -64,61 +75,63 @@ insert into bundles (id, name, tag_de, tag_en, price, chips, backup_upgrade_pric
 ]', null, null, null, null, null, 40);
 
 -- ------------------------------------------------------------- addons
-insert into addons (id, category_id, name_de, name_en, note_de, note_en, billing, price_now, price_later, qty, tiers, included_in, byow_only, not_byow, ai_bundle_member, sort) values
--- BYOW services
-('byospage', 'byos', 'Zusätzliche Seite deployen (ohne Änderungen)', 'Deploy an additional page (no changes)', null, null, 'once', 120, null, '{"min":1,"max":25,"unit_de":"Seiten","unit_en":"pages"}', null, '{}', true, false, false, 10),
-('byositer', 'byos', 'Änderungs-Iteration (pro Runde)', 'Change iteration (per round)', null, null, 'once', 190, null, '{"min":1,"max":10,"unit_de":"Runden","unit_en":"rounds"}', null, '{}', true, false, false, 20),
--- Content & features
-('page',        'inhalte', 'Zusätzliche Website-Seiten', 'Additional website pages', null, null, 'once', 190, 290, '{"min":1,"max":25,"unit_de":"Seiten","unit_en":"pages"}', null, '{}', false, true, false, 10),
-('blogsetup',   'inhalte', 'Blog-Einrichtung', 'Blog setup', null, null, 'once', 200, 350, null, null, '{gold,platinum}', false, false, false, 20),
-('blogstarter', 'inhalte', 'Blog Starter Bundle (Einrichtung + 3 Artikel)', 'Blog starter bundle (setup + 3 articles)', 'Nur im Erstauftrag — impliziert 33 €/Artikel.', 'First order only — implies €33/article.', 'once', 299, null, null, null, '{}', false, false, false, 30),
-('cms',         'inhalte', 'CMS-Einrichtung (Seiten, Blog & Events selbst verwalten)', 'CMS setup (manage pages, blog & events yourself)', null, null, 'once', 490, 790, null, null, '{platinum}', false, false, false, 40),
-('cmsmon',      'inhalte', 'CMS laufend (Hosting, Updates, User-Support)', 'CMS ongoing (hosting, updates, user support)', null, null, 'monthly', 39, 59, null, null, '{platinum}', false, false, false, 50),
-('foto',        'inhalte', 'Foto-/Bildpaket', 'Photo/image package', null, null, 'once', 290, 440, null, null, '{}', false, false, false, 60),
-('logo',        'inhalte', 'Logo-/Branding-Auffrischung', 'Logo/branding refresh', null, null, 'once', 490, 790, null, null, '{}', false, false, false, 70),
-('lang',        'inhalte', 'Weitere Sprache', 'Additional language', 'Mehr als Übersetzung: Struktur, URLs, hreflang.', 'More than translation: structure, URLs, hreflang.', 'once', 790, 1190, '{"min":1,"max":3,"unit_de":"Sprachen","unit_en":"languages"}', null, '{}', false, false, false, 80),
-('bookembed',   'inhalte', 'Online-Buchungssystem (Calendly/SimplyBook)', 'Online booking system (Calendly/SimplyBook)', null, null, 'once', 490, 790, null, null, '{}', false, false, false, 90),
-('bookcustom',  'inhalte', 'Online-Buchungssystem (Custom Build)', 'Online booking system (custom build)', null, null, 'once', 990, 1490, null, null, '{}', false, false, false, 100),
-('bookpay',     'inhalte', 'Bezahlung bei Terminbuchung (Stripe)', 'Payment at booking (Stripe)', 'Für kostenpflichtige Termine — sichere Vorkasse direkt bei der Buchung.', 'For paid appointments — secure prepayment right at booking.', 'once', 490, 790, null, null, '{}', false, false, false, 110),
-('newsletter',  'inhalte', 'Newsletter-Anbindung (Brevo)', 'Newsletter integration (Brevo)', null, null, 'once', 390, 590, null, null, '{}', false, false, false, 120),
-('form',        'inhalte', 'Weitere Kontaktformulare', 'Additional contact forms', null, null, 'once', 290, 450, null, null, '{}', false, false, false, 130),
-('ecom',        'inhalte', 'eCommerce / Stripe-Checkout', 'eCommerce / Stripe checkout', null, null, 'once', 1490, 2090, null, null, '{}', false, false, false, 140),
-('maps',        'inhalte', 'Google-Maps-Einbindung', 'Google Maps embed', null, null, 'once', 190, 290, null, null, '{}', false, false, false, 150),
-('widgets',     'inhalte', 'Widgets (WhatsApp, Bewertungen, Click-to-Call)', 'Widgets (WhatsApp, reviews, click-to-call)', null, null, 'once', 190, 290, null, null, '{}', false, false, false, 160),
-('gws',         'inhalte', 'E-Mail-Einrichtung Google Workspace (bis 3 Adressen)', 'Google Workspace email setup (up to 3 addresses)', 'Google-Lizenzgebühren nicht inbegriffen — Abrechnung separat direkt durch Google.', 'Google license fees not included — billed separately by Google.', 'once', 290, 450, null, null, '{}', false, false, false, 170),
-('perf',        'inhalte', 'Performance-Optimierung (Core Web Vitals)', 'Performance optimization (Core Web Vitals)', null, null, 'once', 290, 490, null, null, '{platinum}', false, false, false, 180),
-('socialfeed',  'inhalte', 'Social-Media-Feed-Integration', 'Social media feed integration', null, null, 'once', 150, 250, null, null, '{}', false, false, false, 190),
-('chatwidget',  'inhalte', 'Telefon-/Chat-Widget (Tidio, LiveChat)', 'Phone/chat widget (Tidio, LiveChat)', null, null, 'once', 150, 250, null, null, '{}', false, false, false, 200),
+insert into addons (id, category_id, name_de, name_en, note_de, note_en, billing, price_now, price_later, qty, tiers, included_in, byow_only, not_byow, ai_bundle_member, badge_de, badge_en, highlight, sort) values
+-- content › Seiten & Inhalte
+('page',        'content_pages', 'Zusätzliche Website-Seiten', 'Additional website pages', null, null, 'once', 190, 290, '{"min":1,"max":25,"unit_de":"Seiten","unit_en":"pages"}', null, '{}', false, true, false, null, null, false, 10),
+('foto',        'content_pages', 'Foto-/Bildpaket', 'Photo/image package', null, null, 'once', 290, 440, null, null, '{}', false, false, false, null, null, false, 20),
+('logo',        'content_pages', 'Logo-/Branding-Auffrischung', 'Logo/branding refresh', null, null, 'once', 490, 790, null, null, '{}', false, false, false, null, null, false, 30),
+('lang',        'content_pages', 'Weitere Sprache', 'Additional language', 'Mehr als Übersetzung: Struktur, URLs, hreflang.', 'More than translation: structure, URLs, hreflang.', 'once', 790, 1190, '{"min":1,"max":3,"unit_de":"Sprachen","unit_en":"languages"}', null, '{}', false, false, false, null, null, false, 40),
+-- content › Funktionen & Integrationen
+('cms',         'inhalte', 'CMS-Einrichtung (Seiten, Blog & Events selbst verwalten)', 'CMS setup (manage pages, blog & events yourself)', null, null, 'once', 490, 790, null, null, '{platinum}', false, false, false, null, null, false, 10),
+('cmsmon',      'inhalte', 'CMS laufend (Hosting, Updates, User-Support)', 'CMS ongoing (hosting, updates, user support)', null, null, 'monthly', 39, 59, null, null, '{platinum}', false, false, false, null, null, false, 15),
+('bookembed',   'inhalte', 'Online-Buchungssystem (Calendly/SimplyBook)', 'Online booking system (Calendly/SimplyBook)', null, null, 'once', 490, 790, null, null, '{}', false, false, false, null, null, false, 20),
+('bookcustom',  'inhalte', 'Online-Buchungssystem (Custom Build)', 'Online booking system (custom build)', null, null, 'once', 990, 1490, null, null, '{}', false, false, false, null, null, false, 30),
+('bookpay',     'inhalte', 'Bezahlung bei Terminbuchung (Stripe)', 'Payment at booking (Stripe)', 'Für kostenpflichtige Termine — sichere Vorkasse direkt bei der Buchung.', 'For paid appointments — secure prepayment right at booking.', 'once', 490, 790, null, null, '{}', false, false, false, null, null, false, 40),
+('ecom',        'inhalte', 'eCommerce / Stripe-Checkout', 'eCommerce / Stripe checkout', null, null, 'once', 1490, 2090, null, null, '{}', false, false, false, null, null, false, 50),
+('form',        'inhalte', 'Weitere Kontaktformulare', 'Additional contact forms', null, null, 'once', 290, 450, null, null, '{}', false, false, false, null, null, false, 60),
+('maps',        'inhalte', 'Google-Maps-Einbindung', 'Google Maps embed', null, null, 'once', 190, 290, null, null, '{}', false, false, false, null, null, false, 70),
+('widgets',     'inhalte', 'Widgets (WhatsApp, Bewertungen, Click-to-Call)', 'Widgets (WhatsApp, reviews, click-to-call)', null, null, 'once', 190, 290, null, null, '{}', false, false, false, null, null, false, 80),
+('chatwidget',  'inhalte', 'Telefon-/Chat-Widget (Tidio, LiveChat)', 'Phone/chat widget (Tidio, LiveChat)', null, null, 'once', 150, 250, null, null, '{}', false, false, false, null, null, false, 90),
+('perf',        'inhalte', 'Performance-Optimierung (Core Web Vitals)', 'Performance optimization (Core Web Vitals)', null, null, 'once', 290, 490, null, null, '{platinum}', false, false, false, null, null, false, 100),
+-- marketing › SEO & GEO — Setup
+('seosetup',    'seogeo_setup', 'SEO-Onpage-Setup (Meta, Sitemap, Search Console)', 'SEO on-page setup (meta, sitemap, Search Console)', null, null, 'once', 450, 690, null, null, '{}', false, false, false, null, null, false, 10),
+('geosetup',    'seogeo_setup', 'GEO-Basis-Setup (Schema.org, AI-Sichtbarkeit)', 'GEO basic setup (Schema.org, AI visibility)', null, null, 'once', 390, 590, null, null, '{}', false, false, false, null, null, false, 20),
+('seogeosetup', 'seogeo_setup', 'SEO + GEO Setup Bundle', 'SEO + GEO setup bundle', 'Gefunden bei Google und bei ChatGPT.', 'Found on Google and on ChatGPT.', 'once', 765, 1090, null, null, '{}', false, false, false, 'Bestes Preis-Leistung', 'Best value', true, 30),
+('localseo',    'seogeo_setup', 'Lokale SEO-Einrichtung (Google Business Profile)', 'Local SEO setup (Google Business Profile)', null, null, 'once', 350, 550, null, null, '{}', false, false, false, null, null, false, 40),
+('citation',    'seogeo_setup', 'Lokale Zitationsbereinigung (NAP, Verzeichnisse)', 'Local citation cleanup (NAP, directories)', null, null, 'once', 250, 390, null, null, '{}', false, false, false, null, null, false, 50),
+-- marketing › SEO & GEO — laufend
+('seostarter',  'seogeo_mon', 'SEO Starter — Keyword-Monitoring, Reports, 1 Artikel/Mon.', 'SEO Starter — keyword monitoring, reports, 1 article/mo.', null, null, 'monthly', 269, null, null, null, '{}', false, false, false, null, null, false, 10),
+('seopro',      'seogeo_mon', 'SEO Pro — + 2 Artikel/Mon., Wettbewerbs-Monitoring, Call', 'SEO Pro — + 2 articles/mo., competitor monitoring, call', null, null, 'monthly', 399, null, null, null, '{}', false, false, false, null, null, false, 20),
+('geomon',      'seogeo_mon', 'GEO Monitoring — AI-Sichtbarkeit (ChatGPT, Perplexity, Gemini)', 'GEO monitoring — AI visibility (ChatGPT, Perplexity, Gemini)', null, null, 'monthly', 149, null, null, null, '{}', false, false, true, null, null, false, 30),
+('seogeokombi', 'seogeo_mon', 'SEO + GEO Kombi (~17 % Rabatt)', 'SEO + GEO combo (~17% off)', null, null, 'monthly', 349, null, null, null, '{}', false, false, false, 'Bestes Preis-Leistung', 'Best value', true, 40),
+-- marketing › Social Media
+('socialbasic', 'mkt_social', 'Social Media Basic (4 Posts/Mon., 1 Plattform)', 'Social media basic (4 posts/mo., 1 platform)', null, null, 'monthly', 149, null, null, null, '{}', false, false, false, null, null, false, 10),
+('socialfeed',  'mkt_social', 'Social-Media-Feed-Integration', 'Social media feed integration', null, null, 'once', 150, 250, null, null, '{}', false, false, false, null, null, false, 20),
+-- marketing › Blog & Newsletter
+('blogabo',     'blogabo', 'Blogartikel-Abo, SEO-optimiert', 'Blog article subscription, SEO-optimized', 'Mindestlaufzeit 12 Monate. Einzelartikel außerhalb des Abos: 60 €/Artikel.', 'Minimum term 12 months. Single articles outside the subscription: €60/article.', 'monthly', 40, null, null, '[{"n":1,"price":40},{"n":3,"price":110},{"n":5,"price":175},{"n":10,"price":320}]', '{}', false, false, false, null, null, false, 10),
+('blogsetup',   'blogabo', 'Blog-Einrichtung', 'Blog setup', null, null, 'once', 200, 350, null, null, '{gold,platinum}', false, false, false, null, null, false, 20),
+('blogstarter', 'blogabo', 'Blog Starter Bundle (Einrichtung + 3 Artikel)', 'Blog starter bundle (setup + 3 articles)', 'Nur im Erstauftrag — impliziert 33 €/Artikel.', 'First order only — implies €33/article.', 'once', 299, null, null, null, '{}', false, false, false, null, null, false, 30),
+('newsletter',  'blogabo', 'Newsletter-Anbindung (Brevo)', 'Newsletter integration (Brevo)', null, null, 'once', 390, 590, null, null, '{}', false, false, false, null, null, false, 40),
+('newscare',    'blogabo', 'Newsletter-Betreuung (2 Newsletter/Mon., Brevo)', 'Newsletter management (2 newsletters/mo., Brevo)', null, null, 'monthly', 179, null, null, null, '{}', false, false, false, null, null, false, 50),
+-- marketing › Werbung & Reporting
+('ads',         'mkt_ads', 'Google/Meta Ads Management (zzgl. Werbebudget)', 'Google/Meta ads management (ad budget extra)', null, null, 'monthly', 390, null, null, null, '{}', false, false, false, null, null, false, 10),
+('ga4',         'mkt_ads', 'GA4 + Search Console Report (monatlich)', 'GA4 + Search Console report (monthly)', null, null, 'monthly', 59, null, null, null, '{}', false, false, false, null, null, false, 20),
+-- KI-Services
+('aichatbot', 'ki', 'KI-Chatbot / Concierge (Setup, Wissensbasis, CRM)', 'AI chatbot / concierge (setup, knowledge base, CRM)', null, null, 'once', 1290, 1990, null, null, '{}', false, false, true, null, null, false, 10),
+('aichatmon', 'ki', 'KI-Chatbot laufend (Hosting, Updates, Monitoring)', 'AI chatbot ongoing (hosting, updates, monitoring)', null, null, 'monthly', 249, null, null, null, '{}', false, false, true, null, null, false, 20),
+('aicontent', 'ki', 'KI-Content-Engine (4 AI-Drafts/Mon.)', 'AI content engine (4 AI drafts/mo.)', null, null, 'monthly', 299, null, null, null, '{}', false, false, true, null, null, false, 30),
+('aireviews', 'ki', 'KI-Bewertungsantworten (Google/Yelp, automatisiert)', 'AI review responses (Google/Yelp, automated)', null, null, 'monthly', 129, null, null, null, '{}', false, false, true, null, null, false, 40),
 -- Compliance
-('cookie',     'compliance', 'Cookie-Consent + Analytics (GA4, DSGVO-konform)', 'Cookie consent + analytics (GA4, GDPR-compliant)', null, null, 'once', 350, 590, null, null, '{}', false, false, false, 10),
-('bfsg',       'compliance', 'BFSG-Barrierefreiheitspaket (Audit + Umsetzung)', 'BFSG accessibility package (audit + implementation)', 'Gesetzespflicht seit 28.06.2025.', 'Legal requirement since 28 Jun 2025.', 'once', 699, 990, null, null, '{}', false, false, false, 20),
-('dsgvocheck', 'compliance', 'DSGVO-/Abmahn-Check Bestandssite', 'GDPR/legal-risk check for existing site', null, null, 'once', 490, 790, null, null, '{}', false, false, false, 30),
-('dsgvoyear',  'compliance', 'DSGVO-Jahresupdate', 'Annual GDPR update', null, null, 'yearly', 199, 299, null, null, '{}', false, false, false, 40),
--- Blog subscription
-('blogabo', 'blogabo', 'Blogartikel-Abo, SEO-optimiert', 'Blog article subscription, SEO-optimized', 'Mindestlaufzeit 12 Monate. Einzelartikel außerhalb des Abos: 60 €/Artikel.', 'Minimum term 12 months. Single articles outside the subscription: €60/article.', 'monthly', 40, null, null, '[{"n":1,"price":40},{"n":3,"price":110},{"n":5,"price":175},{"n":10,"price":320}]', '{}', false, false, false, 10),
--- SEO & GEO setup
-('seosetup',    'seogeo_setup', 'SEO-Onpage-Setup (Meta, Sitemap, Search Console)', 'SEO on-page setup (meta, sitemap, Search Console)', null, null, 'once', 450, 690, null, null, '{}', false, false, false, 10),
-('geosetup',    'seogeo_setup', 'GEO-Basis-Setup (Schema.org, AI-Sichtbarkeit)', 'GEO basic setup (Schema.org, AI visibility)', null, null, 'once', 390, 590, null, null, '{}', false, false, false, 20),
-('seogeosetup', 'seogeo_setup', 'SEO + GEO Setup Bundle', 'SEO + GEO setup bundle', 'Gefunden bei Google und bei ChatGPT.', 'Found on Google and on ChatGPT.', 'once', 765, 1090, null, null, '{}', false, false, false, 30),
-('localseo',    'seogeo_setup', 'Lokale SEO-Einrichtung (Google Business Profile)', 'Local SEO setup (Google Business Profile)', null, null, 'once', 350, 550, null, null, '{}', false, false, false, 40),
-('citation',    'seogeo_setup', 'Lokale Zitationsbereinigung (NAP, Verzeichnisse)', 'Local citation cleanup (NAP, directories)', null, null, 'once', 250, 390, null, null, '{}', false, false, false, 50),
--- SEO & GEO ongoing
-('seostarter',  'seogeo_mon', 'SEO Starter — Keyword-Monitoring, Reports, 1 Artikel/Mon.', 'SEO Starter — keyword monitoring, reports, 1 article/mo.', null, null, 'monthly', 269, null, null, null, '{}', false, false, false, 10),
-('seopro',      'seogeo_mon', 'SEO Pro — + 2 Artikel/Mon., Wettbewerbs-Monitoring, Call', 'SEO Pro — + 2 articles/mo., competitor monitoring, call', null, null, 'monthly', 399, null, null, null, '{}', false, false, false, 20),
-('geomon',      'seogeo_mon', 'GEO Monitoring — AI-Sichtbarkeit (ChatGPT, Perplexity, Gemini)', 'GEO monitoring — AI visibility (ChatGPT, Perplexity, Gemini)', null, null, 'monthly', 149, null, null, null, '{}', false, false, true, 30),
-('seogeokombi', 'seogeo_mon', 'SEO + GEO Kombi (~17 % Rabatt)', 'SEO + GEO combo (~17% off)', null, null, 'monthly', 349, null, null, null, '{}', false, false, false, 40),
--- Marketing ongoing
-('ads',         'marketing', 'Google/Meta Ads Management (zzgl. Werbebudget)', 'Google/Meta ads management (ad budget extra)', null, null, 'monthly', 390, null, null, null, '{}', false, false, false, 10),
-('newscare',    'marketing', 'Newsletter-Betreuung (2 Newsletter/Mon., Brevo)', 'Newsletter management (2 newsletters/mo., Brevo)', null, null, 'monthly', 179, null, null, null, '{}', false, false, false, 20),
-('socialbasic', 'marketing', 'Social Media Basic (4 Posts/Mon., 1 Plattform)', 'Social media basic (4 posts/mo., 1 platform)', null, null, 'monthly', 149, null, null, null, '{}', false, false, false, 30),
-('ga4',         'marketing', 'GA4 + Search Console Report (monatlich)', 'GA4 + Search Console report (monthly)', null, null, 'monthly', 59, null, null, null, '{}', false, false, false, 40),
--- Email & administration
-('gadmin', 'email_admin', 'Google-Admin-Betreuung (wir als Admin)', 'Google admin management (we act as admin)', null, null, 'monthly', 49, null, null, null, '{}', false, false, false, 10),
--- AI building blocks
-('aichatbot', 'ki', 'KI-Chatbot / Concierge (Setup, Wissensbasis, CRM)', 'AI chatbot / concierge (setup, knowledge base, CRM)', null, null, 'once', 1290, 1990, null, null, '{}', false, false, true, 10),
-('aichatmon', 'ki', 'KI-Chatbot laufend (Hosting, Updates, Monitoring)', 'AI chatbot ongoing (hosting, updates, monitoring)', null, null, 'monthly', 249, null, null, null, '{}', false, false, true, 20),
-('aicontent', 'ki', 'KI-Content-Engine (4 AI-Drafts/Mon.)', 'AI content engine (4 AI drafts/mo.)', null, null, 'monthly', 299, null, null, null, '{}', false, false, true, 30),
-('aireviews', 'ki', 'KI-Bewertungsantworten (Google/Yelp, automatisiert)', 'AI review responses (Google/Yelp, automated)', null, null, 'monthly', 129, null, null, null, '{}', false, false, true, 40);
+('cookie',     'compliance', 'Cookie-Consent + Analytics (GA4, DSGVO-konform)', 'Cookie consent + analytics (GA4, GDPR-compliant)', null, null, 'once', 350, 590, null, null, '{}', false, false, false, null, null, false, 10),
+('bfsg',       'compliance', 'BFSG-Barrierefreiheitspaket (Audit + Umsetzung)', 'BFSG accessibility package (audit + implementation)', 'Gesetzespflicht seit 28.06.2025.', 'Legal requirement since 28 Jun 2025.', 'once', 699, 990, null, null, '{}', false, false, false, null, null, false, 20),
+('dsgvocheck', 'compliance', 'DSGVO-/Abmahn-Check Bestandssite', 'GDPR/legal-risk check for existing site', null, null, 'once', 490, 790, null, null, '{}', false, false, false, null, null, false, 30),
+('dsgvoyear',  'compliance', 'DSGVO-Jahresupdate', 'Annual GDPR update', null, null, 'yearly', 199, 299, null, null, '{}', false, false, false, null, null, false, 40),
+-- E-Mail & Verwaltung
+('gws',        'email_admin', 'E-Mail-Einrichtung Google Workspace (bis 3 Adressen)', 'Google Workspace email setup (up to 3 addresses)', 'Google-Lizenzgebühren nicht inbegriffen — Abrechnung separat direkt durch Google.', 'Google license fees not included — billed separately by Google.', 'once', 290, 450, null, null, '{}', false, false, false, null, null, false, 10),
+('gadmin',     'email_admin', 'Google-Admin-Betreuung (wir als Admin)', 'Google admin management (we act as admin)', null, null, 'monthly', 49, null, null, null, '{}', false, false, false, null, null, false, 20),
+-- Bring-Your-Own-Website-Leistungen (BYOW path only)
+('byospage', 'byos', 'Zusätzliche Seite deployen (ohne Änderungen)', 'Deploy an additional page (no changes)', null, null, 'once', 120, null, '{"min":1,"max":25,"unit_de":"Seiten","unit_en":"pages"}', null, '{}', true, false, false, null, null, false, 10),
+('byositer', 'byos', 'Änderungs-Iteration (pro Runde)', 'Change iteration (per round)', null, null, 'once', 190, null, '{"min":1,"max":10,"unit_de":"Runden","unit_en":"rounds"}', null, '{}', true, false, false, null, null, false, 20);
 
 -- The two "combo" add-ons cover their individual counterparts: selecting one includes the
 -- members at no extra cost (only the combo price counts).

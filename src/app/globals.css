@@ -42,6 +42,75 @@ body {
   }
 }
 
+/* Configurator category headers: chevron rotation (disabled under reduced motion). */
+.cat-chevron {
+  transition: transform 0.18s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cat-chevron {
+    transition: none;
+  }
+}
+
+/*
+ * Viewport-locked configurator (desktop only). ConfiguratorStep sets
+ * `data-funnel-locked` on <html> while mounted; each column then scrolls on its
+ * own with no page scroll. Gated ≥961px so mobile keeps normal document flow.
+ */
+@media (min-width: 961px) {
+  html[data-funnel-locked],
+  html[data-funnel-locked] body {
+    height: 100%;
+    overflow: hidden;
+  }
+  html[data-funnel-locked] [data-funnel-root] {
+    height: 100dvh;
+    overflow: hidden;
+  }
+  html[data-funnel-locked] [data-funnel-root] > main {
+    min-height: 0;
+    overflow: hidden;
+  }
+  /* Bound the grid's single row to the grid height so each column becomes a real
+     scroller. Without this the row is auto-sized to content and overflow-y never
+     engages, pushing add-ons below an unreachable fold. */
+  html[data-funnel-locked] [data-cfg-grid] {
+    grid-template-rows: minmax(0, 1fr);
+  }
+  /* The footer belongs to the other steps; the locked config step uses the full height. */
+  html[data-funnel-locked] [data-funnel-root] > footer {
+    display: none;
+  }
+  [data-cfg-col],
+  [data-cfg-side],
+  [data-sidebar-scroll] {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e4 transparent;
+  }
+  [data-cfg-col]::-webkit-scrollbar,
+  [data-cfg-side]::-webkit-scrollbar,
+  [data-sidebar-scroll]::-webkit-scrollbar {
+    width: 8px;
+  }
+  [data-cfg-col]::-webkit-scrollbar-thumb,
+  [data-cfg-side]::-webkit-scrollbar-thumb,
+  [data-sidebar-scroll]::-webkit-scrollbar-thumb {
+    background: #cbd5e4;
+    border-radius: 999px;
+  }
+  /* Left column scrolls as a whole; the sidebar scrolls its receipt area only,
+     keeping the CTA pinned at the bottom of the column. */
+  html[data-funnel-locked] [data-cfg-col],
+  html[data-funnel-locked] [data-sidebar-scroll] {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  html[data-funnel-locked] [data-cfg-side] {
+    min-height: 0;
+  }
+}
+
 /* Hover utilities replacing the prototype's style-hover attributes */
 .hov-blue-border:hover {
   border-color: #1e5eff !important;

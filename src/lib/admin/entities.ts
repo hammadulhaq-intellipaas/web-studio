@@ -1,8 +1,10 @@
 export interface FieldDef {
   key: string;
   label: string;
-  type: 'text' | 'number' | 'boolean' | 'json' | 'textarea';
+  type: 'text' | 'number' | 'boolean' | 'json' | 'textarea' | 'select';
   full?: boolean;
+  /** For `select`: build the option list from the sibling rows' ids (e.g. a parent picker). */
+  optionsFromRows?: boolean;
 }
 
 export interface EntityDef {
@@ -60,6 +62,9 @@ export const ENTITIES: Record<string, EntityDef> = {
       de('billing', 'Billing (once|monthly|yearly)'),
       de('note_de', 'Note (DE)'),
       de('note_en', 'Note (EN)'),
+      de('badge_de', 'Badge (DE) — e.g. Bestes Preis-Leistung'),
+      de('badge_en', 'Badge (EN) — e.g. Best value'),
+      bool('highlight', 'Highlight (emphasise card)'),
       bool('byow_only', 'BYOW only'),
       bool('not_byow', 'Hidden for BYOW'),
       bool('ai_bundle_member', 'In AI bundle'),
@@ -74,10 +79,13 @@ export const ENTITIES: Record<string, EntityDef> = {
   addon_categories: {
     table: 'addon_categories',
     label: 'Add-on categories',
-    description: 'Grouping and notes for the extras section.',
+    description:
+      'Grouping and notes for the extras section. Leave "Parent" blank for a top-level category; set it to nest a sub-section (max 2 levels).',
     canCreate: true,
     canDelete: true,
+    orderBy: 'parent_id',
     fields: [
+      { key: 'parent_id', label: 'Parent category (blank = top level)', type: 'select', optionsFromRows: true },
       de('name_de', 'Name (DE)'),
       de('name_en', 'Name (EN)'),
       de('note_de', 'Note (DE)'),
