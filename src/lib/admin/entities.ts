@@ -62,6 +62,8 @@ export const ENTITIES: Record<string, EntityDef> = {
       de('billing', 'Billing (once|monthly|yearly)'),
       de('note_de', 'Note (DE)'),
       de('note_en', 'Note (EN)'),
+      { key: 'tooltip_de', label: 'Tooltip (DE) — longer explainer shown on hover/tap', type: 'textarea' },
+      { key: 'tooltip_en', label: 'Tooltip (EN) — longer explainer shown on hover/tap', type: 'textarea' },
       de('badge_de', 'Badge (DE) — e.g. Bestes Preis-Leistung'),
       de('badge_en', 'Badge (EN) — e.g. Best value'),
       bool('highlight', 'Highlight (emphasise card)'),

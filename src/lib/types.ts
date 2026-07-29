@@ -48,6 +48,9 @@ export interface Addon {
   name_en: string;
   note_de: string | null;
   note_en: string | null;
+  /** Longer explainer shown in a hover/tap tooltip next to the name. Null = no tooltip icon. */
+  tooltip_de: string | null;
+  tooltip_en: string | null;
   billing: 'once' | 'monthly' | 'yearly';
   price_now: number;
   price_later: number | null;

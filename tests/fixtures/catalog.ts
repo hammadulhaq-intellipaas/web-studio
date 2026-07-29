@@ -25,6 +25,8 @@ const addon = (id: string, partial: Partial<Addon>): Addon => ({
   name_en: id,
   note_de: null,
   note_en: null,
+  tooltip_de: null,
+  tooltip_en: null,
   billing: 'once',
   price_now: 0,
   price_later: null,

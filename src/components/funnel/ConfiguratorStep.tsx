@@ -31,6 +31,7 @@ import {
   GreenCheckIcon,
   GREEN,
   INK,
+  InfoTooltip,
   MUTED,
   MUTED2,
   sectionLabel,
@@ -92,6 +93,7 @@ function AddonCard({ addon, catalog }: { addon: Addon; catalog: Catalog }) {
   const disc = (p: number) => discMonthly(p, store.payYearly, catalog.yearlyDiscountPct);
   const name = pickLocale(addon as unknown as Record<string, unknown>, 'name', locale);
   const note = pickLocale(addon as unknown as Record<string, unknown>, 'note', locale);
+  const tooltip = pickLocale(addon as unknown as Record<string, unknown>, 'tooltip', locale);
 
   let priceLabel: string;
   if (included) {
@@ -164,7 +166,12 @@ function AddonCard({ addon, catalog }: { addon: Addon; catalog: Catalog }) {
           background: recurring ? BLUE : '#5B6B85',
         }}
       />
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ flex: 1, minWidth: 0, position: 'relative', paddingRight: tooltip ? 24 : 0 }}>
+        {tooltip && (
+          <div style={{ position: 'absolute', top: 0, right: 0 }}>
+            <InfoTooltip text={tooltip} label={t('moreInfo', { name })} />
+          </div>
+        )}
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
           <span
             style={{

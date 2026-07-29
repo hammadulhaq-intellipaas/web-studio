@@ -165,6 +165,7 @@
     "careCategory": "Care, hosting & security",
     "catCollapse": "Collapse category",
     "catExpand": "Expand category",
+    "moreInfo": "More info about {name}",
     "catSelectedCount": "{count} selected",
     "extrasLaunch": "Cheaper now at launch — bookable later, then more expensive.",
     "legendOnce": "one-time",

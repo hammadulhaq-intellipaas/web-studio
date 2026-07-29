@@ -165,6 +165,7 @@
     "careCategory": "Pflege, Hosting & Sicherheit",
     "catCollapse": "Kategorie einklappen",
     "catExpand": "Kategorie ausklappen",
+    "moreInfo": "Mehr Infos zu {name}",
     "catSelectedCount": "{count} ausgewählt",
     "extrasLaunch": "Jetzt im Launch günstiger — später zubuchbar, dann teurer.",
     "legendOnce": "einmalig",
