@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslations } from 'next-intl';
 import type { Addon, Catalog } from '@/lib/types';
 import { pickLocale } from '@/lib/types';
@@ -31,7 +32,6 @@ import {
   GreenCheckIcon,
   GREEN,
   INK,
-  InfoTooltip,
   MUTED,
   MUTED2,
   sectionLabel,
@@ -64,6 +64,9 @@ function RecBadge({ label, small }: { label: string; small?: boolean }) {
 }
 
 function AddonCard({ addon, catalog }: { addon: Addon; catalog: Catalog }) {
+  const [tooltipOpen, setTooltipOpen] = useState(false);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number; placement: 'top' | 'bottom' } | null>(null);
   const t = useTranslations('configurator');
   const locale = useAppLocale();
   const labels = useSummaryLabels();
@@ -94,6 +97,36 @@ function AddonCard({ addon, catalog }: { addon: Addon; catalog: Catalog }) {
   const name = pickLocale(addon as unknown as Record<string, unknown>, 'name', locale);
   const note = pickLocale(addon as unknown as Record<string, unknown>, 'note', locale);
   const tooltip = pickLocale(addon as unknown as Record<string, unknown>, 'tooltip', locale);
+
+  const updateTooltipPos = useCallback(() => {
+    const card = tooltipRef.current;
+    if (!card) return;
+    const rect = card.getBoundingClientRect();
+    const tooltipWidth = 260;
+    const tooltipHeight = 60;
+    const gap = 12;
+    const tooltipMargin = 8;
+
+    // Position at top-right of card
+    let left = rect.right - tooltipWidth;
+    left = Math.max(tooltipMargin, Math.min(left, window.innerWidth - tooltipWidth - tooltipMargin));
+
+    // Always show above the card
+    const top = rect.top - tooltipHeight - gap;
+    setTooltipPos({ top, left, placement: 'top' });
+  }, []);
+
+  useEffect(() => {
+    if (!tooltipOpen) return;
+    updateTooltipPos();
+    const onReposition = () => updateTooltipPos();
+    window.addEventListener('scroll', onReposition, { capture: true, passive: true });
+    window.addEventListener('resize', onReposition);
+    return () => {
+      window.removeEventListener('scroll', onReposition, true);
+      window.removeEventListener('resize', onReposition);
+    };
+  }, [tooltipOpen, updateTooltipPos]);
 
   let priceLabel: string;
   if (included) {
@@ -129,9 +162,12 @@ function AddonCard({ addon, catalog }: { addon: Addon; catalog: Catalog }) {
 
   return (
     <div
+      ref={tooltipRef}
       onClick={() => {
         if (!included) store.toggleAddon(addon.id);
       }}
+      onMouseEnter={() => tooltip && setTooltipOpen(true)}
+      onMouseLeave={() => setTooltipOpen(false)}
       role="button"
       tabIndex={0}
       data-testid={`addon-${addon.id}`}
@@ -166,12 +202,7 @@ function AddonCard({ addon, catalog }: { addon: Addon; catalog: Catalog }) {
           background: recurring ? BLUE : '#5B6B85',
         }}
       />
-      <div style={{ flex: 1, minWidth: 0, position: 'relative', paddingRight: tooltip ? 24 : 0 }}>
-        {tooltip && (
-          <div style={{ position: 'absolute', top: 0, right: 0 }}>
-            <InfoTooltip text={tooltip} label={t('moreInfo', { name })} />
-          </div>
-        )}
+      <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
           <span
             style={{
@@ -287,6 +318,33 @@ function AddonCard({ addon, catalog }: { addon: Addon; catalog: Catalog }) {
       ) : (
         <Toggle on={selected} />
       )}
+      {tooltipOpen && tooltip && tooltipPos && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              role="tooltip"
+              onMouseEnter={() => setTooltipOpen(true)}
+              onMouseLeave={() => setTooltipOpen(false)}
+              style={{
+                position: 'fixed',
+                top: tooltipPos.top,
+                left: tooltipPos.left,
+                width: Math.min(260, typeof window !== 'undefined' ? window.innerWidth - 16 : 260),
+                background: '#ffffff',
+                border: `1px solid ${BORDER}`,
+                borderRadius: 10,
+                boxShadow: '0 8px 24px rgba(15,36,64,.16)',
+                padding: '10px 12px',
+                fontSize: 12,
+                lineHeight: 1.5,
+                color: BODY,
+                zIndex: 9999,
+              }}
+            >
+              {tooltip}
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
