@@ -209,6 +209,7 @@ export async function POST(request: Request) {
     await sendLeadEmails(
       {
         locale: locale as Locale,
+        catalog: { eurToUsdRate: catalog.eurToUsdRate },
         lead: {
           id: inserted.id,
           vorname: lead.vorname,

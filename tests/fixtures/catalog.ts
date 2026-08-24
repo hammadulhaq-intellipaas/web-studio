@@ -149,6 +149,7 @@ export function makeCatalog(): Catalog {
     defaultCarePlan: 'plus',
     defaultCloudflarePlan: 'shield',
     aiBundleCategory: 'ki',
+    eurToUsdRate: 1.17,
   };
 }
 

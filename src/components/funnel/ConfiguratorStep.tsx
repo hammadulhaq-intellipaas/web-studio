@@ -141,23 +141,23 @@ function AddonCard({ addon, catalog }: { addon: Addon; catalog: Catalog }) {
           : t('includedInBundle', { name: bundle.name });
     }
   } else if (addon.tiers && addon.tiers.length) {
-    priceLabel = t('tierFrom', { price: mon(disc(addon.tiers[0].price), locale) });
+    priceLabel = t('tierFrom', { price: mon(disc(addon.tiers[0].price), locale, catalog) });
   } else if (addon.qty && !selected) {
     priceLabel = t('perUnit', {
-      price: fmt(addon.price_now, locale),
+      price: fmt(addon.price_now, locale, catalog),
       unit: singularUnit(locale === 'de' ? addon.qty.unit_de : addon.qty.unit_en, locale),
     });
   } else if (addon.billing === 'monthly') {
-    priceLabel = t('plusMonthly', { price: mon(disc(addonCost(addon, store.qty)), locale) });
+    priceLabel = t('plusMonthly', { price: mon(disc(addonCost(addon, store.qty)), locale, catalog) });
   } else if (addon.billing === 'yearly') {
-    priceLabel = t('plusYearly', { price: mon(addonCost(addon, store.qty), locale) });
+    priceLabel = t('plusYearly', { price: mon(addonCost(addon, store.qty), locale, catalog) });
   } else {
-    priceLabel = t('plusOnce', { price: fmt(addonCost(addon, store.qty), locale) });
+    priceLabel = t('plusOnce', { price: fmt(addonCost(addon, store.qty), locale, catalog) });
   }
 
   const laterLabel =
     !included && addon.price_later != null && !recurring
-      ? t('laterLabel', { price: fmt(addon.price_later, locale) })
+      ? t('laterLabel', { price: fmt(addon.price_later, locale, catalog) })
       : null;
 
   return (
@@ -486,7 +486,7 @@ export function ConfiguratorStep({ catalog }: { catalog: Catalog }) {
                 {recBundle.name}
               </span>
               <span style={{ fontSize: 20, fontWeight: 700, color: '#8FD8EA' }}>
-                {fmt(Number(recBundle.price), locale)}
+                {fmt(Number(recBundle.price), locale, catalog)}
               </span>
               <span
                 style={{
@@ -577,7 +577,7 @@ export function ConfiguratorStep({ catalog }: { catalog: Catalog }) {
                         marginTop: 3,
                       }}
                     >
-                      {t('priceOnce', { price: fmt(Number(b.price), locale) })}
+                      {t('priceOnce', { price: fmt(Number(b.price), locale, catalog) })}
                     </div>
                     <div
                       style={{
@@ -600,7 +600,7 @@ export function ConfiguratorStep({ catalog }: { catalog: Catalog }) {
               {t('includedTitle', { name: bundle.name })}
             </h3>
             <p style={{ margin: '0 0 16px', fontSize: 13.5, color: MUTED }}>
-              {t('includedSub', { price: fmt(Number(bundle.price), locale) })}
+              {t('includedSub', { price: fmt(Number(bundle.price), locale, catalog) })}
             </p>
             <div
               style={{
@@ -797,7 +797,7 @@ function CareSection({ catalog }: { catalog: Catalog }) {
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
                 <span style={{ fontSize: 15, fontWeight: 800 }}>{cp.name}</span>
                 <span style={{ fontSize: 13.5, fontWeight: 700, color: INK }}>
-                  {mon(disc(Number(cp.price_monthly)), locale)}
+                  {mon(disc(Number(cp.price_monthly)), locale, catalog)}
                   {labels.perMonth}
                 </span>
               </div>
@@ -831,11 +831,11 @@ function CareSection({ catalog }: { catalog: Catalog }) {
                   });
           } else if (cf.setup_price != null && cf.monthly_price != null) {
             price = t('cfSetupPlus', {
-              setup: fmt(Number(cf.setup_price), locale),
-              mon: mon(disc(Number(cf.monthly_price)), locale),
+              setup: fmt(Number(cf.setup_price), locale, catalog),
+              mon: mon(disc(Number(cf.monthly_price)), locale, catalog),
             });
           } else if (cf.setup_price != null) {
-            price = t('cfSetupOnly', { setup: fmt(Number(cf.setup_price), locale) });
+            price = t('cfSetupOnly', { setup: fmt(Number(cf.setup_price), locale, catalog) });
           } else {
             price = t('cfFree');
           }
@@ -892,8 +892,8 @@ function CareSection({ catalog }: { catalog: Catalog }) {
               </div>
               <div style={{ fontSize: 12.5, fontWeight: 700, color: INK, marginTop: 3 }}>
                 {sp.price_monthly != null
-                  ? `${mon(disc(Number(sp.price_monthly)), locale)}${labels.perMonth}`
-                  : `${mon(0, locale)}${labels.perMonth}`}
+                  ? `${mon(disc(Number(sp.price_monthly)), locale, catalog)}${labels.perMonth}`
+                  : `${mon(0, locale, catalog)}${labels.perMonth}`}
               </div>
               <div style={{ fontSize: 12, color: BODY, lineHeight: 1.5, marginTop: 6 }}>
                 {pickLocale(sp as unknown as Record<string, unknown>, 'desc', locale)}
@@ -958,7 +958,7 @@ function CareSection({ catalog }: { catalog: Catalog }) {
           </div>
           <div style={{ fontSize: 12.5, fontWeight: 600, color: MUTED, marginTop: 3 }}>
             {bundle.backup_upgrade_price != null
-              ? t('bakPrice', { price: mon(disc(Number(bundle.backup_upgrade_price)), locale) })
+              ? t('bakPrice', { price: mon(disc(Number(bundle.backup_upgrade_price)), locale, catalog) })
               : t('bakNotAvailable')}
           </div>
         </div>
@@ -1023,8 +1023,8 @@ function AiBundleCta({ catalog }: { catalog: Catalog }) {
                 </span>
                 <span style={{ fontSize: 16, fontWeight: 700, color: '#8FD8EA' }}>
                   {t('aiPriceLabel', {
-                    setup: fmt(catalog.aiBundle.setup_now, locale),
-                    mon: mon(disc(catalog.aiBundle.monthly), locale),
+                    setup: fmt(catalog.aiBundle.setup_now, locale, catalog),
+                    mon: mon(disc(catalog.aiBundle.monthly), locale, catalog),
                   })}
                 </span>
               </div>
@@ -1043,7 +1043,7 @@ function AiBundleCta({ catalog }: { catalog: Catalog }) {
                 }}
               >
                 {t('aiSub', {
-                  single: t('aiSingle', { price: mon(disc(aiSingleSum), locale) }),
+                  single: t('aiSingle', { price: mon(disc(aiSingleSum), locale, catalog) }),
                 })}
               </p>
               <ul

@@ -189,6 +189,8 @@ export interface Catalog {
   defaultCloudflarePlan: string;
   /** Addon category that hosts the AI Agentic Bundle CTA. */
   aiBundleCategory: string;
+  /** Live EUR→USD exchange rate for EN locale pricing. */
+  eurToUsdRate: number;
 }
 
 /** Answers collected in the question step (ported 1:1 from the prototype). */

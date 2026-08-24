@@ -1,6 +1,7 @@
 import 'server-only';
 import { cache } from 'react';
 import { createClient } from '@supabase/supabase-js';
+import { getExchangeRate } from './exchange-rate';
 import type {
   AddonCategory,
   Addon,
@@ -26,6 +27,7 @@ function anonClient() {
 /** Loads the full public catalog. Cached per request; pages revalidate on admin edits. */
 export const getCatalog = cache(async (): Promise<Catalog> => {
   const supabase = anonClient();
+  const eurToUsdRate = await getExchangeRate();
 
   const [bundles, categories, addons, care, cf, support, personas, settings, bundleRules, addonRules, legalPages] =
     await Promise.all([
@@ -73,5 +75,6 @@ export const getCatalog = cache(async (): Promise<Catalog> => {
     defaultCarePlan: String(settingsMap.default_care_plan ?? 'plus'),
     defaultCloudflarePlan: String(settingsMap.default_cloudflare_plan ?? 'shield'),
     aiBundleCategory: String(settingsMap.ai_bundle_category ?? 'ki'),
+    eurToUsdRate,
   };
 });

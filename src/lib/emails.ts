@@ -2,7 +2,7 @@ import 'server-only';
 import { Resend } from 'resend';
 import deMessages from '../../messages/de.json';
 import enMessages from '../../messages/en.json';
-import type { Locale } from './types';
+import type { Catalog, Locale } from './types';
 import type { Receipt } from './pricing/summary';
 import type { SummaryLabels } from './pricing/summary';
 import { fmt, mon } from './format';
@@ -32,6 +32,7 @@ function receiptRows(lines: Receipt['oneOff']): string {
 
 interface EmailContext {
   locale: Locale;
+  catalog: Pick<Catalog, 'eurToUsdRate'>;
   lead: {
     id: string;
     vorname: string;
@@ -54,7 +55,7 @@ function wrap(body: string): string {
 
 export function renderCustomerEmail(ctx: EmailContext): { subject: string; html: string } {
   const m = messagesFor(ctx.locale).emails.customer;
-  const { receipt, totals, voucher, locale } = ctx;
+  const { receipt, totals, voucher, locale, catalog } = ctx;
   const name = [ctx.lead.vorname, ctx.lead.nachname].filter(Boolean).join(' ') || ctx.lead.firma;
 
   const discountRow = (saved: string) =>
@@ -71,22 +72,22 @@ export function renderCustomerEmail(ctx: EmailContext): { subject: string; html:
     <h3 style="margin:18px 0 6px;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#5B6B85">${m.onceLabel}</h3>
     <table width="100%" style="border-collapse:collapse;font-size:14px">
       ${receiptRows(receipt.oneOff)}
-      ${voucher && voucher.scope !== 'recurring' ? discountRow(fmt(totals.voucherSavedOneTime, locale)) : ''}
+      ${voucher && voucher.scope !== 'recurring' ? discountRow(fmt(totals.voucherSavedOneTime, locale, catalog)) : ''}
       <tr><td style="padding:8px 0 0;border-top:1px solid #EEF1F7;font-weight:800">${m.sumOnce}</td>
-      <td align="right" style="padding:8px 0 0;border-top:1px solid #EEF1F7;font-weight:800">${fmt(totals.oneTimeEffective, locale)}</td></tr>
+      <td align="right" style="padding:8px 0 0;border-top:1px solid #EEF1F7;font-weight:800">${fmt(totals.oneTimeEffective, locale, catalog)}</td></tr>
     </table>
     <h3 style="margin:18px 0 6px;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#1E4FD6">${m.monthlyLabel}</h3>
     <table width="100%" style="border-collapse:collapse;font-size:14px">
       ${receiptRows(receipt.monthly)}
-      ${voucher && voucher.scope !== 'one_time' ? discountRow(mon(totals.voucherSavedMonthly, locale)) : ''}
+      ${voucher && voucher.scope !== 'one_time' ? discountRow(mon(totals.voucherSavedMonthly, locale, catalog)) : ''}
       <tr><td style="padding:8px 0 0;border-top:1px solid #EEF1F7;font-weight:800">${m.sumMonthly}</td>
-      <td align="right" style="padding:8px 0 0;border-top:1px solid #EEF1F7;font-weight:800">${mon(totals.monthlyEffective, locale)}</td></tr>
+      <td align="right" style="padding:8px 0 0;border-top:1px solid #EEF1F7;font-weight:800">${mon(totals.monthlyEffective, locale, catalog)}</td></tr>
     </table>
     ${
       totals.yearly > 0
         ? `<table width="100%" style="border-collapse:collapse;font-size:14px;margin-top:10px">
              <tr><td style="font-weight:700">${m.yearlyLabel}</td>
-             <td align="right" style="font-weight:700">${mon(totals.yearlyEffective, locale)}</td></tr>
+             <td align="right" style="font-weight:700">${mon(totals.yearlyEffective, locale, catalog)}</td></tr>
            </table>`
         : ''
     }

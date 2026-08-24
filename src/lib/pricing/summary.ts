@@ -68,7 +68,7 @@ export function buildReceipt(
 
   oneOff.push({
     name: `${labels.paket} ${bundle.name}`,
-    price: fmt(Number(bundle.price), locale),
+    price: fmt(Number(bundle.price), locale, catalog),
     rawPrice: Number(bundle.price),
     bold: true,
   });
@@ -81,11 +81,11 @@ export function buildReceipt(
     const qtyTag = addon.qty || addon.tiers ? ` (${qtyText(addon, sel.qty, locale, labels)})` : '';
     const cost = addonCost(addon, sel.qty);
     if (addon.billing === 'yearly') {
-      yearly.push({ name: name + qtyTag, price: `${mon(cost, locale)}${labels.perYear}`, rawPrice: cost });
+      yearly.push({ name: name + qtyTag, price: `${mon(cost, locale, catalog)}${labels.perYear}`, rawPrice: cost });
     } else if (addon.billing === 'monthly') {
-      monthly.push({ name: name + qtyTag, price: `${mon(disc(cost), locale)}${labels.perMonth}`, rawPrice: disc(cost) });
+      monthly.push({ name: name + qtyTag, price: `${mon(disc(cost), locale, catalog)}${labels.perMonth}`, rawPrice: disc(cost) });
     } else {
-      oneOff.push({ name: name + qtyTag, price: fmt(cost, locale), rawPrice: cost });
+      oneOff.push({ name: name + qtyTag, price: fmt(cost, locale, catalog), rawPrice: cost });
     }
   }
 
@@ -93,7 +93,7 @@ export function buildReceipt(
   monthly.push({
     name: `${labels.pflege} ${care.name}`,
     desc: pickLocale(care as unknown as Record<string, unknown>, 'short', locale),
-    price: `${mon(disc(Number(care.price_monthly)), locale)}${labels.perMonth}`,
+    price: `${mon(disc(Number(care.price_monthly)), locale, catalog)}${labels.perMonth}`,
     rawPrice: disc(Number(care.price_monthly)),
   });
 
@@ -102,7 +102,7 @@ export function buildReceipt(
     monthly.push({
       name: `${labels.support} ${pickLocale(sup as unknown as Record<string, unknown>, 'name', locale)}`,
       desc: pickLocale(sup as unknown as Record<string, unknown>, 'desc', locale),
-      price: `${mon(disc(Number(sup.price_monthly)), locale)}${labels.perMonth}`,
+      price: `${mon(disc(Number(sup.price_monthly)), locale, catalog)}${labels.perMonth}`,
       rawPrice: disc(Number(sup.price_monthly)),
     });
   }
@@ -114,14 +114,14 @@ export function buildReceipt(
       monthly.push({
         name: `${labels.cloudflare} ${name}`,
         desc: labels.included,
-        price: `${mon(0, locale)}${labels.perMonth}`,
+        price: `${mon(0, locale, catalog)}${labels.perMonth}`,
         rawPrice: 0,
       });
     } else {
       if (cf.setup_price != null) {
         oneOff.push({
           name: `${labels.cloudflare} ${name}${labels.setupSuffix}`,
-          price: fmt(Number(cf.setup_price), locale),
+          price: fmt(Number(cf.setup_price), locale, catalog),
           rawPrice: Number(cf.setup_price),
         });
       }
@@ -129,7 +129,7 @@ export function buildReceipt(
         monthly.push({
           name: `${labels.cloudflare} ${name}`,
           desc: labels.cfDesc,
-          price: `${mon(disc(Number(cf.monthly_price)), locale)}${labels.perMonth}`,
+          price: `${mon(disc(Number(cf.monthly_price)), locale, catalog)}${labels.perMonth}`,
           rawPrice: disc(Number(cf.monthly_price)),
         });
       }
@@ -140,7 +140,7 @@ export function buildReceipt(
     const label = pickLocale(bundle as unknown as Record<string, unknown>, 'backup_upgrade_label', locale);
     monthly.push({
       name: `${label}${labels.upgradeSuffix}`,
-      price: `${mon(disc(Number(bundle.backup_upgrade_price)), locale)}${labels.perMonth}`,
+      price: `${mon(disc(Number(bundle.backup_upgrade_price)), locale, catalog)}${labels.perMonth}`,
       rawPrice: disc(Number(bundle.backup_upgrade_price)),
     });
   }
@@ -148,13 +148,13 @@ export function buildReceipt(
   if (sel.aiBundle) {
     oneOff.push({
       name: labels.aiSetupName,
-      price: fmt(catalog.aiBundle.setup_now, locale),
+      price: fmt(catalog.aiBundle.setup_now, locale, catalog),
       rawPrice: catalog.aiBundle.setup_now,
     });
     monthly.push({
       name: labels.aiName,
       desc: labels.aiDesc,
-      price: `${mon(disc(catalog.aiBundle.monthly), locale)}${labels.perMonth}`,
+      price: `${mon(disc(catalog.aiBundle.monthly), locale, catalog)}${labels.perMonth}`,
       rawPrice: disc(catalog.aiBundle.monthly),
     });
   }

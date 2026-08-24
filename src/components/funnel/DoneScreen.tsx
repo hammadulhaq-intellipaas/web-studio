@@ -121,12 +121,12 @@ export function DoneScreen({ catalog }: { catalog: Catalog }) {
         {voucher && (voucher.scope === 'one_time' || voucher.scope === 'both') && (
           <div style={discStyle}>
             <span>{tc('promoDiscountLine', { code: voucher.code, pct: voucher.percent })}</span>
-            <span>−{fmt(totals.voucherSavedOneTime, locale)}</span>
+            <span>−{fmt(totals.voucherSavedOneTime, locale, catalog)}</span>
           </div>
         )}
         <div style={totalRowStyle}>
           <span>{tc('sumOnce')}</span>
-          <span>{fmt(totals.oneTimeEffective, locale)}</span>
+          <span>{fmt(totals.oneTimeEffective, locale, catalog)}</span>
         </div>
         <div style={{ ...capsStyle, color: '#1E4FD6', margin: '16px 0 10px' }}>
           {t('monthlyLabel')}
@@ -140,13 +140,13 @@ export function DoneScreen({ catalog }: { catalog: Catalog }) {
         {voucher && (voucher.scope === 'recurring' || voucher.scope === 'both') && (
           <div style={discStyle}>
             <span>{tc('promoDiscountLine', { code: voucher.code, pct: voucher.percent })}</span>
-            <span>−{mon(totals.voucherSavedMonthly, locale)}</span>
+            <span>−{mon(totals.voucherSavedMonthly, locale, catalog)}</span>
           </div>
         )}
         <div style={totalRowStyle}>
           <span>{tc('sumMonthly')}</span>
           <span>
-            {mon(totals.monthlyEffective, locale)}
+            {mon(totals.monthlyEffective, locale, catalog)}
             {labels.perMonth}
           </span>
         </div>
@@ -154,7 +154,7 @@ export function DoneScreen({ catalog }: { catalog: Catalog }) {
           <div style={{ ...totalRowStyle, fontSize: 13, fontWeight: 700 }}>
             <span>{t('yearlyLabel')}</span>
             <span>
-              {mon(totals.yearlyEffective, locale)}
+              {mon(totals.yearlyEffective, locale, catalog)}
               {labels.perYear}
             </span>
           </div>

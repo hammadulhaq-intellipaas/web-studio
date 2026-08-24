@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { ENTITIES, SETTINGS } from '@/lib/admin/entities';
 import { EntityEditor } from '@/components/admin/EntityEditor';
 import { SettingsEditor } from '@/components/admin/SettingsEditor';
+import { ExchangeRateDisplay } from '@/components/admin/ExchangeRateDisplay';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +22,7 @@ export default async function CatalogEntityPage({
 
   return (
     <div>
+      <ExchangeRateDisplay />
       <h1 className="mb-6 text-2xl font-extrabold tracking-tight">Catalog</h1>
       <div className="mb-6 flex flex-wrap gap-1">
         {TABS.map((tab) => (

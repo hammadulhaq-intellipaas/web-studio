@@ -294,7 +294,7 @@ export function PriceSidebar({ catalog }: { catalog: Catalog }) {
         <div style={discLineStyle}>
           <span>{t('promoDiscountLine', { code: voucher.code, pct: voucher.percent })}</span>
           <span style={{ fontVariantNumeric: 'tabular-nums' }}>
-            −{fmt(totals.voucherSavedOneTime, locale)}
+            −{fmt(totals.voucherSavedOneTime, locale, catalog)}
           </span>
         </div>
       )}
@@ -309,7 +309,7 @@ export function PriceSidebar({ catalog }: { catalog: Catalog }) {
             fontVariantNumeric: 'tabular-nums',
           }}
         >
-          {fmt(disp.e, locale)}
+          {fmt(disp.e, locale, catalog)}
         </span>
       </div>
 
@@ -348,7 +348,7 @@ export function PriceSidebar({ catalog }: { catalog: Catalog }) {
         <div style={discLineStyle}>
           <span>{t('promoDiscountLine', { code: voucher.code, pct: voucher.percent })}</span>
           <span style={{ fontVariantNumeric: 'tabular-nums' }}>
-            −{mon(totals.voucherSavedMonthly, locale)}
+            −{mon(totals.voucherSavedMonthly, locale, catalog)}
             {labels.perMonth}
           </span>
         </div>
@@ -364,7 +364,7 @@ export function PriceSidebar({ catalog }: { catalog: Catalog }) {
             fontVariantNumeric: 'tabular-nums',
           }}
         >
-          {mon(disp.m, locale)}
+          {mon(disp.m, locale, catalog)}
           {labels.perMonth}
         </span>
       </div>
@@ -374,7 +374,7 @@ export function PriceSidebar({ catalog }: { catalog: Catalog }) {
         <div style={{ ...sumRowStyle, marginTop: 6 }}>
           <span style={{ fontSize: 12.5, fontWeight: 700 }}>{t('yearlyItemsLabel')}</span>
           <span style={{ fontSize: 14, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>
-            {mon(totals.yearlyEffective, locale)}
+            {mon(totals.yearlyEffective, locale, catalog)}
             {labels.perYear}
           </span>
         </div>
@@ -424,13 +424,13 @@ export function PriceSidebar({ catalog }: { catalog: Catalog }) {
             const pct = catalog.yearlyDiscountPct;
             return store.payYearly
               ? t('yearlyNoteActive', {
-                  yearTotal: mon(totals.monthlyEffective * 12, locale),
-                  savings: mon((totals.monthly - totals.monthlyDiscounted) * vr * 12, locale),
+                  yearTotal: mon(totals.monthlyEffective * 12, locale, catalog),
+                  savings: mon((totals.monthly - totals.monthlyDiscounted) * vr * 12, locale, catalog),
                 })
               : t('yearlyNoteInactive', {
                   pct,
-                  discounted: mon(totals.monthly * (1 - pct / 100) * vr, locale),
-                  full: mon(totals.monthly * vr, locale),
+                  discounted: mon(totals.monthly * (1 - pct / 100) * vr, locale, catalog),
+                  full: mon(totals.monthly * vr, locale, catalog),
                 });
           })()}
         </div>
@@ -477,8 +477,8 @@ export function PriceSidebar({ catalog }: { catalog: Catalog }) {
             <div style={{ fontSize: 10.5, color: '#3C7A57' }}>
               {t('promoSavings', {
                 amount: t('promoSavingsAmount', {
-                  once: fmt(totals.voucherSavedOneTime, locale),
-                  monthly: mon(totals.voucherSavedMonthly, locale),
+                  once: fmt(totals.voucherSavedOneTime, locale, catalog),
+                  monthly: mon(totals.voucherSavedMonthly, locale, catalog),
                 }),
               })}
             </div>
