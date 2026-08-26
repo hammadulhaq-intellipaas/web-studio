@@ -222,6 +222,56 @@ describe('qty stepping', () => {
   });
 });
 
+describe('setup included free with the matching bundle', () => {
+  const labels = makeLabels();
+  const oneTime = (sel: Parameters<typeof calcTotals>[1]) => calcTotals(catalog, sel).oneTime;
+
+  it('charges the setup when no bundle is taken', () => {
+    expect(oneTime(makeSelection({ selectedAddons: { geosetup: true } }))).toBe(2990 + 420);
+    expect(oneTime(makeSelection({ selectedAddons: { seosetup: true } }))).toBe(2990 + 420);
+  });
+
+  it('waives it once the bundle that covers it is selected', () => {
+    const sel = makeSelection({ selectedAddons: { geomon: true, geosetup: true }, payYearly: false });
+    expect(calcTotals(catalog, sel).oneTime).toBe(2990); // the 420 setup is absorbed
+    expect(calcTotals(catalog, sel).monthly).toBe(89 + 149); // only the bundle is charged
+  });
+
+  it('covers only the setup for the service the bundle actually monitors', () => {
+    // GEO monitoring waives the GEO setup; the SEO setup is still chargeable.
+    const sel = makeSelection({
+      selectedAddons: { geomon: true, geosetup: true, seosetup: true },
+      payYearly: false,
+    });
+    expect(calcTotals(catalog, sel).oneTime).toBe(2990 + 420);
+  });
+
+  it('keeps a waived setup off the receipt entirely', () => {
+    const sel = makeSelection({ selectedAddons: { geomon: true, geosetup: true } });
+    const receipt = buildReceipt(catalog, sel, 'en', labels);
+    expect(receipt.oneOff.some((l) => l.name.includes('geosetup'))).toBe(false);
+    // And the printed lines still add up to the computed total.
+    const lineSum = receipt.oneOff.reduce((n, l) => n + l.rawPrice, 0);
+    expect(lineSum).toBe(calcTotals(catalog, sel).oneTime);
+  });
+
+  it('the setup combo still absorbs both individual setups', () => {
+    const sel = makeSelection({
+      selectedAddons: { seogeosetup: true, seosetup: true, geosetup: true },
+    });
+    // 765 for the combo, not 765 + 420 + 420.
+    expect(calcTotals(catalog, sel).oneTime).toBe(2990 + 800);
+  });
+
+  it('the combo is cheaper than the two setups bought separately', () => {
+    const combo = oneTime(makeSelection({ selectedAddons: { seogeosetup: true } }));
+    const apart = oneTime(makeSelection({ selectedAddons: { seosetup: true, geosetup: true } }));
+    // Guards the "Best value" badge: if someone raises the combo price above 840 in the
+    // CMS without clearing the badge, this fails.
+    expect(combo).toBeLessThan(apart);
+  });
+});
+
 describe('sub-addons (per-option pricing)', () => {
   const widgets = catalog.addons.find((a) => a.id === 'widgets')!;
   const cookie = catalog.addons.find((a) => a.id === 'cookie')!;
