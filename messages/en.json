@@ -8,7 +8,7 @@
     "impressum": "Legal notice",
     "datenschutz": "Privacy policy",
     "adminLink": "Price management",
-    "footerBadges": "GDPR-compliant · SSL-encrypted (256-bit) · Secured by Cloudflare · Servers in DE/EU"
+    "footerBadges": "GDPR-compliant · SSL-encrypted (256-bit) · Secured by Cloudflare · Servers in DE/EU/US"
   },
   "intro": {
     "headline": "Your new website — configured in just a few minutes.",
@@ -295,7 +295,7 @@
     "cta": "Submit inquiry & schedule a call",
     "noRisk": "No risk — the initial call is non-binding.",
     "dataSafe": "Your data is safe",
-    "sslLong": "SSL/TLS-encrypted (256-bit) · Secured by Cloudflare · Servers in DE/EU · GDPR-compliant",
+    "sslLong": "SSL/TLS-encrypted (256-bit) · Secured by Cloudflare · Servers in DE/EU/US · GDPR-compliant",
     "calendlyTitle": "Pick your preferred appointment right away",
     "calendlySub": "Your inquiry has been received. Book your non-binding initial call now — or add your content first.",
     "calendlyBooked": "Appointment booked — we look forward to the call!",

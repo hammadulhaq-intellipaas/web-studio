@@ -8,7 +8,7 @@
     "impressum": "Impressum",
     "datenschutz": "Datenschutz",
     "adminLink": "Preisverwaltung",
-    "footerBadges": "DSGVO-konform · SSL-verschlüsselt (256-Bit) · Secured by Cloudflare · Server in DE/EU"
+    "footerBadges": "DSGVO-konform · SSL-verschlüsselt (256-Bit) · Secured by Cloudflare · Server in DE/EU/US"
   },
   "intro": {
     "headline": "Ihre neue Website — in wenigen Minuten konfiguriert.",
@@ -295,7 +295,7 @@
     "cta": "Anfrage absenden & Gespräch vereinbaren",
     "noRisk": "Kein Risiko — das Erstgespräch ist unverbindlich.",
     "dataSafe": "Ihre Daten sind sicher",
-    "sslLong": "SSL/TLS-verschlüsselt (256-Bit) · Secured by Cloudflare · Server in DE/EU · DSGVO-konform",
+    "sslLong": "SSL/TLS-verschlüsselt (256-Bit) · Secured by Cloudflare · Server in DE/EU/US · DSGVO-konform",
     "calendlyTitle": "Wählen Sie direkt Ihren Wunschtermin",
     "calendlySub": "Ihre Anfrage ist eingegangen. Buchen Sie jetzt Ihr unverbindliches Erstgespräch — oder ergänzen Sie zuerst Ihre Inhalte.",
     "calendlyBooked": "Termin gebucht — wir freuen uns auf das Gespräch!",
