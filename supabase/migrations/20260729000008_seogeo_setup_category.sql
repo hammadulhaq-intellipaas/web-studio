@@ -9,7 +9,7 @@
 -- the existing bundle_members mechanism: a selected add-on covers its members at no cost.
 --
 -- Prices are EUR, as everywhere in this catalog; the EN site converts at the live rate.
--- Confirmed with Fizra 2026-08-26: SEO 420, GEO 420, combo 800.
+-- Repriced by 20260729000009 to 360 / 360 / 685 so the /en USD figures are the round ones.
 --
 -- NOTE on the combo price: first specified as 900, but 420 + 420 = 840 means 900 would cost
 -- MORE than buying both singles, making its "Best value" badge false. Settled at 800 —

@@ -26,9 +26,9 @@ test.describe('SEO & GEO setup', () => {
 
     // Each setup is charged at its configured one-time price.
     await page.getByTestId('addon-seosetup').click();
-    await expect(page.getByTestId('sum-once')).toHaveText(eur(BASE + 420));
+    await expect(page.getByTestId('sum-once')).toHaveText(eur(BASE + 360));
     await page.getByTestId('addon-geosetup').click();
-    await expect(page.getByTestId('sum-once')).toHaveText(eur(BASE + 840));
+    await expect(page.getByTestId('sum-once')).toHaveText(eur(BASE + 720));
   });
 
   test('the combo undercuts the two setups bought separately', async ({ page }) => {
@@ -36,11 +36,11 @@ test.describe('SEO & GEO setup', () => {
 
     await page.getByTestId('addon-seosetup').click();
     await page.getByTestId('addon-geosetup').click();
-    await expect(page.getByTestId('sum-once')).toHaveText(eur(BASE + 840));
+    await expect(page.getByTestId('sum-once')).toHaveText(eur(BASE + 720));
 
-    // Selecting the combo absorbs both singles — 800, not 800 + 420 + 420.
+    // Selecting the combo absorbs both singles — 685, not 685 + 360 + 360.
     await page.getByTestId('addon-seogeosetup').click();
-    await expect(page.getByTestId('sum-once')).toHaveText(eur(BASE + 800));
+    await expect(page.getByTestId('sum-once')).toHaveText(eur(BASE + 685));
     await expect(page.getByTestId('addon-seosetup')).toContainText('enthalten');
     await expect(page.getByTestId('addon-geosetup')).toContainText('enthalten');
   });
@@ -50,11 +50,11 @@ test.describe('SEO & GEO setup', () => {
 
     await page.getByTestId('addon-seosetup').click();
     await page.getByTestId('addon-geosetup').click();
-    await expect(page.getByTestId('sum-once')).toHaveText(eur(BASE + 840));
+    await expect(page.getByTestId('sum-once')).toHaveText(eur(BASE + 720));
 
     // SEO Starter covers the SEO setup only — the GEO setup is still charged.
     await page.getByTestId('addon-seostarter').click();
-    await expect(page.getByTestId('sum-once')).toHaveText(eur(BASE + 420));
+    await expect(page.getByTestId('sum-once')).toHaveText(eur(BASE + 360));
     await expect(page.getByTestId('addon-seosetup')).toContainText('enthalten');
     await expect(page.getByTestId('addon-geosetup')).not.toContainText('enthalten');
 
@@ -68,7 +68,7 @@ test.describe('SEO & GEO setup', () => {
     await walkToConfigurator(page, GASTRO.persona);
 
     await page.getByTestId('addon-seogeosetup').click();
-    await expect(page.getByTestId('sum-once')).toHaveText(eur(BASE + 800));
+    await expect(page.getByTestId('sum-once')).toHaveText(eur(BASE + 685));
 
     await page.getByTestId('addon-seogeokombi').click();
     await expect(page.getByTestId('sum-once')).toHaveText(eur(BASE));

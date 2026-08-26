@@ -227,8 +227,8 @@ describe('setup included free with the matching bundle', () => {
   const oneTime = (sel: Parameters<typeof calcTotals>[1]) => calcTotals(catalog, sel).oneTime;
 
   it('charges the setup when no bundle is taken', () => {
-    expect(oneTime(makeSelection({ selectedAddons: { geosetup: true } }))).toBe(2990 + 420);
-    expect(oneTime(makeSelection({ selectedAddons: { seosetup: true } }))).toBe(2990 + 420);
+    expect(oneTime(makeSelection({ selectedAddons: { geosetup: true } }))).toBe(2990 + 360);
+    expect(oneTime(makeSelection({ selectedAddons: { seosetup: true } }))).toBe(2990 + 360);
   });
 
   it('waives it once the bundle that covers it is selected', () => {
@@ -243,7 +243,7 @@ describe('setup included free with the matching bundle', () => {
       selectedAddons: { geomon: true, geosetup: true, seosetup: true },
       payYearly: false,
     });
-    expect(calcTotals(catalog, sel).oneTime).toBe(2990 + 420);
+    expect(calcTotals(catalog, sel).oneTime).toBe(2990 + 360);
   });
 
   it('keeps a waived setup off the receipt entirely', () => {
@@ -260,7 +260,7 @@ describe('setup included free with the matching bundle', () => {
       selectedAddons: { seogeosetup: true, seosetup: true, geosetup: true },
     });
     // 765 for the combo, not 765 + 420 + 420.
-    expect(calcTotals(catalog, sel).oneTime).toBe(2990 + 800);
+    expect(calcTotals(catalog, sel).oneTime).toBe(2990 + 685);
   });
 
   it('the combo is cheaper than the two setups bought separately', () => {

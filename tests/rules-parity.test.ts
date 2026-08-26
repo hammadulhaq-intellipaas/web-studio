@@ -202,8 +202,8 @@ describe('Change 4 — the SEO + GEO bundle is never double-priced', () => {
       catalog,
       makeSelection({ ...base, selectedAddons: { seogeosetup: true } }),
     );
-    // gold (2990) + care plus (89/mo) + seogeosetup (800)
-    expect(bundleOnly.oneTime).toBe(2990 + 800);
+    // gold (2990) + care plus (89/mo) + seogeosetup (685)
+    expect(bundleOnly.oneTime).toBe(2990 + 685);
   });
 
   it('does not add the members again when they are also selected', () => {
@@ -214,7 +214,7 @@ describe('Change 4 — the SEO + GEO bundle is never double-priced', () => {
         selectedAddons: { seogeosetup: true, seosetup: true, geosetup: true },
       }),
     );
-    expect(withMembers.oneTime).toBe(2990 + 800);
+    expect(withMembers.oneTime).toBe(2990 + 685);
   });
 
   it('prices the members individually once the bundle is deselected', () => {
@@ -222,7 +222,7 @@ describe('Change 4 — the SEO + GEO bundle is never double-priced', () => {
       catalog,
       makeSelection({ ...base, selectedAddons: { seosetup: true, geosetup: true } }),
     );
-    expect(individually.oneTime).toBe(2990 + 420 + 420);
+    expect(individually.oneTime).toBe(2990 + 360 + 360);
   });
 
   it('reports members as included while the bundle is selected', () => {
