@@ -179,6 +179,7 @@
     "plusMonthly": "+ {price}/mo.",
     "plusYearly": "+ {price}/yr.",
     "plusOnce": "+ {price} one-time",
+    "subAddonsLabel": "Choose your options — priced per option",
     "catNoteKiInBundle": "Already included in the AI Agentic Bundle.",
     "catNoteKiTip": "Tip: ~40% cheaper in the AI Agentic Bundle (below).",
     "sec3Title": "3 · Care & security",

@@ -40,6 +40,7 @@ const addon = (id: string, partial: Partial<Addon>): Addon => ({
   badge_de: null,
   badge_en: null,
   highlight: false,
+  sub_addons: null,
   sort: 0,
   active: true,
   ...partial,
@@ -57,6 +58,17 @@ export function makeCatalog(): Catalog {
     addonCategories: [],
     addons: [
       addon('cookie', { category_id: 'compliance', price_now: 350, price_later: 590 }),
+      addon('widgets', {
+        name_de: 'Widgets',
+        name_en: 'Widgets',
+        price_now: 190,
+        price_later: 290,
+        sub_addons: [
+          { id: 'whatsapp', name_de: 'WhatsApp', name_en: 'WhatsApp' },
+          { id: 'reviews', name_de: 'Bewertungen', name_en: 'Reviews' },
+          { id: 'clicktocall', name_de: 'Click-to-Call', name_en: 'Click-to-call' },
+        ],
+      }),
       addon('page', {
         price_now: 190,
         price_later: 290,
@@ -161,6 +173,7 @@ export function makeSelection(partial: Partial<Selection>): Selection {
     bundle: 'gold',
     selectedAddons: {},
     qty: {},
+    selectedSubAddons: {},
     care: 'plus',
     support: 'none',
     cf: 'none',

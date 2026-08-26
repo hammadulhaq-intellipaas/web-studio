@@ -14,7 +14,8 @@ test.describe('public funnel (en)', () => {
     await page.getByTestId(`persona-${GASTRO.persona}`).click();
     await page.getByTestId('to-config').click();
 
-    // en-IE grouping: comma thousands, dot decimals.
+    // EN prices convert to USD at the live rate and use en-IE grouping:
+    // "$" prefix, comma thousands, dot decimals.
     await expect(page.getByTestId('sum-once')).toHaveText(GASTRO.sumOnceEn);
     await expect(page.getByTestId('sum-monthly')).toHaveText(GASTRO.sumMonthlyEn);
 

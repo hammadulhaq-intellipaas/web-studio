@@ -41,6 +41,7 @@ interface FunnelState {
   sel: Record<string, boolean>;
   recSel: Record<string, boolean>; // "empfohlen"-marked add-ons for the current bundle
   qty: Record<string, number>;
+  selectedSubAddons: Record<string, string[]>; // selected sub-addons for each addon (e.g., widget types)
   care: string | null;
   support: string;
   cf: string;
@@ -73,6 +74,7 @@ interface FunnelState {
   pickBundle: (catalog: Catalog, bundleId: string) => void;
   toggleAddon: (id: string) => void;
   setQty: (id: string, n: number) => void;
+  setSubAddons: (addonId: string, ids: string[]) => void;
   setCare: (id: string) => void;
   setSupport: (id: string) => void;
   setCf: (id: string) => void;
@@ -118,6 +120,7 @@ function freshState() {
     sel: {},
     recSel: {},
     qty: {},
+    selectedSubAddons: {},
     care: null,
     support: 'none',
     cf: 'none',
@@ -164,6 +167,7 @@ export const useFunnel = create<FunnelState>()(
       sel: {},
       recSel: {},
       qty: {},
+      selectedSubAddons: {},
       care: null,
       support: 'none',
       cf: 'none',
@@ -189,7 +193,12 @@ export const useFunnel = create<FunnelState>()(
         if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'instant' });
       },
       setSessionId: (id) => set({ sessionId: id }),
-      hydrateFromSession: (state) => set(state as Partial<FunnelState>),
+      // A session row saved before sub-options existed carries no `selectedSubAddons`
+      // key, and a shallow set() would then leave the *recipient's* own ticks in place
+      // instead of the sender's. Reset it explicitly so a shared link always shows the
+      // configuration it was shared with.
+      hydrateFromSession: (state) =>
+        set({ selectedSubAddons: {}, ...(state as Partial<FunnelState>) }),
       setUrl: (url) => set({ url }),
       setSiteNotes: (siteNotes) => set({ siteNotes }),
 
@@ -243,6 +252,12 @@ export const useFunnel = create<FunnelState>()(
 
       toggleAddon: (id) => set({ sel: { ...get().sel, [id]: !get().sel[id] } }),
       setQty: (id, n) => set({ qty: { ...get().qty, [id]: n } }),
+      // Callers resolve the new list through `subAddonsOf` first; an empty list is
+      // rejected here too so no path can price a selected add-on at zero.
+      setSubAddons: (addonId, ids) => {
+        if (!ids.length) return;
+        set({ selectedSubAddons: { ...get().selectedSubAddons, [addonId]: ids } });
+      },
       setCare: (id) => set({ care: id }),
       setSupport: (id) => set({ support: id }),
       setCf: (id) => set({ cf: id }),
@@ -308,6 +323,7 @@ export interface SessionState {
   sel: Record<string, boolean>;
   recSel: Record<string, boolean>;
   qty: Record<string, number>;
+  selectedSubAddons: Record<string, string[]>;
   care: string | null;
   support: string;
   cf: string;
@@ -337,6 +353,7 @@ export function toSessionState(s: SessionState): SessionState {
     sel: s.sel,
     recSel: s.recSel,
     qty: s.qty,
+    selectedSubAddons: s.selectedSubAddons,
     care: s.care,
     support: s.support,
     cf: s.cf,

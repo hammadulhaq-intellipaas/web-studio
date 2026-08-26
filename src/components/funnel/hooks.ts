@@ -19,6 +19,7 @@ export function useSelection(): Selection {
   const bundle = useFunnel((s) => s.bundle);
   const sel = useFunnel((s) => s.sel);
   const qty = useFunnel((s) => s.qty);
+  const selectedSubAddons = useFunnel((s) => s.selectedSubAddons);
   const care = useFunnel((s) => s.care);
   const support = useFunnel((s) => s.support);
   const cf = useFunnel((s) => s.cf);
@@ -34,6 +35,7 @@ export function useSelection(): Selection {
     bundle: currentBundle({ bundle, answers, persona, url }, catalog),
     selectedAddons: sel,
     qty,
+    selectedSubAddons,
     care: care || catalog.defaultCarePlan,
     support,
     cf,

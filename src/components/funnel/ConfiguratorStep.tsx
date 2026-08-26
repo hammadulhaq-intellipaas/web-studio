@@ -10,10 +10,12 @@ import {
   addonCost,
   coveringBundleAddon,
   discMonthly,
+  hasSubAddons,
   isAddonIncluded,
   isByow,
   isCfIncluded,
   stepQty,
+  subAddonsOf,
 } from '@/lib/pricing/engine';
 import { recommend } from '@/lib/pricing/recommend';
 import { qtyText } from '@/lib/pricing/summary';
@@ -63,6 +65,102 @@ function RecBadge({ label, small }: { label: string; small?: boolean }) {
   );
 }
 
+/** Square tick used by the sub-option pills — a checkbox, unlike the round `CheckIcon` bullet. */
+function TickBox({ on }: { on: boolean }) {
+  return (
+    <span
+      style={{
+        flex: 'none',
+        width: 15,
+        height: 15,
+        borderRadius: 4,
+        border: `1.5px solid ${on ? BLUE : '#CBD5E4'}`,
+        background: on ? BLUE : '#ffffff',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        transition: 'all .15s',
+      }}
+    >
+      {on && (
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+          <path
+            d="M6 12.5l3.8 3.8L18 8"
+            stroke="#ffffff"
+            strokeWidth="3.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      )}
+    </span>
+  );
+}
+
+/**
+ * Tickable options for an add-on priced per tick (e.g. Widgets). Sits in the same slot
+ * as the qty stepper and, like that stepper's `min` clamp, refuses to drop below one —
+ * removing the add-on entirely is what the card's own toggle is for.
+ */
+function SubAddonPicker({ addon }: { addon: Addon }) {
+  const t = useTranslations('configurator');
+  const locale = useAppLocale();
+  const store = useFunnel();
+  const picked = subAddonsOf(addon, store.selectedSubAddons);
+
+  return (
+    // The card wrapper toggles the whole add-on on click. Swallow every click inside the
+    // picker — not just the buttons' — or hitting the label or the gap between pills
+    // switches the add-on off and throws away the ticks.
+    <div style={{ marginTop: 10 }} onClick={(ev) => ev.stopPropagation()}>
+      <div style={{ fontSize: 10.5, fontWeight: 700, color: MUTED2, marginBottom: 6 }}>
+        {t('subAddonsLabel')}
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        {(addon.sub_addons ?? []).map((sub) => {
+          const on = picked.includes(sub.id);
+          const isLastTicked = on && picked.length === 1;
+          return (
+            <button
+              key={sub.id}
+              type="button"
+              role="checkbox"
+              aria-checked={on}
+              disabled={isLastTicked}
+              data-testid={`subaddon-${addon.id}-${sub.id}`}
+              onClick={(ev) => {
+                // The card wrapper toggles the whole add-on on click — never let that fire.
+                ev.stopPropagation();
+                if (isLastTicked) return;
+                const next = on ? picked.filter((id) => id !== sub.id) : [...picked, sub.id];
+                store.setSubAddons(addon.id, next);
+              }}
+              style={{
+                fontFamily: 'inherit',
+                cursor: isLastTicked ? 'default' : 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 7,
+                background: on ? '#F4F8FF' : '#ffffff',
+                border: `1.5px solid ${on ? BLUE : BORDER}`,
+                borderRadius: 9,
+                padding: '6px 10px',
+                fontSize: 11.5,
+                fontWeight: 700,
+                color: on ? INK : BODY,
+                transition: 'all .15s',
+              }}
+            >
+              <TickBox on={on} />
+              {locale === 'de' ? sub.name_de : sub.name_en}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function AddonCard({ addon, catalog }: { addon: Addon; catalog: Catalog }) {
   const [tooltipOpen, setTooltipOpen] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
@@ -91,7 +189,9 @@ function AddonCard({ addon, catalog }: { addon: Addon; catalog: Catalog }) {
   // moves down to the price row so the header holds at most one pill.
   const staticBadge = pickLocale(addon as unknown as Record<string, unknown>, 'badge', locale);
   const highlight = !included && addon.highlight;
-  const hasQty = !!(addon.qty || addon.tiers);
+  const hasSubs = hasSubAddons(addon);
+  // Sub-options own the expanded slot; a row carrying both never shows the stepper.
+  const hasQty = !hasSubs && !!(addon.qty || addon.tiers);
   const recurring = addon.billing === 'monthly' || addon.billing === 'yearly';
   const disc = (p: number) => discMonthly(p, store.payYearly, catalog.yearlyDiscountPct);
   const name = pickLocale(addon as unknown as Record<string, unknown>, 'name', locale);
@@ -148,11 +248,17 @@ function AddonCard({ addon, catalog }: { addon: Addon; catalog: Catalog }) {
       unit: singularUnit(locale === 'de' ? addon.qty.unit_de : addon.qty.unit_en, locale),
     });
   } else if (addon.billing === 'monthly') {
-    priceLabel = t('plusMonthly', { price: mon(disc(addonCost(addon, store.qty)), locale, catalog) });
+    priceLabel = t('plusMonthly', {
+      price: mon(disc(addonCost(addon, store.qty, store.selectedSubAddons)), locale, catalog),
+    });
   } else if (addon.billing === 'yearly') {
-    priceLabel = t('plusYearly', { price: mon(addonCost(addon, store.qty), locale, catalog) });
+    priceLabel = t('plusYearly', {
+      price: mon(addonCost(addon, store.qty, store.selectedSubAddons), locale, catalog),
+    });
   } else {
-    priceLabel = t('plusOnce', { price: fmt(addonCost(addon, store.qty), locale, catalog) });
+    priceLabel = t('plusOnce', {
+      price: fmt(addonCost(addon, store.qty, store.selectedSubAddons), locale, catalog),
+    });
   }
 
   const laterLabel =
@@ -310,6 +416,7 @@ function AddonCard({ addon, catalog }: { addon: Addon; catalog: Catalog }) {
             </button>
           </div>
         )}
+        {hasSubs && selected && <SubAddonPicker addon={addon} />}
       </div>
       {included ? (
         <span style={{ flex: 'none', fontSize: 12, fontWeight: 700, color: GREEN }}>
@@ -644,6 +751,7 @@ export function ConfiguratorStep({ catalog }: { catalog: Catalog }) {
                   price: fmt(
                     Number(catalog.addons.find((a) => a.id === 'byositer')?.price_now ?? 190),
                     locale,
+                    catalog,
                   ),
                 })}
               </div>

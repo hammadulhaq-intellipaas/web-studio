@@ -19,10 +19,12 @@ export const GASTRO = {
   recBundleName: 'Gold',
   // 2990 + 350 (cookie) + 190 (maps) + 290 (foto) + 490 (booking) + 150 (CF Shield setup)
   sumOnceDe: '€4.460',
-  sumOnceEn: '€4,460',
+  // EN converts EUR→USD at the live rate, so the amount can't be pinned to a literal —
+  // these assert the en-IE shape instead: "$" plus comma thousands / dot decimals.
+  sumOnceEn: /^\$\d{1,3}(,\d{3})*$/,
   // (89 care Plus + 39 CF Shield) × 0.82 yearly discount
   sumMonthlyDe: '€104,96/Mon.',
-  sumMonthlyEn: '€104.96/mo.',
+  sumMonthlyEn: /^\$\d{1,3}(,\d{3})*\.\d{2}\/mo\.$/,
   // without the 18% yearly discount
   sumMonthlyMonthlyDe: '€128,00/Mon.',
   // TKFF20 −20% on both totals

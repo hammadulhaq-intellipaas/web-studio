@@ -51,7 +51,39 @@ export function qtyOf(addon: Addon, qtyState: Record<string, number>): number {
   return addon.qty ? addon.qty.min : 1;
 }
 
-export function addonCost(addon: Addon, qtyState: Record<string, number>): number {
+/** Does this add-on render tickable sub-options instead of a plain toggle? */
+export function hasSubAddons(addon: Addon): boolean {
+  return !!(addon.sub_addons && addon.sub_addons.length);
+}
+
+/**
+ * The ticked sub-option ids for `addon`, resolved against the CMS list.
+ *
+ * Mirrors `qtyOf`'s "unset means the minimum" rule: no stored entry resolves to the
+ * first option, so a freshly toggled add-on costs its base price rather than nothing.
+ * Ids that no longer exist in the CMS are dropped, and the result can never be empty —
+ * pricing must not silently fall to €0 on stale or hand-edited state.
+ */
+export function subAddonsOf(addon: Addon, subState: Record<string, string[]>): string[] {
+  const subs = addon.sub_addons;
+  if (!subs || !subs.length) return [];
+  const picked = subState?.[addon.id];
+  if (picked == null) return [subs[0].id];
+  // Walk the CMS list rather than the stored array: that drops ids the CMS no longer
+  // has, collapses duplicates (a repeated id must not multiply the price), caps the
+  // count at the number of real options, and fixes the order so every surface —
+  // card, sidebar, receipt, email — names them identically.
+  const valid = subs.filter((s) => picked.includes(s.id)).map((s) => s.id);
+  return valid.length ? valid : [subs[0].id];
+}
+
+export function addonCost(
+  addon: Addon,
+  qtyState: Record<string, number>,
+  subState: Record<string, string[]>,
+): number {
+  // Sub-options price per tick and win over qty/tiers if a row ever carries both.
+  if (hasSubAddons(addon)) return addon.price_now * subAddonsOf(addon, subState).length;
   const n = qtyOf(addon, qtyState);
   if (addon.tiers && addon.tiers.length) {
     const tier = addon.tiers.find((t) => t.n === n) ?? addon.tiers[0];
@@ -129,7 +161,7 @@ export function calcTotals(catalog: Catalog, sel: Selection): Totals {
     if (!isAddonVisible(addon, sel.bundle)) continue;
     if (isAddonIncluded(addon, sel.bundle, sel.aiBundle, inclusionCtx)) continue;
     if (!sel.selectedAddons[addon.id]) continue;
-    const cost = addonCost(addon, sel.qty);
+    const cost = addonCost(addon, sel.qty, sel.selectedSubAddons);
     if (addon.billing === 'yearly') y += cost;
     else if (addon.billing === 'monthly') m += cost;
     else e += cost;

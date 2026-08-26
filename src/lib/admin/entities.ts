@@ -76,6 +76,10 @@ export const ENTITIES: Record<string, EntityDef> = {
       json('bundle_members', 'Covers these add-ons (JSON ["seosetup","geosetup"]) — selecting this one includes them at no extra cost'),
       json('qty', 'Quantity (JSON {min,max,unit_de,unit_en})'),
       json('tiers', 'Tiers (JSON [{n,price}])'),
+      json(
+        'sub_addons',
+        'Sub-options (JSON [{id,name_de,name_en}]) — renders tickboxes on the card; the price is "Buy now €" × the number ticked, minimum one. Leave blank for a plain on/off add-on. Overrides Quantity/Tiers. Never change an existing id — it is what saved selections point at.',
+      ),
     ],
   },
   addon_categories: {

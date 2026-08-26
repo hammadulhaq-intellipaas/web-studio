@@ -1,9 +1,28 @@
 import { describe, expect, it } from 'vitest';
 import type { Answers } from '@/lib/types';
-import { calcTotals, isByow, qtyOf, stepQty } from '@/lib/pricing/engine';
+import { addonCost, calcTotals, isByow, qtyOf, stepQty, subAddonsOf } from '@/lib/pricing/engine';
+import { buildReceipt, subAddonText, type SummaryLabels } from '@/lib/pricing/summary';
 import { recommend, recSet } from '@/lib/pricing/recommend';
 import { EMPTY_ANSWERS } from '@/lib/questions';
 import { makeCatalog, makeSelection } from './fixtures/catalog';
+
+/** Receipt labels are i18n strings at runtime; the vectors only need them non-empty. */
+const makeLabels = (): SummaryLabels => ({
+  paket: 'Package',
+  pflege: 'Care',
+  support: 'Support',
+  cloudflare: 'Cloudflare',
+  setupSuffix: ' — setup',
+  included: 'included',
+  cfDesc: 'WAF, bot & DDoS protection',
+  upgradeSuffix: ' (upgrade)',
+  aiSetupName: 'AI Agentic Bundle — setup',
+  aiName: 'AI Agentic Bundle',
+  aiDesc: 'Chatbot, content engine, reviews, GEO',
+  perMonth: '/mo.',
+  perYear: '/yr.',
+  tierUnit: 'articles/mo.',
+});
 
 const catalog = makeCatalog();
 
@@ -200,5 +219,123 @@ describe('qty stepping', () => {
     expect(stepQty(byositer, { byositer: 10 }, 1)).toBe(10);
     expect(stepQty(byositer, { byositer: 1 }, -1)).toBe(1);
     expect(stepQty(byositer, { byositer: 4 }, 1)).toBe(5);
+  });
+});
+
+describe('sub-addons (per-option pricing)', () => {
+  const widgets = catalog.addons.find((a) => a.id === 'widgets')!;
+  const cookie = catalog.addons.find((a) => a.id === 'cookie')!;
+  const labels = makeLabels();
+
+  const totalFor = (selectedSubAddons: Record<string, string[]>) =>
+    calcTotals(catalog, makeSelection({ selectedAddons: { widgets: true }, selectedSubAddons })).oneTime;
+
+  it('resolves no stored entry to the first option', () => {
+    expect(subAddonsOf(widgets, {})).toEqual(['whatsapp']);
+    expect(addonCost(widgets, {}, {})).toBe(190);
+  });
+
+  it('charges price_now once per ticked option', () => {
+    expect(addonCost(widgets, {}, { widgets: ['whatsapp'] })).toBe(190);
+    expect(addonCost(widgets, {}, { widgets: ['whatsapp', 'reviews'] })).toBe(380);
+    expect(addonCost(widgets, {}, { widgets: ['whatsapp', 'reviews', 'clicktocall'] })).toBe(570);
+  });
+
+  it('adds the per-option total to the one-time bundle total', () => {
+    expect(totalFor({})).toBe(2990 + 190);
+    expect(totalFor({ widgets: ['whatsapp', 'reviews'] })).toBe(2990 + 380);
+    expect(totalFor({ widgets: ['whatsapp', 'reviews', 'clicktocall'] })).toBe(2990 + 570);
+  });
+
+  it('never prices a selected add-on at zero', () => {
+    // An empty list, or ids the CMS no longer has, must fall back to one option —
+    // not to a free add-on.
+    expect(addonCost(widgets, {}, { widgets: [] })).toBe(190);
+    expect(addonCost(widgets, {}, { widgets: ['deleted-in-cms'] })).toBe(190);
+    expect(totalFor({ widgets: [] })).toBe(2990 + 190);
+  });
+
+  it('collapses duplicate ids instead of multiplying the price', () => {
+    // A repeated id is one option, not several — otherwise the line would read
+    // "Widgets (WhatsApp)" next to a €570 price.
+    expect(subAddonsOf(widgets, { widgets: ['whatsapp', 'whatsapp', 'whatsapp'] })).toEqual([
+      'whatsapp',
+    ]);
+    expect(addonCost(widgets, {}, { widgets: ['whatsapp', 'whatsapp', 'whatsapp'] })).toBe(190);
+    expect(addonCost(widgets, {}, { widgets: ['reviews', 'whatsapp', 'reviews'] })).toBe(380);
+  });
+
+  it('cannot be pushed above the number of real options', () => {
+    const crafted = Array.from({ length: 500 }, () => 'whatsapp');
+    expect(addonCost(widgets, {}, { widgets: crafted })).toBe(190);
+    expect(subAddonsOf(widgets, { widgets: crafted })).toHaveLength(1);
+  });
+
+  it('names exactly what it charges for, whatever the stored order', () => {
+    const cases: string[][] = [
+      ['clicktocall', 'whatsapp'],
+      ['whatsapp', 'clicktocall'],
+      ['whatsapp', 'whatsapp', 'clicktocall'],
+    ];
+    for (const stored of cases) {
+      const state = { widgets: stored };
+      const names = subAddonText(widgets, state, 'en');
+      // One name per €190 charged, always in CMS order.
+      expect(names).toBe('WhatsApp, Click-to-call');
+      expect(addonCost(widgets, {}, state)).toBe(names.split(', ').length * 190);
+    }
+  });
+
+  it('ignores ids the CMS no longer has but keeps the valid ones', () => {
+    expect(subAddonsOf(widgets, { widgets: ['reviews', 'gone'] })).toEqual(['reviews']);
+    expect(addonCost(widgets, {}, { widgets: ['reviews', 'gone'] })).toBe(190);
+    expect(addonCost(widgets, {}, { widgets: ['reviews', 'clicktocall', 'gone'] })).toBe(380);
+  });
+
+  it('leaves add-ons without sub-options untouched', () => {
+    expect(subAddonsOf(cookie, {})).toEqual([]);
+    expect(addonCost(cookie, {}, {})).toBe(350);
+    expect(addonCost(cookie, {}, { cookie: ['whatever'] })).toBe(350);
+  });
+
+  it('names the ticked options on the receipt line, in CMS order', () => {
+    const receipt = buildReceipt(
+      catalog,
+      makeSelection({
+        selectedAddons: { widgets: true },
+        // Click order is reversed; the label must still read in CMS order.
+        selectedSubAddons: { widgets: ['clicktocall', 'whatsapp'] },
+      }),
+      'en',
+      labels,
+    );
+    const line = receipt.oneOff.find((l) => l.name.startsWith('Widgets'))!;
+    expect(line.name).toBe('Widgets (WhatsApp, Click-to-call)');
+    expect(line.rawPrice).toBe(380);
+  });
+
+  it('localises the option names on the receipt', () => {
+    const receipt = buildReceipt(
+      catalog,
+      makeSelection({
+        selectedAddons: { widgets: true },
+        selectedSubAddons: { widgets: ['reviews'] },
+      }),
+      'de',
+      labels,
+    );
+    const line = receipt.oneOff.find((l) => l.name.startsWith('Widgets'))!;
+    expect(line.name).toBe('Widgets (Bewertungen)');
+    expect(line.rawPrice).toBe(190);
+  });
+
+  it('keeps the receipt line in step with calcTotals', () => {
+    const sel = makeSelection({
+      selectedAddons: { widgets: true },
+      selectedSubAddons: { widgets: ['whatsapp', 'reviews', 'clicktocall'] },
+    });
+    const receipt = buildReceipt(catalog, sel, 'en', labels);
+    const lineSum = receipt.oneOff.reduce((n, l) => n + l.rawPrice, 0);
+    expect(lineSum).toBe(calcTotals(catalog, sel).oneTime);
   });
 });

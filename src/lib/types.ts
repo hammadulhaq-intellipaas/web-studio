@@ -41,6 +41,17 @@ export interface AddonTier {
   price: number;
 }
 
+/**
+ * One tickable option inside an add-on (e.g. the WhatsApp widget inside "Widgets").
+ * `id` is the stable key stored in `Selection.selectedSubAddons` — never the name,
+ * so renaming an option in the CMS or switching locale can't orphan a selection.
+ */
+export interface SubAddon {
+  id: string;
+  name_de: string;
+  name_en: string;
+}
+
 export interface Addon {
   id: string;
   category_id: string;
@@ -67,6 +78,12 @@ export interface Addon {
   badge_en: string | null;
   /** Give the card visual emphasis (tinted background + gold ring). */
   highlight: boolean;
+  /**
+   * Tickable options shown under the card once it's selected (e.g. the three widgets).
+   * The price is `price_now × (number ticked)`, at least one. Null/empty = a plain toggle.
+   * Takes precedence over `qty`/`tiers` if both were ever set on the same row.
+   */
+  sub_addons: SubAddon[] | null;
   sort: number;
   active: boolean;
 }
@@ -217,6 +234,8 @@ export interface Selection {
   bundle: string; // resolved current bundle id
   selectedAddons: Record<string, boolean>;
   qty: Record<string, number>;
+  /** addon id → ticked `SubAddon.id`s. A missing entry means "the first option". */
+  selectedSubAddons: Record<string, string[]>;
   care: string;
   support: string;
   cf: string;

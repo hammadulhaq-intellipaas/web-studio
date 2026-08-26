@@ -4,10 +4,12 @@ import { fmt, mon } from '../format';
 import {
   addonCost,
   discMonthly,
+  hasSubAddons,
   isAddonIncluded,
   isAddonVisible,
   isCfIncluded,
   qtyOf,
+  subAddonsOf,
   type InclusionContext,
 } from './engine';
 
@@ -50,6 +52,21 @@ export function qtyText(addon: Addon, qtyState: Record<string, number>, locale: 
   return '';
 }
 
+/** The ticked sub-options, localised and comma-joined — e.g. "WhatsApp, Reviews". */
+export function subAddonText(
+  addon: Addon,
+  subState: Record<string, string[]>,
+  locale: Locale,
+): string {
+  // Already deduplicated and in CMS order — resolving ids to names preserves both.
+  const byId = new Map((addon.sub_addons ?? []).map((s) => [s.id, s]));
+  return subAddonsOf(addon, subState)
+    .map((id) => byId.get(id))
+    .map((s) => (s ? (locale === 'de' ? s.name_de : s.name_en) : ''))
+    .filter(Boolean)
+    .join(', ');
+}
+
 /** Receipt lines for sidebar, step-4 summary, confirmation and emails — ported from buildSummary(). */
 export function buildReceipt(
   catalog: Catalog,
@@ -78,8 +95,14 @@ export function buildReceipt(
     if (isAddonIncluded(addon, sel.bundle, sel.aiBundle, inclusionCtx)) continue;
     if (!sel.selectedAddons[addon.id]) continue;
     const name = pickLocale(addon as unknown as Record<string, unknown>, 'name', locale);
-    const qtyTag = addon.qty || addon.tiers ? ` (${qtyText(addon, sel.qty, locale, labels)})` : '';
-    const cost = addonCost(addon, sel.qty);
+    // Sub-options name themselves on the line ("Widgets (WhatsApp, Reviews)") and take
+    // precedence over the qty tag, matching addonCost's ordering.
+    const qtyTag = hasSubAddons(addon)
+      ? ` (${subAddonText(addon, sel.selectedSubAddons, locale)})`
+      : addon.qty || addon.tiers
+        ? ` (${qtyText(addon, sel.qty, locale, labels)})`
+        : '';
+    const cost = addonCost(addon, sel.qty, sel.selectedSubAddons);
     if (addon.billing === 'yearly') {
       yearly.push({ name: name + qtyTag, price: `${mon(cost, locale, catalog)}${labels.perYear}`, rawPrice: cost });
     } else if (addon.billing === 'monthly') {

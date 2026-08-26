@@ -18,24 +18,18 @@ export async function getExchangeRate(): Promise<number> {
 
   // Check if cache is still fresh (< 24 hours old)
   if (cache && now.getTime() - cache.fetchedAt.getTime() < CACHE_DURATION_MS) {
-    console.log(`[exchange-rate] Serving cached rate: ${cache.rate}`);
     return cache.rate;
   }
 
-  // Cache is missing or stale — fetch in background (non-blocking)
-  console.log('[exchange-rate] Fetching new rate...');
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
-  fetchAndUpdateCache();
+  // Cache is missing or stale — refresh in the background so nobody waits on the API.
+  void fetchAndUpdateCache();
 
   // Return cached rate immediately (or fallback if no cache yet)
-  const returnedRate = cache?.rate ?? FALLBACK_RATE;
-  console.log(`[exchange-rate] Returning: ${returnedRate}`);
-  return returnedRate;
+  return cache?.rate ?? FALLBACK_RATE;
 }
 
 async function fetchAndUpdateCache(): Promise<void> {
   try {
-    console.log('[exchange-rate] Fetching from API...');
     const res = await fetch('https://api.exchangerate-api.com/v4/latest/EUR', {
       next: { revalidate: 0 }, // Do not cache fetch response itself, we manage caching
     });
@@ -43,7 +37,6 @@ async function fetchAndUpdateCache(): Promise<void> {
     const data = await res.json();
     const rate = data.rates?.USD;
     if (typeof rate !== 'number' || rate <= 0) throw new Error('Invalid rate in response');
-    console.log(`[exchange-rate] API returned rate: ${rate}`);
     cache = { rate, fetchedAt: new Date() };
   } catch (error) {
     console.error('[exchange-rate] API fetch failed:', error instanceof Error ? error.message : error);

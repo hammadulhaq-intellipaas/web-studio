@@ -92,7 +92,7 @@ insert into addons (id, category_id, name_de, name_en, note_de, note_en, billing
 ('ecom',        'inhalte', 'eCommerce / Stripe-Checkout', 'eCommerce / Stripe checkout', null, null, 'once', 1490, 2090, null, null, '{}', false, false, false, null, null, false, 50, 'Ergänzt einen einfachen Online-Shop (Produkte, Warenkorb, Stripe-Checkout) — nicht Teil der Standardseite. Produktdaten liefern Sie.', 'Adds a basic online store (products, cart, Stripe checkout) — not part of the standard site. Product data supplied by you.'),
 ('form',        'inhalte', 'Weitere Kontaktformulare', 'Additional contact forms', null, null, 'once', 290, 450, null, null, '{}', false, false, false, null, null, false, 60, 'Ein zusätzliches individuelles Formular zusätzlich zum Standard-Kontaktformular (z. B. Angebotsanfrage, Bewerbung).', 'One extra custom form on top of the standard contact form (e.g. quote request, application).'),
 ('maps',        'inhalte', 'Google-Maps-Einbindung', 'Google Maps embed', null, null, 'once', 190, 290, null, null, '{}', false, false, false, null, null, false, 70, 'Ergänzt eine interaktive Standortkarte und erweitert die Standard-Kontaktseite.', 'Adds an interactive location map, extending the standard contact page.'),
-('widgets',     'inhalte', 'Widgets (WhatsApp, Bewertungen, Click-to-Call)', 'Widgets (WhatsApp, reviews, click-to-call)', null, null, 'once', 190, 290, null, null, '{}', false, false, false, null, null, false, 80, 'Ergänzt ein interaktives Element wie WhatsApp-Button, Bewertungs-Badge oder Click-to-Call — zusätzlich zu den enthaltenen Social-Links.', 'Adds one interactive element such as a WhatsApp button, reviews badge or click-to-call — beyond the included social links.'),
+('widgets',     'inhalte', 'Widgets', 'Widgets', null, null, 'once', 190, 290, null, null, '{}', false, false, false, null, null, false, 80, 'Ergänzt ein interaktives Element wie WhatsApp-Button, Bewertungs-Badge oder Click-to-Call — zusätzlich zu den enthaltenen Social-Links.', 'Adds one interactive element such as a WhatsApp button, reviews badge or click-to-call — beyond the included social links.'),
 ('chatwidget',  'inhalte', 'Telefon-/Chat-Widget (Tidio, LiveChat)', 'Phone/chat widget (Tidio, LiveChat)', null, null, 'once', 150, 250, null, null, '{}', false, false, false, null, null, false, 90, 'Ergänzt Live-Chat in Echtzeit. Abo des Drittanbieters wird separat abgerechnet.', 'Adds real-time live chat. Third-party plan billed separately.'),
 ('perf',        'inhalte', 'Performance-Optimierung (Core Web Vitals)', 'Performance optimization (Core Web Vitals)', null, null, 'once', 290, 490, null, null, '{platinum}', false, false, false, null, null, false, 100, 'Geschwindigkeits- und technisches Feintuning über den Standardbuild hinaus, um Googles Core Web Vitals zu verbessern.', 'Speed and technical tuning above the standard build to improve Google''s Core Web Vitals.'),
 -- marketing › SEO & GEO — Setup
@@ -139,6 +139,15 @@ insert into addons (id, category_id, name_de, name_en, note_de, note_en, billing
 -- members at no extra cost (only the combo price counts).
 update addons set bundle_members = '{seosetup,geosetup}' where id = 'seogeosetup';
 update addons set bundle_members = '{seostarter,geomon}' where id = 'seogeokombi';
+
+-- Widgets is priced per ticked option: the card shows one tickbox per entry and charges
+-- price_now × the number ticked (minimum one). `id` is the stable key saved in a
+-- customer's selection, so it must never be reused for a different option.
+update addons set sub_addons = '[
+  {"id":"whatsapp","name_de":"WhatsApp","name_en":"WhatsApp"},
+  {"id":"reviews","name_de":"Bewertungen","name_en":"Reviews"},
+  {"id":"clicktocall","name_de":"Click-to-Call","name_en":"Click-to-call"}
+]'::jsonb where id = 'widgets';
 
 -- ------------------------------------------------------------- care plans
 insert into care_plans (id, name, price_monthly, desc_de, desc_en, short_de, short_en, recommended, sort) values

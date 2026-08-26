@@ -99,9 +99,10 @@ export function renderCustomerEmail(ctx: EmailContext): { subject: string; html:
 }
 
 export function renderTeamEmail(ctx: EmailContext, adminUrl: string): { subject: string; html: string } {
-  // Internal notification — always English (the admin portal language).
+  // Internal notification — chrome is always English (the admin portal language), but the
+  // money is shown in the CUSTOMER's currency so this matches their quote line for line.
   const m = enMessages.emails.team;
-  const { receipt, totals, locale } = ctx;
+  const { receipt, totals, locale, catalog } = ctx;
 
   const html = wrap(`
     <h2 style="margin:0 0 12px">${interp(m.subject, { firma: ctx.lead.firma || '—', bundle: ctx.bundleName })}</h2>
@@ -119,7 +120,7 @@ export function renderTeamEmail(ctx: EmailContext, adminUrl: string): { subject:
       ${receiptRows(receipt.yearly)}
       <tr><td style="padding:8px 0 0;border-top:1px solid #EEF1F7;font-weight:800">One-time / Monthly</td>
       <td align="right" style="padding:8px 0 0;border-top:1px solid #EEF1F7;font-weight:800">
-        ${fmt(totals.oneTimeEffective, 'en')} / ${mon(totals.monthlyEffective, 'en')}
+        ${fmt(totals.oneTimeEffective, locale, catalog)} / ${mon(totals.monthlyEffective, locale, catalog)}
       </td></tr>
     </table>
     <p style="margin-top:18px"><a href="${adminUrl}" style="color:#1E5EFF;font-weight:700">${m.openInAdmin}</a></p>

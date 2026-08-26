@@ -4,7 +4,15 @@ import { getCatalog } from '@/lib/catalog';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { validateVoucherCode } from '@/lib/vouchers';
 import { sendLeadEmails, serverSummaryLabels } from '@/lib/emails';
-import { addonCost, calcTotals, isAddonIncluded, isAddonVisible, qtyOf } from '@/lib/pricing/engine';
+import {
+  addonCost,
+  calcTotals,
+  hasSubAddons,
+  isAddonIncluded,
+  isAddonVisible,
+  qtyOf,
+  subAddonsOf,
+} from '@/lib/pricing/engine';
 import { buildReceipt } from '@/lib/pricing/summary';
 import { pickLocale, type Locale, type Selection } from '@/lib/types';
 
@@ -30,6 +38,11 @@ const selectionSchema = z.object({
   bundle: z.string(),
   selectedAddons: z.record(z.string(), z.boolean()),
   qty: z.record(z.string(), z.number().int().min(0).max(100)),
+  // Bounded on the way in as well as deduplicated in subAddonsOf: a hand-crafted body
+  // must not be able to talk the quote into an arbitrary multiple of the base price.
+  selectedSubAddons: z
+    .record(z.string(), z.array(z.string().max(64)).max(20))
+    .optional(),
   care: z.string(),
   support: z.string(),
   cf: z.string(),
@@ -96,6 +109,7 @@ export async function POST(request: Request) {
   const selection: Selection = {
     ...rawSelection,
     answers: { ...rawSelection.answers, byowScope: rawSelection.answers.byowScope ?? null },
+    selectedSubAddons: rawSelection.selectedSubAddons ?? {},
     voucher,
   };
 
@@ -118,8 +132,10 @@ export async function POST(request: Request) {
       id: a.id,
       name: a.name_de,
       qty: a.qty || a.tiers ? qtyOf(a, selection.qty) : null,
+      // Which options were ticked, so the sales team can read the €N × M back off the lead.
+      subAddons: hasSubAddons(a) ? subAddonsOf(a, selection.selectedSubAddons) : null,
       billing: a.billing,
-      price: addonCost(a, selection.qty),
+      price: addonCost(a, selection.qty, selection.selectedSubAddons),
     }));
 
   const config = {
