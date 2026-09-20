@@ -7,10 +7,21 @@ import { createEntityRow, deleteEntityRow, saveEntityRow } from '@/app/admin/cat
 
 type Row = Record<string, unknown> & { id: string };
 
+/** Rows of other tables a `select` field may pick from, keyed by table name. */
+export type LookupRows = Record<string, Row[]>;
+
 function toInputValue(type: string, value: unknown): string {
   if (value == null) return '';
   if (type === 'json') return JSON.stringify(value, null, 2);
   return String(value);
+}
+
+/** Best human-readable name a CMS row offers, whatever table it comes from. */
+function rowTitle(row: Row): string {
+  const raw =
+    row.name ?? row.name_de ?? row.label_de ?? row.title_de ?? row.question_de ?? row.title ?? row.key ?? row.code ?? row.id;
+  const text = String(raw ?? row.id).trim() || row.id;
+  return text.length > 90 ? `${text.slice(0, 88)}…` : text;
 }
 
 function RowForm({
@@ -18,6 +29,7 @@ function RowForm({
   entity,
   row,
   rows,
+  lookups,
   isNew,
   onDone,
 }: {
@@ -25,6 +37,7 @@ function RowForm({
   entity: EntityDef;
   row: Row | null;
   rows: Row[];
+  lookups: LookupRows;
   isNew?: boolean;
   onDone?: () => void;
 }) {
@@ -94,12 +107,12 @@ function RowForm({
               onChange={(ev) => setValues({ ...values, [f.key]: ev.target.value })}
               className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
             >
-              <option value="">— top level —</option>
-              {(f.optionsFromRows ? rows : [])
-                .filter((r) => r.id !== row?.id)
+              <option value="">{f.optionsFromTable ? '— none —' : '— top level —'}</option>
+              {(f.optionsFromTable ? lookups[f.optionsFromTable] ?? [] : f.optionsFromRows ? rows : [])
+                .filter((r) => f.optionsFromTable || r.id !== row?.id)
                 .map((r) => (
                   <option key={r.id} value={r.id}>
-                    {String(r.name_de ?? r.name ?? r.id)}
+                    {rowTitle(r)}
                   </option>
                 ))}
             </select>
@@ -156,16 +169,26 @@ export function EntityEditor({
   entityKey,
   entity,
   rows,
+  lookups = {},
+  groupBy,
 }: {
   entityKey: string;
   entity: EntityDef;
   rows: Row[];
+  lookups?: LookupRows;
+  /** Column whose value changes start a new header row in the list (rows must arrive sorted by it). */
+  groupBy?: string;
 }) {
   const [open, setOpen] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
 
-  const titleOf = (row: Row) =>
-    String(row.name ?? row.name_de ?? row.label_de ?? row.id);
+  const titleOf = rowTitle;
+
+  const groupTable = groupBy ? entity.fields.find((f) => f.key === groupBy)?.optionsFromTable : undefined;
+  const groupLabel = (value: unknown) => {
+    const found = groupTable ? lookups[groupTable]?.find((r) => r.id === String(value)) : undefined;
+    return found ? rowTitle(found) : String(value ?? '—');
+  };
 
   return (
     <div>
@@ -182,12 +205,25 @@ export function EntityEditor({
       </div>
       {creating && (
         <div className="mb-4 rounded-xl border-2 border-dashed border-blue-300 bg-white p-5">
-          <RowForm entityKey={entityKey} entity={entity} row={null} rows={rows} isNew onDone={() => setCreating(false)} />
+          <RowForm
+            entityKey={entityKey}
+            entity={entity}
+            row={null}
+            rows={rows}
+            lookups={lookups}
+            isNew
+            onDone={() => setCreating(false)}
+          />
         </div>
       )}
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-        {rows.map((row) => (
+        {rows.map((row, i) => (
           <div key={row.id} className="border-b border-slate-100 last:border-0">
+            {groupBy && (i === 0 || rows[i - 1][groupBy] !== row[groupBy]) && (
+              <div className="border-b border-slate-100 bg-slate-50 px-5 py-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+                {groupLabel(row[groupBy])}
+              </div>
+            )}
             <button
               onClick={() => setOpen(open === row.id ? null : row.id)}
               data-testid={`entity-row-${row.id}`}
@@ -219,7 +255,7 @@ export function EntityEditor({
             </button>
             {open === row.id && (
               <div className="border-t border-slate-100 bg-slate-50/50 px-5 py-4">
-                <RowForm entityKey={entityKey} entity={entity} row={row} rows={rows} />
+                <RowForm entityKey={entityKey} entity={entity} row={row} rows={rows} lookups={lookups} />
               </div>
             )}
           </div>
