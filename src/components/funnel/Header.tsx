@@ -15,7 +15,11 @@ const STEP_NUMS: Partial<Record<FunnelStep, number>> = {
 
 const TOTAL_STEPS = 4;
 
-function LanguageToggle() {
+/**
+ * DE / EN switch. Shared with the onboarding form, which passes `onChange` so the chosen
+ * locale is also written onto its record.
+ */
+export function LanguageToggle({ onChange }: { onChange?: (locale: 'de' | 'en') => void } = {}) {
   const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
@@ -25,7 +29,10 @@ function LanguageToggle() {
     return (
       <button
         key={target}
-        onClick={() => router.replace(pathname, { locale: target })}
+        onClick={() => {
+          onChange?.(target);
+          router.replace(pathname, { locale: target });
+        }}
         aria-label={target === 'de' ? 'Deutsch' : 'English'}
         style={{
           fontFamily: 'inherit',

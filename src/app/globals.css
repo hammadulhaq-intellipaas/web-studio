@@ -187,3 +187,57 @@ body {
   color: #1e5eff;
   font-weight: 600;
 }
+
+/* Onboarding form: CMS copy rendered from markdown (landing, notices, brief, terms). */
+.onb-markdown p {
+  margin: 0 0 10px;
+}
+.onb-markdown p:last-child {
+  margin-bottom: 0;
+}
+.onb-markdown ul,
+.onb-markdown ol {
+  margin: 0 0 10px;
+  padding-left: 20px;
+}
+.onb-markdown li {
+  margin-bottom: 6px;
+}
+.onb-markdown strong {
+  color: #0f2440;
+  font-weight: 700;
+}
+.onb-markdown a {
+  color: #1e5eff;
+  font-weight: 600;
+}
+.onb-markdown--list ul {
+  list-style: none;
+  padding-left: 0;
+}
+.onb-markdown--list li {
+  position: relative;
+  padding-left: 26px;
+  margin-bottom: 10px;
+}
+.onb-markdown--list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #e8f0ff;
+  box-shadow: inset 0 0 0 1.5px #1e5eff;
+}
+
+/* Onboarding form: reveals fade in like the funnel screens. */
+.onb-reveal {
+  animation: ipFade 0.3s ease both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .onb-reveal {
+    animation: none;
+  }
+}
