@@ -11,7 +11,7 @@ test.describe('admin auth', () => {
   });
 
   test('protected sub-routes redirect to login when logged out', async ({ page }) => {
-    for (const route of ['/admin/leads', '/admin/vouchers', '/admin/calendar', '/admin/catalog']) {
+    for (const route of ['/admin/leads', '/admin/onboarding', '/admin/vouchers', '/admin/calendar', '/admin/catalog']) {
       await page.goto(route);
       await expect(page).toHaveURL(/\/admin\/login$/);
     }

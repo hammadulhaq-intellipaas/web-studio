@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 export default async function AdminDashboard() {
   const supabase = await createSupabaseServerClient();
 
-  const [leadsRes, apptsRes, countRes] = await Promise.all([
+  const [leadsRes, apptsRes, countRes, onbRes] = await Promise.all([
     supabase.from('leads').select('*').order('created_at', { ascending: false }).limit(8),
     supabase
       .from('appointments')
@@ -19,16 +19,19 @@ export default async function AdminDashboard() {
       .order('start_time')
       .limit(5),
     supabase.from('leads').select('id', { count: 'exact', head: true }),
+    supabase.from('onboarding_forms').select('id, status').not('email', 'is', null),
   ]);
 
   const leads = (leadsRes.data ?? []) as Lead[];
   const appts = (apptsRes.data ?? []) as Appointment[];
   const total = countRes.count ?? 0;
+  const onboarding = (onbRes.data ?? []) as { id: string; status: string }[];
+  const onboardingOpen = onboarding.filter((f) => f.status !== 'confirmed').length;
 
   return (
     <div>
       <h1 className="mb-6 text-2xl font-extrabold tracking-tight">Dashboard</h1>
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-4">
         <div className="rounded-xl border border-slate-200 bg-white p-5">
           <div className="text-xs font-bold uppercase tracking-wide text-slate-500">Total leads</div>
           <div className="mt-1 text-3xl font-extrabold" data-testid="stat-total-leads">
@@ -47,6 +50,13 @@ export default async function AdminDashboard() {
           </div>
           <div className="mt-1 text-3xl font-extrabold">{appts.length}</div>
         </div>
+        <Link href="/admin/onboarding" className="rounded-xl border border-slate-200 bg-white p-5 transition hover:bg-slate-50">
+          <div className="text-xs font-bold uppercase tracking-wide text-slate-500">Onboarding forms</div>
+          <div className="mt-1 text-3xl font-extrabold" data-testid="stat-onboarding">
+            {onboarding.length}
+          </div>
+          <div className="text-xs text-slate-500">{onboardingOpen} in progress · {onboarding.length - onboardingOpen} confirmed</div>
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">

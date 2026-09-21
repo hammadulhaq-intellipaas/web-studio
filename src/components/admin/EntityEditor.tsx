@@ -94,6 +94,7 @@ function RowForm({
           <label className="mb-1 block text-xs font-bold text-slate-500">{f.label}</label>
           {f.type === 'boolean' ? (
             <select
+              data-testid={`entity-field-${row?.id ?? 'new'}-${f.key}`}
               value={values[f.key]}
               onChange={(ev) => setValues({ ...values, [f.key]: ev.target.value })}
               className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
@@ -103,6 +104,7 @@ function RowForm({
             </select>
           ) : f.type === 'select' ? (
             <select
+              data-testid={`entity-field-${row?.id ?? 'new'}-${f.key}`}
               value={values[f.key]}
               onChange={(ev) => setValues({ ...values, [f.key]: ev.target.value })}
               className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
@@ -118,6 +120,7 @@ function RowForm({
             </select>
           ) : f.type === 'json' || f.type === 'textarea' ? (
             <textarea
+              data-testid={`entity-field-${row?.id ?? 'new'}-${f.key}`}
               value={values[f.key]}
               onChange={(ev) => setValues({ ...values, [f.key]: ev.target.value })}
               rows={f.type === 'json' ? 4 : 2}
@@ -127,6 +130,7 @@ function RowForm({
             />
           ) : (
             <input
+              data-testid={`entity-field-${row?.id ?? 'new'}-${f.key}`}
               type={f.type === 'number' ? 'number' : 'text'}
               step="any"
               value={values[f.key]}

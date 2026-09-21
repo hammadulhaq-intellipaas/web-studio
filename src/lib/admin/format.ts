@@ -29,3 +29,11 @@ export const STATUS_COLORS: Record<string, string> = {
   won: 'bg-emerald-100 text-emerald-700',
   lost: 'bg-slate-200 text-slate-600',
 };
+
+/** Onboarding form statuses (in_progress → review → brief → confirmed). */
+export const ONB_STATUS_COLORS: Record<string, string> = {
+  in_progress: 'bg-slate-200 text-slate-600',
+  review: 'bg-amber-100 text-amber-700',
+  brief: 'bg-blue-100 text-blue-700',
+  confirmed: 'bg-emerald-100 text-emerald-700',
+};
