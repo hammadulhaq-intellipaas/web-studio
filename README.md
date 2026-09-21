@@ -42,7 +42,7 @@ npm run dev
 
 ### Supabase
 
-The project is linked to `aqbktyvrzuwgjnzoaglv` (eu-central-1). Schema lives in
+The project is linked to `kqpyoxrfyvbbqoslyqwy` ("Webstudio"). Schema lives in
 `supabase/migrations/`, the full catalog seed (bundles, 45 add-ons, care/CF/support plans,
 personas, settings, `TKFF20` voucher) in `supabase/seed.sql`:
 
@@ -74,9 +74,45 @@ Admin users are provisioned manually (no public sign-up) — Supabase dashboard 
   snapshots are immutable.
 - **Vouchers** — multi-code percent discounts with scope (one-time/recurring/both), validity
   window, redemption limits.
+- **Onboarding** — every client onboarding form: status, step, sales flags, the answers screen
+  by screen, follow-up history, brief versions, uploads, delivery state and the AI log; team
+  PDF and JSON downloads, resend emails, regenerate brief. The form's own definition (screens,
+  fields, follow-ups, flag rules, brief sections, texts, AI prompts, examples) is edited under
+  *Catalog → Onboarding form*.
 - **Suggested build plan** (per lead) — AI-generated phased prompt chain (Claude Design →
   Claude Code) tailored to the lead; phases chain via literal `{{phase_n.output}}` tokens;
   prompts are copyable, editable, and re-generable as new versions.
+
+## Client onboarding form (`/onboardingform`)
+
+The post-deposit intake that replaces the Google Form (spec: *web-studio-onboarding-form-spec*,
+16 Sep 2026). `/onboardingform/new` mints a form and redirects to `/onboardingform/<id>` — an
+unguessable 21-char id that is also the resume link (`/en/…` for English). Nine question screens
+with conditional reveals, then a review node: deterministic gap check → optional model pass →
+guided follow-ups (max 2 rounds / 12 questions, all skippable) → AI-written brief in nine fixed
+sections (inline edit, one-section rewrite) → terms + confirmation → PDF and JSON emailed to the
+client and the team.
+
+**Everything content-shaped is data** in the `onb_*` tables (screens, fields incl. `show_when`
+conditions, follow-up triggers, flag rules, brief sections, long-form texts, the four AI prompts,
+worked examples) plus `onb_*` app settings (model id, caps, minimum build time, estimated minutes,
+terms version, links). Initial content lives in `supabase/seed/onboarding/*.ts`;
+`node scripts/gen-onboarding-seed.mts` regenerates the seed migration
+(`on conflict do nothing`, so CMS edits are never overwritten). Only UI chrome (buttons,
+validation messages) is in `messages/*.json`.
+
+Hard rules are enforced in code, not only in the prompt: the brief is schema-validated, checked
+for prices/durations and for facts that don't occur in the answers (retry once, then a plain
+rendering of the answers), passwords pasted into any field are redacted before storage, every
+model prompt/response is logged to `onboarding_ai_log`, and the "what we still need" section is
+composed by code from every unanswered, "don't know" or skipped item.
+
+| Env | Purpose |
+|---|---|
+| `ONBOARDING_BASIC_USER` / `ONBOARDING_BASIC_PASS` | Basic auth in front of the form + API; fails closed when unset; `ONBOARDING_BASIC_AUTH=off` opens it |
+| `ONBOARDING_AI_FIXTURE=1` | Server-side switch that replaces the model with canned outputs (used by the e2e suite) |
+| `OPENAI_API_KEY` | The model; the id is the `onb_model` setting |
+| `NEXT_PUBLIC_SITE_URL` | Base of the links in emails and the admin (set to `https://web-studio.intellipaas.io` in production) |
 
 ## Recommendation rules (CMS)
 

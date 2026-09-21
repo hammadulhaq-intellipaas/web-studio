@@ -151,7 +151,7 @@ export async function answerFollowup(
   if (!question) return { ok: false, status: 400, error: 'no_question' };
   if (question.id !== questionId) return { ok: false, status: 400, error: 'wrong_question' };
 
-  const applied = applyAnswer(definition, record.answers, record.flags, question, answer);
+  const applied = applyAnswer(definition, record.answers, record.flags, question, answer, record.locale);
   // Route the written field through applyPatch so redaction, clearing and flags stay one path.
   const changedKey = question.target?.field;
   const patch = applyPatch(

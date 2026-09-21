@@ -26,6 +26,17 @@ export interface FileSummary {
  * Shared by the brief prompt, the fallback brief, the PDF and the admin.
  */
 export function displayValue(field: OnbField, answer: Answer | undefined, locale: Locale, files: FileSummary[] = []): string {
+  const base = displayBase(field, answer, locale, files);
+  if (!answer?.note) return base;
+  const noteLabel = locale === 'de' ? 'Nachfrage' : 'Follow-up';
+  const notes = answer.note
+    .split('\n\n')
+    .map((n) => `${noteLabel}: ${n.replace(/\n→ /g, ' → ')}`)
+    .join('\n');
+  return base ? `${base}\n${notes}` : notes;
+}
+
+function displayBase(field: OnbField, answer: Answer | undefined, locale: Locale, files: FileSummary[]): string {
   if (field.type === 'upload') {
     const mine = files.filter((f) => f.field_key === field.id);
     return mine.length ? mine.map((f) => f.file_name).join(', ') : '';
@@ -100,6 +111,8 @@ export interface ExportedAnswer {
   display: { de: string; en: string };
   dont_know: boolean;
   source: 'client' | 'followup' | 'edit';
+  /** Follow-up "question → answer" lines attached to this field, if any. */
+  note: string | null;
 }
 
 export interface ExportedRecord {
@@ -158,6 +171,7 @@ export function exportRecord(
       },
       dont_know: !!answer?.dk,
       source: answer?.src ?? 'client',
+      note: answer?.note ?? null,
     };
   }
 

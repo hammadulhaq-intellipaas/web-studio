@@ -26,6 +26,7 @@ import type {
   ReviewHistoryEntry,
   ReviewQuestion,
 } from '../types';
+import { cap } from '../types';
 
 export type { LlmQuestion };
 
@@ -277,6 +278,7 @@ export function applyAnswer(
   flags: FormFlag[],
   question: ReviewQuestion,
   rawAnswer: string | null,
+  locale: Locale = 'de',
   now: string = new Date().toISOString(),
 ): AppliedAnswer {
   const answer = rawAnswer == null ? null : rawAnswer.trim().slice(0, MAX_FOLLOWUP_CHARS);
@@ -306,14 +308,27 @@ export function applyAnswer(
   const field = definition.fields.find((f) => f.id === question.target!.field);
   if (!field) return { answers: nextAnswers, flags: nextFlags, entry };
   const current = answers[field.id];
-  const written = writeValue(field, current, question, answer);
+  const written = writeValue(field, current, question, answer, locale);
   if (written) nextAnswers = { ...answers, [field.id]: written };
   return { answers: nextAnswers, flags: nextFlags, entry };
 }
 
-function writeValue(field: OnbField, current: Answer | undefined, question: ReviewQuestion, answer: string): Answer | null {
+/** "question → answer", stacked under any earlier notes of the same field. */
+export function appendNote(existing: string | undefined, question: string, answer: string): string {
+  const line = `${question.trim()}\n→ ${answer.trim()}`;
+  return existing?.trim() ? `${existing.trim()}\n\n${line}` : line;
+}
+
+function writeValue(field: OnbField, current: Answer | undefined, question: ReviewQuestion, answer: string, locale: Locale): Answer | null {
   const target = question.target!;
-  const base: Answer = { v: current?.v ?? null, src: 'followup' };
+  const base: Answer = { ...(current ?? { v: null }), v: current?.v ?? null, src: 'followup' };
+  delete base.dk;
+
+  // Append mode never touches the value: the answer is context for a field that already
+  // has content (exact-spelling lists must stay exactly what the client typed).
+  if (question.mode === 'append' && !target.sub) {
+    return { ...base, note: appendNote(current?.note, cap(question.question, locale), answer) };
+  }
 
   if (target.row_id && target.sub) {
     const sub = (field.config.fields ?? []).find((s) => s.key === target.sub);

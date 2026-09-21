@@ -25,6 +25,12 @@ describe('displayValue', () => {
     ])).toBe('a.jpg');
     expect(displayValue(field('legal_name'), undefined, 'de')).toBe('');
   });
+
+  it('shows follow-up notes under the value in the client language', () => {
+    const answer = a('Krankengymnastik\nManuelle Therapie', { note: 'Auch Lymphdrainage als Unterseite?\n→ Ja' });
+    expect(displayValue(field('catalogue'), answer, 'de')).toBe('Krankengymnastik\nManuelle Therapie\nNachfrage: Auch Lymphdrainage als Unterseite? → Ja');
+    expect(displayValue(field('catalogue'), answer, 'en')).toContain('Follow-up:');
+  });
 });
 
 describe('exportRecord', () => {

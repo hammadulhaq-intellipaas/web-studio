@@ -91,9 +91,9 @@ test.describe('admin — CMS rules, CRUD & legal', () => {
     await expect(page.getByTestId('addon-seosetup')).toContainText('enthalten');
     await expect(page.getByTestId('addon-geosetup')).toContainText('enthalten');
 
-    // Only the bundle's own price (€765) is added — not 450 + 390 on top of it.
+    // Only the bundle's own price (€685) is added — not 360 + 360 on top of it.
     const withBundle = await settledTotal(page);
-    expect(withBundle).toBe(before + 765);
+    expect(withBundle).toBe(before + 685);
 
     // Clicking a covered member is a no-op: it can never be added a second time.
     await page.getByTestId('addon-seosetup').click();
@@ -103,7 +103,7 @@ test.describe('admin — CMS rules, CRUD & legal', () => {
     await page.getByTestId('addon-seogeosetup').click();
     await page.getByTestId('addon-seosetup').click();
     await page.getByTestId('addon-geosetup').click();
-    expect(await settledTotal(page)).toBe(before + 450 + 390);
+    expect(await settledTotal(page)).toBe(before + 360 + 360);
   });
 
   test('a customer who already has a logo & imagery gets no photo package pre-selected', async ({

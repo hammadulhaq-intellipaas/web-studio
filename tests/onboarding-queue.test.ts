@@ -145,7 +145,7 @@ describe('applyAnswer', () => {
     expect(entry).toMatchObject({ answer: 'gold', skipped: false, target: { field: 'booked_package' } });
   });
 
-  it('appends free text and writes into a repeater cell', () => {
+  it('keeps append-mode answers as a note (the value stays exactly what the client typed) and writes into a repeater cell', () => {
     const answers = {
       ...completeAnswers(),
       page_list: a('Startseite\nKontakt'),
@@ -155,7 +155,12 @@ describe('applyAnswer', () => {
     const q = queueFor(answers);
     const thin = q.find((x) => x.followup_id === 'fu_page_list_thin')!;
     const step1 = applyAnswer(def, answers, [], thin, 'yes');
-    expect(step1.answers.page_relationships.v).toBe('Kontakt im Footer\nyes');
+    expect(step1.answers.page_relationships.v).toBe('Kontakt im Footer');
+    expect(step1.answers.page_relationships.note).toBe(`${thin.question.de}\n→ yes`);
+    expect(step1.answers.page_relationships.src).toBe('followup');
+    // a second note stacks under the first
+    const again = applyAnswer(def, step1.answers, [], { ...thin, id: 'x2' }, 'no');
+    expect(again.answers.page_relationships.note).toBe(`${thin.question.de}\n→ yes\n\n${thin.question.de}\n→ no`);
     const likes = q.find((x) => x.followup_id === 'fu_reference_likes')!;
     const step2 = applyAnswer(def, step1.answers, [], likes, 'Die großen Fotos und die ruhige Schrift');
     expect((step2.answers.references.v as RepeaterRow[])[0].likes).toBe('Die großen Fotos und die ruhige Schrift');

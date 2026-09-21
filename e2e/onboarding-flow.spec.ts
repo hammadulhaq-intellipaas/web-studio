@@ -53,7 +53,9 @@ test.describe('onboarding review flow', () => {
     expect(record.status).toBe('review');
     expect(record.answers.booked_package).toMatchObject({ v: 'gold', src: 'followup' });
     expect(record.answers.opening_hours).toMatchObject({ dk: true });
-    expect(record.answers.usps.v).toBe('Schnell\nTermine innerhalb einer Woche, alle Kassen, barrierefrei');
+    // the model's follow-up on an answered field is kept as a note, the value stays as typed
+    expect(record.answers.usps.v).toBe('Schnell');
+    expect((record.answers.usps as { note?: string }).note).toContain('Termine innerhalb einer Woche, alle Kassen, barrierefrei');
     expect(record.answers.legal_pages.v).toBe('none');
     expect(record.flags).toEqual(
       expect.arrayContaining([

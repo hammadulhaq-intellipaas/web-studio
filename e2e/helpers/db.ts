@@ -81,7 +81,13 @@ export async function cleanupTestData() {
   await db.from('appointments').delete().ilike('calendly_event_uri', 'e2e://%');
   await db.from('leads').delete().ilike('email', 'e2e-%@example.com');
   await db.from('vouchers').delete().ilike('code', 'E2E%');
-  // Onboarding forms cascade to their briefs, AI log and uploads. Every test fills the
-  // contact email first, so the marker covers forms abandoned mid-test as well.
+  // Onboarding forms cascade to their briefs, AI log and upload rows. Every test fills the
+  // contact email first, so the marker covers forms abandoned mid-test as well. Stored PDFs
+  // live in the bucket, not in a cascading row — remove them by prefix first.
+  const { data: forms } = await db.from('onboarding_forms').select('id').ilike('email', 'e2e-%@example.com');
+  for (const f of forms ?? []) {
+    const { data: objects } = await db.storage.from('lead-uploads').list(`onboarding/${f.id}`);
+    if (objects?.length) await db.storage.from('lead-uploads').remove(objects.map((o) => `onboarding/${f.id}/${o.name}`));
+  }
   await db.from('onboarding_forms').delete().ilike('email', 'e2e-%@example.com');
 }

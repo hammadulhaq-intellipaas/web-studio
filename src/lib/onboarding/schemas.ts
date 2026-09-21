@@ -17,6 +17,7 @@ export const answerSchema = z.object({
   dk: z.literal(true).optional(),
   src: z.enum(['followup', 'edit']).optional(),
   other: z.string().max(500).optional(),
+  note: z.string().max(4000).optional(),
 });
 
 export const FIELD_KEY_RE = /^[a-z][a-z0-9_]{1,39}$/;

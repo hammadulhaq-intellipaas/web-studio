@@ -72,7 +72,12 @@ export function redactAnswers(answers: Answers): { answers: Answers; count: numb
         return next;
       });
     }
-    out[key] = { ...answer, v, ...(answer.other ? { other: clean(answer.other) } : {}) };
+    out[key] = {
+      ...answer,
+      v,
+      ...(answer.other ? { other: clean(answer.other) } : {}),
+      ...(answer.note ? { note: clean(answer.note) } : {}),
+    };
   }
   return { answers: out, count };
 }
@@ -108,6 +113,7 @@ export function buildCorpus(answers: Answers, extra: string[] = []): Corpus {
   for (const answer of Object.values(answers)) {
     collectStrings(answer?.v, parts);
     if (answer?.other) parts.push(answer.other);
+    if (answer?.note) parts.push(answer.note);
   }
   parts.push(...extra);
   const text = normalizeText(parts.join(' \n '));

@@ -173,6 +173,26 @@ run for a clean state, or click **Restart** on the Done screen.
 
 ---
 
+## Suite L — Client onboarding form (`/onboardingform`)
+
+Server must run with `ONBOARDING_AI_FIXTURE=1` for L4–L7 to be deterministic; without it the real
+model answers (needs `OPENAI_API_KEY`). The route is behind Basic auth (`ONBOARDING_BASIC_USER/PASS`).
+
+| # | Action | Expected |
+|---|--------|----------|
+| L1 | Open `/onboardingform` without credentials | 401 with a Basic challenge; `/` still 200. With the credentials: landing with "ca. 20 Minuten", *Briefing starten*. |
+| L2 | *Briefing starten* | Redirect to `/onboardingform/<21-char id>`, Screen 1 with the 10-dot stepper (phones: "Schritt 1 von 10"). *Weiter* while empty → red field errors. |
+| L3 | Answer *Änderungen an meiner bestehenden Website* → back to *Eine neue Website* → back again | URL field appears, disappears, reappears **with the typed value** ("Wir haben Ihre frühere Antwort wiederhergestellt"). |
+| L4 | Walk screens 2–9 (see `e2e/onboarding-form.spec.ts` for a full set of answers); on Screen 5 put two actions into *Am wichtigsten* | *Weiter* blocked with "Genau 1 × …"; fixing it continues. Sliders show captions; *Weiß ich nicht* pills mark a field as unsure. |
+| L5 | Paste "Passwort: xyz" into *Konten* | Value saved as `Passwort: [entfernt / redacted]` with an amber notice; the team sees flag `credentials_redacted`. |
+| L6 | Close the tab, open the same URL in a private window | Same step, same answers. Header toggle *EN* → `/en/onboardingform/<id>` with English CMS copy. |
+| L7 | *Antworten prüfen* → follow-ups | One question at a time with quick replies / text / *Überspringen*; the legal-pages "Wir haben keine" reply chains into the price offer; 11 pages against a 5–8 band → acknowledge-only scope note (no price shown). |
+| L8 | *Weiter zum Briefing* | Nine numbered sections; *Bearbeiten* saves inline (badge *bearbeitet*); *Neu schreiben lassen* changes only that section; section 9 lists open items. |
+| L9 | *Weiter zur Bestätigung* → tick all → name → confirm | Terms show "3 bis 6 Wochen" / "24 Stunden"; done screen with PDF download; client + team emails (Resend rejects `example.com` recipients — use a real address). Record locked afterwards. |
+| L10 | Admin → **Onboarding** → the form | Flags, follow-up history, answers (don't-know / follow-up marked), brief versions, AI log, PDF/JSON downloads. **Catalog → Onboarding form → Fields**: edit a label → reload the public form → new label. |
+
+---
+
 ## Integration verification matrix
 
 | Integration | How to confirm from the UI | Failure mode if unconfigured |
@@ -181,6 +201,7 @@ run for a clean state, or click **Restart** on the Done screen.
 | **Resend** (email) | Receive confirmation + team email after C3 | Silently skipped (needs verified domain + `team_email`) |
 | **OpenAI** (plan gen) | H4 produces phase cards | Red error in Plan panel |
 | **Calendly** (webhook) | I2 appointment appears in admin Calendar | Booking widget works, but no admin sync |
+| **OpenAI** (onboarding) | L7 asks model questions, L8 brief is `llm`-sourced (admin shows source/model) | Falls back to a plain rendering of the answers; AI log shows the failure |
 
 ---
 

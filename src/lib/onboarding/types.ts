@@ -302,6 +302,12 @@ export interface Answer {
   src?: 'followup' | 'edit';
   /** Free text for a checkboxes "other" tick. */
   other?: string;
+  /**
+   * Follow-up answers in `append` mode land here as "question → answer" lines instead of
+   * being spliced into the value, so exact-spelling lists (catalogue, page list) stay clean
+   * while the extra information still travels with the field.
+   */
+  note?: string;
 }
 
 export type Answers = Record<string, Answer>;
