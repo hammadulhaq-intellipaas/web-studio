@@ -28,6 +28,12 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
+    // The onboarding form is behind Basic auth (fails closed); every context passes it.
+    // The gate spec opens its own credential-less context to assert the 401s.
+    httpCredentials:
+      process.env.ONBOARDING_BASIC_USER && process.env.ONBOARDING_BASIC_PASS
+        ? { username: process.env.ONBOARDING_BASIC_USER, password: process.env.ONBOARDING_BASIC_PASS }
+        : undefined,
   },
   projects: [
     // Logs in once, saves storageState for the `admin` project.
