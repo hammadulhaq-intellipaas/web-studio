@@ -31,7 +31,7 @@ describe('exportRecord', () => {
   it('produces the team-facing record with resolved labels in both languages', () => {
     const record = makeRecord({
       flags: [{ code: 'needs_quote', detail: 'member_area', severity: 'sales', source: 'rule' }],
-      review: { round: 1, budget_left: 10, answers_hash: 'x', queue: [], cursor: 0, history: [], gaps: [] },
+      review: { round: 1, budget_left: 10, answers_hash: 'x', queue: [], cursor: 0, history: [], gaps: [], llm_questions: [] },
       confirmed: { name: 'Lena Hartmann', at: '2026-09-21T11:00:00Z', terms_version: 'v2' },
     });
     const out = exportRecord(def, record, null, []);

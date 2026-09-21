@@ -15,6 +15,7 @@ import type {
   Answers,
   FormFlag,
   Gap,
+  LlmQuestion,
   LocalizedCaption,
   OnbField,
   OnbFollowup,
@@ -26,15 +27,7 @@ import type {
   ReviewQuestion,
 } from '../types';
 
-/** A question the completeness model proposed (already schema-validated by the caller). */
-export interface LlmQuestion {
-  field: string;
-  row_id: string | null;
-  sub: string | null;
-  question_de: string;
-  question_en: string;
-  quick_replies: string[];
-}
+export type { LlmQuestion };
 
 export interface QueueInput {
   definition: Pick<OnboardingDefinition, 'fields' | 'screens' | 'followups'>;

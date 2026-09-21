@@ -346,16 +346,31 @@ export interface ReviewHistoryEntry {
   at: string;
 }
 
+/** A question the completeness model proposed (schema-validated before it gets here). */
+export interface LlmQuestion {
+  field: string;
+  row_id: string | null;
+  sub: string | null;
+  question_de: string;
+  question_en: string;
+  quick_replies: string[];
+}
+
 export interface ReviewState {
+  /** Gap-check rounds run so far (each may include one model pass). */
   round: number;
+  /** Questions that may still be asked before the cap. */
   budget_left: number;
   /** Hash of the answers when the LLM pass last ran; unchanged answers skip the model. */
   answers_hash: string | null;
+  /** Answered/skipped questions first (cursor many), then the pending tail. */
   queue: ReviewQuestion[];
   cursor: number;
   history: ReviewHistoryEntry[];
   /** Field keys the deterministic gap check found empty/thin/unsure at the last run. */
   gaps: Gap[];
+  /** Model questions from the last pass, kept so the pending tail can be rebuilt. */
+  llm_questions: LlmQuestion[];
 }
 
 export type GapKind = 'empty' | 'thin' | 'dont_know' | 'no_files' | 'skipped';

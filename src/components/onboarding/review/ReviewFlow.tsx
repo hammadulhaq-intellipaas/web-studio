@@ -11,6 +11,7 @@ import type { OnboardingBrief, OnboardingDefinition, OnboardingFormRecord } from
 import { BLUE, BODY, BORDER, gradButton, INK, MUTED } from '@/components/funnel/ui';
 import type { PublicFile } from '../fields/UploadInput';
 import { DANGER } from '../fields/styles';
+import { FollowupExchange } from './FollowupExchange';
 
 export interface ReviewFlowProps {
   definition: OnboardingDefinition;
@@ -33,7 +34,42 @@ export interface ReviewFlowProps {
 export function ReviewFlow(props: ReviewFlowProps) {
   const { record } = props;
   if (record.status === 'in_progress') return <ReadyCheck {...props} />;
+  if (record.status === 'review') return <ReviewStage {...props} />;
   return <StatusPlaceholder {...props} />;
+}
+
+/** Follow-ups until the queue drains, then the hand-off to the brief writer. */
+function ReviewStage({ definition, record, setRecord, locale, setBrief }: ReviewFlowProps) {
+  const tb = useTranslations('onboarding.brief');
+  const [continuing, setContinuing] = useState(false);
+  const [error, setError] = useState(false);
+
+  const toBrief = async () => {
+    setContinuing(true);
+    setError(false);
+    try {
+      const res = await fetch(`/api/onboarding/${record.id}/brief`, { method: 'POST' });
+      const body = (await res.json()) as { record?: OnboardingFormRecord; brief?: OnboardingBrief | null };
+      if (!res.ok || !body.record) throw new Error(String(res.status));
+      setBrief(body.brief ?? null);
+      setRecord(body.record);
+    } catch {
+      setError(true);
+    } finally {
+      setContinuing(false);
+    }
+  };
+
+  return (
+    <>
+      <FollowupExchange definition={definition} record={record} setRecord={setRecord} locale={locale} onContinue={() => void toBrief()} continuing={continuing} />
+      {error && (
+        <div role="alert" style={{ marginTop: -56, marginBottom: 56, fontSize: 13, fontWeight: 600, color: DANGER }}>
+          {tb('error')}
+        </div>
+      )}
+    </>
+  );
 }
 
 function ReadyCheck({ definition, record, files, locale, onJumpToScreen, flush, setRecord }: ReviewFlowProps) {
