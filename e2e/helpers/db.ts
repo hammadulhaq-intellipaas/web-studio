@@ -81,4 +81,7 @@ export async function cleanupTestData() {
   await db.from('appointments').delete().ilike('calendly_event_uri', 'e2e://%');
   await db.from('leads').delete().ilike('email', 'e2e-%@example.com');
   await db.from('vouchers').delete().ilike('code', 'E2E%');
+  // Onboarding forms cascade to their briefs, AI log and uploads. Every test fills the
+  // contact email first, so the marker covers forms abandoned mid-test as well.
+  await db.from('onboarding_forms').delete().ilike('email', 'e2e-%@example.com');
 }

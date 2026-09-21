@@ -7,7 +7,7 @@ import { loadBrief, loadFiles, loadForm, publicFiles } from '@/lib/onboarding/re
 import { OnboardingFrame } from '@/components/onboarding/OnboardingFrame';
 import { OnboardingHeader } from '@/components/onboarding/OnboardingHeader';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
-import { BODY, gradButton } from '@/components/funnel/ui';
+import { BODY, gradButton } from '@/components/funnel/tokens';
 
 export const dynamic = 'force-dynamic';
 

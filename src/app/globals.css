@@ -241,3 +241,36 @@ body {
     animation: none;
   }
 }
+
+/* Onboarding stepper: full dots + labels on desktop, "Step n of N" on phones. */
+@media (max-width: 760px) {
+  .onb-stepper {
+    display: none !important;
+  }
+  .onb-stepper-compact {
+    display: block !important;
+  }
+  .onb-two-col {
+    grid-template-columns: 1fr !important;
+  }
+  .onb-nav {
+    flex-direction: column-reverse !important;
+    align-items: stretch !important;
+  }
+  .onb-nav > * {
+    width: 100%;
+  }
+}
+
+/* Onboarding header on phones: keep it to one row (logo · progress · DE/EN). */
+.onb-mobile-only {
+  display: none !important;
+}
+@media (max-width: 760px) {
+  .onb-desktop-only {
+    display: none !important;
+  }
+  .onb-mobile-only {
+    display: block !important;
+  }
+}

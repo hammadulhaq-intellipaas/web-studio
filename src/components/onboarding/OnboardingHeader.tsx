@@ -84,6 +84,7 @@ export function OnboardingHeader({
               {stepLabel && (
                 <span
                   data-testid="onb-step-label"
+                  className="onb-desktop-only"
                   style={{ fontSize: 12.5, fontWeight: 600, color: MUTED, whiteSpace: 'nowrap' }}
                 >
                   {stepLabel}

@@ -7,7 +7,8 @@ import { getOnboardingDefinition } from '@/lib/onboarding/definition';
 import { fillPlaceholders, textFor } from '@/lib/onboarding/texts';
 import { OnboardingFrame } from '@/components/onboarding/OnboardingFrame';
 import { OnboardingHeader } from '@/components/onboarding/OnboardingHeader';
-import { BODY, BORDER, CheckIcon, gradButton, INK } from '@/components/funnel/ui';
+import { CheckIcon } from '@/components/funnel/ui';
+import { BODY, BORDER, gradButton, INK } from '@/components/funnel/tokens';
 
 export const dynamic = 'force-dynamic';
 
