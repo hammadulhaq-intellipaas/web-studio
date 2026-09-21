@@ -150,11 +150,14 @@ export function fallbackSections(
       if (!field || hidden.has(key) || field.type === 'notice') continue;
       const answer = record.answers[key];
       const text = displayValue(field, answer, locale, files);
-      if (answer?.dk) missing.push(fieldLabel(field, locale));
+      const label = fieldLabel(field, locale);
+      if (answer?.dk) missing.push(label);
       else if (text) {
-        lines.push(`**${fieldLabel(field, locale)}:** ${text.includes('\n') ? `\n${text.split('\n').map((l) => `- ${l}`).join('\n')}` : text}`);
+        // Question-style labels read better without a colon after the question mark.
+        const head = `**${label}${/[?!.]$/.test(label) ? '' : ':'}**`;
+        lines.push(text.includes('\n') ? `${head}\n${text.split('\n').map((l) => `- ${l}`).join('\n')}` : `${head} ${text}`);
         sources.push(key);
-      } else if (field.required) missing.push(fieldLabel(field, locale));
+      } else if (field.required) missing.push(label);
     }
     out[section.id] = { content_markdown: lines.join('\n\n') || '—', still_needed: missing, sources };
   }

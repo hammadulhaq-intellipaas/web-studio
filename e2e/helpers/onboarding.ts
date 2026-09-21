@@ -73,5 +73,16 @@ export async function createFilledForm(
 
 export async function getRecord(request: APIRequestContext, id: string) {
   const res = await request.get(`/api/onboarding/${id}`);
-  return (await res.json()) as { record: Record<string, unknown> & { answers: Record<string, { v: unknown; dk?: true; src?: string }>; flags: { code: string; detail: string | null }[]; status: string; review: { history: { skipped: boolean }[]; queue: unknown[]; cursor: number } | null }; files: unknown[] };
+  return (await res.json()) as {
+    record: Record<string, unknown> & {
+      rev: number;
+      answers: Record<string, { v: unknown; dk?: true; src?: string }>;
+      flags: { code: string; detail: string | null }[];
+      status: string;
+      brief_version: number | null;
+      review: { history: { skipped: boolean }[]; queue: unknown[]; cursor: number } | null;
+      delivery: { pdf_path: string | null } | null;
+    };
+    files: unknown[];
+  };
 }

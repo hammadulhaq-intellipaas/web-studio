@@ -112,6 +112,52 @@ test.describe('onboarding review flow', () => {
     await expect(page.locator('[data-testid=onb-to-confirm]')).toBeVisible();
   });
 
+  test('confirming needs every check and a name, then delivers the PDF and locks the form', async ({ page, request }) => {
+    const id = await createFilledForm(request, EMAIL);
+    await page.goto(`/onboardingform/${id}`);
+    await page.click('[data-testid=onb-start-review]');
+    await page.click('[data-testid=onb-to-brief]');
+    await expect(page.locator('[data-screen=onb-brief]')).toBeVisible({ timeout: 30_000 });
+    await page.click('[data-testid=onb-to-confirm]');
+
+    await expect(page.locator('[data-screen=onb-confirm]')).toBeVisible();
+    // the corrected terms from the 16 Sep call
+    await expect(page.locator('[data-testid=onb-terms]')).toContainText('3 bis 6 Wochen');
+    await expect(page.locator('[data-testid=onb-terms]')).toContainText('24 Stunden');
+    await expect(page.locator('[data-testid=onb-terms]')).not.toContainText('Kalendertage');
+
+    await page.click('[data-testid=onb-confirm-submit]');
+    await expect(page.locator('[data-testid=onb-confirm-error]')).toBeVisible(); // checks missing
+    const checks = page.locator('[data-testid^=onb-check-]');
+    const n = await checks.count();
+    expect(n).toBeGreaterThanOrEqual(3);
+    for (let i = 0; i < n; i++) await checks.nth(i).check();
+    await page.fill('[data-testid=onb-confirm-name]', 'Lena Hartmann');
+    await page.click('[data-testid=onb-confirm-submit]');
+
+    await expect(page.locator('[data-screen=onb-done]')).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator('[data-testid=onb-confirmed-by]')).toContainText('Lena Hartmann');
+    await expect(page.locator('[data-testid=onb-delivery]')).toHaveAttribute('data-delivered', 'true', { timeout: 60_000 });
+
+    // the PDF is real
+    const pdf = await request.get(`/api/onboarding/${id}/pdf`);
+    expect(pdf.status()).toBe(200);
+    expect(pdf.headers()['content-type']).toContain('application/pdf');
+    const body = await pdf.body();
+    expect(body.subarray(0, 5).toString('latin1')).toBe('%PDF-');
+    if (process.env.ONB_PDF_OUT) (await import('node:fs')).writeFileSync(process.env.ONB_PDF_OUT, body);
+
+    // the record is locked: no more answers, status confirmed, delivery recorded
+    const { record } = await getRecord(request, id);
+    expect(record.status).toBe('confirmed');
+    expect(record.delivery?.pdf_path).toMatch(/^onboarding\//);
+    const patch = await request.patch(`/api/onboarding/${id}`, { data: { base_rev: record.rev, changes: { domain: { v: 'x.de' } } } });
+    expect(patch.status()).toBe(409);
+    await page.reload();
+    await expect(page.locator('[data-screen=onb-done]')).toBeVisible();
+    await expect(page.locator('[data-testid=onb-brief-edit-btn-who]')).toHaveCount(0); // read-only brief
+  });
+
   test('the review refuses an incomplete form', async ({ request }) => {
     const id = await createFilledForm(request, EMAIL, { legal_name: null });
     const res = await request.post(`/api/onboarding/${id}/review`);

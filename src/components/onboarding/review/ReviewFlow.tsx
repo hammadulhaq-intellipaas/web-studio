@@ -13,6 +13,8 @@ import type { PublicFile } from '../fields/UploadInput';
 import { DANGER } from '../fields/styles';
 import { FollowupExchange } from './FollowupExchange';
 import { BriefEditor } from '../brief/BriefEditor';
+import { ConfirmScreen } from './ConfirmScreen';
+import { DoneScreen } from './DoneScreen';
 
 export interface ReviewFlowProps {
   definition: OnboardingDefinition;
@@ -37,7 +39,16 @@ export function ReviewFlow(props: ReviewFlowProps) {
   if (record.status === 'in_progress') return <ReadyCheck {...props} />;
   if (record.status === 'review') return <ReviewStage {...props} />;
   if (record.status === 'brief') return <BriefStage {...props} />;
-  return <StatusPlaceholder {...props} />;
+  return (
+    <DoneScreen
+      definition={props.definition}
+      record={record}
+      setRecord={props.setRecord}
+      brief={props.brief}
+      setBrief={props.setBrief}
+      locale={props.locale}
+    />
+  );
 }
 
 /** The brief, then (client-side sub-step) the confirmation. */
@@ -45,7 +56,9 @@ function BriefStage(props: ReviewFlowProps) {
   const { definition, record, setRecord, brief, setBrief, locale } = props;
   const [confirming, setConfirming] = useState(false);
   if (!brief) return <BriefLoader {...props} />;
-  if (confirming) return <StatusPlaceholder {...props} />;
+  if (confirming) {
+    return <ConfirmScreen definition={definition} record={record} setRecord={setRecord} locale={locale} onBack={() => setConfirming(false)} />;
+  }
   return (
     <BriefEditor
       definition={definition}
@@ -219,13 +232,3 @@ function ReadyCheck({ definition, record, files, locale, onJumpToScreen, flush, 
   );
 }
 
-/** Replaced by the follow-up, brief, confirm and done screens in the next steps. */
-function StatusPlaceholder({ record }: ReviewFlowProps) {
-  return (
-    <section data-screen={`onb-${record.status}`} style={{ paddingBottom: 72 }}>
-      <div style={{ background: '#ffffff', border: `1px solid ${BORDER}`, borderRadius: 16, padding: 24, color: MUTED, fontSize: 14 }}>
-        {record.status}
-      </div>
-    </section>
-  );
-}
