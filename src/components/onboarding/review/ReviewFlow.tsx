@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, type Dispatch, type SetStateAction } from 'react';
+import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { useTranslations } from 'next-intl';
 import ReactMarkdown from 'react-markdown';
 import type { Locale } from '@/lib/types';
@@ -12,6 +12,7 @@ import { BLUE, BODY, BORDER, gradButton, INK, MUTED } from '@/components/funnel/
 import type { PublicFile } from '../fields/UploadInput';
 import { DANGER } from '../fields/styles';
 import { FollowupExchange } from './FollowupExchange';
+import { BriefEditor } from '../brief/BriefEditor';
 
 export interface ReviewFlowProps {
   definition: OnboardingDefinition;
@@ -35,7 +36,53 @@ export function ReviewFlow(props: ReviewFlowProps) {
   const { record } = props;
   if (record.status === 'in_progress') return <ReadyCheck {...props} />;
   if (record.status === 'review') return <ReviewStage {...props} />;
+  if (record.status === 'brief') return <BriefStage {...props} />;
   return <StatusPlaceholder {...props} />;
+}
+
+/** The brief, then (client-side sub-step) the confirmation. */
+function BriefStage(props: ReviewFlowProps) {
+  const { definition, record, setRecord, brief, setBrief, locale } = props;
+  const [confirming, setConfirming] = useState(false);
+  if (!brief) return <BriefLoader {...props} />;
+  if (confirming) return <StatusPlaceholder {...props} />;
+  return (
+    <BriefEditor
+      definition={definition}
+      record={record}
+      setRecord={setRecord}
+      brief={brief}
+      setBrief={setBrief}
+      locale={locale}
+      onConfirm={() => setConfirming(true)}
+    />
+  );
+}
+
+/** A resumed form in `brief` status whose brief did not come with the page — fetch it. */
+function BriefLoader({ record, setRecord, setBrief }: ReviewFlowProps) {
+  const t = useTranslations('onboarding.brief');
+  const [error, setError] = useState(false);
+  const startedRef = useRef(false);
+  useEffect(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
+    void fetch(`/api/onboarding/${record.id}/brief`, { method: 'POST' })
+      .then(async (res) => {
+        const body = (await res.json()) as { record?: OnboardingFormRecord; brief?: OnboardingBrief | null };
+        if (!res.ok || !body.record || !body.brief) throw new Error(String(res.status));
+        setBrief(body.brief);
+        setRecord(body.record);
+      })
+      .catch(() => setError(true));
+  }, [record.id, setBrief, setRecord]);
+  return (
+    <section data-screen="onb-brief-loading" style={{ paddingBottom: 72 }}>
+      <div style={{ background: '#ffffff', border: `1px solid ${BORDER}`, borderRadius: 16, padding: 24, color: error ? DANGER : MUTED, fontSize: 14, fontWeight: 600 }}>
+        {error ? t('error') : t('writing')}
+      </div>
+    </section>
+  );
 }
 
 /** Follow-ups until the queue drains, then the hand-off to the brief writer. */

@@ -74,6 +74,44 @@ test.describe('onboarding review flow', () => {
     await expect(page.locator('[data-testid=onb-to-brief]')).toBeVisible();
   });
 
+  test('the brief has the nine sections, edits inline, rewrites one section only', async ({ page, request }) => {
+    const id = await createFilledForm(request, EMAIL, { booked_package: { v: null, dk: true } });
+    await page.goto(`/onboardingform/${id}`);
+    await page.click('[data-testid=onb-start-review]');
+    await page.click('[data-testid=onb-reply-gold]'); // the one follow-up
+    await page.click('[data-testid=onb-to-brief]');
+
+    await expect(page.locator('[data-screen=onb-brief]')).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator('[data-testid^=onb-brief-section-]')).toHaveCount(9);
+    await expect(page.locator('[data-testid=onb-brief-content-who]')).toContainText('Physio Nordend');
+    await expect(page.locator('[data-testid=onb-brief-content-look]')).toContainText('Freundlich, aber professionell');
+    // section 9 is composed by code: nothing is missing after the follow-up was answered
+    await expect(page.locator('[data-testid=onb-brief-content-still_needed]')).toContainText('Nichts');
+    // the system section has no edit / rewrite controls
+    await expect(page.locator('[data-testid=onb-brief-edit-btn-still_needed]')).toHaveCount(0);
+
+    // inline edit of one section
+    const before = await page.locator('[data-testid=onb-brief-content-dates]').innerText();
+    await page.click('[data-testid=onb-brief-edit-btn-who]');
+    await page.fill('[data-testid=onb-brief-edit-who]', 'Physio Nordend ist eine Praxis in Frankfurt. **Eigene Fassung.**');
+    await page.click('[data-testid=onb-brief-save-who]');
+    await expect(page.locator('[data-testid=onb-brief-content-who]')).toContainText('Eigene Fassung');
+    await expect(page.locator('[data-testid=onb-brief-section-who]')).toContainText('bearbeitet');
+    await expect(page.locator('[data-testid=onb-brief-content-dates]')).toHaveText(before);
+
+    // rewrite one section — only that section changes
+    await page.click('[data-testid=onb-brief-rewrite-btn-dates]');
+    await page.fill('[data-testid=onb-brief-instruction-dates]', 'Bitte den Starttermin zuerst nennen.');
+    await page.click('[data-testid=onb-brief-rewrite-send-dates]');
+    await expect(page.locator('[data-testid=onb-brief-content-dates]')).toContainText('Ergänzt nach Ihrer Anmerkung', { timeout: 30_000 });
+    await expect(page.locator('[data-testid=onb-brief-content-who]')).toContainText('Eigene Fassung');
+
+    const { record } = await getRecord(request, id);
+    expect(record.status).toBe('brief');
+    expect(record.brief_version).toBe(3); // llm → client_edit → rewrite
+    await expect(page.locator('[data-testid=onb-to-confirm]')).toBeVisible();
+  });
+
   test('the review refuses an incomplete form', async ({ request }) => {
     const id = await createFilledForm(request, EMAIL, { legal_name: null });
     const res = await request.post(`/api/onboarding/${id}/review`);
