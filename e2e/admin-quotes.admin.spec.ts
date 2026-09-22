@@ -57,8 +57,10 @@ test.describe.serial('admin — quotes pipeline', () => {
     const leadId = await createLeadViaApi(request, email);
     await page.goto(`/admin/leads?q=${encodeURIComponent(email)}`);
     await expect(page.getByTestId(`lead-row-${leadId}`)).toBeVisible();
+    // The row's actions are visible, not hidden behind a menu.
+    await expect(page.getByTestId(`lead-open-${leadId}`)).toBeVisible();
+    await expect(page.getByTestId(`lead-copy-${leadId}`)).toBeVisible();
 
-    await page.getByTestId(`lead-menu-${leadId}`).click();
     await page.getByTestId(`lead-archive-${leadId}`).click();
     await expect(page.getByTestId(`lead-row-${leadId}`)).toHaveCount(0);
 
@@ -67,7 +69,6 @@ test.describe.serial('admin — quotes pipeline', () => {
 
     await page.goto(`/admin/leads?q=${encodeURIComponent(email)}&status=archived`);
     await expect(page.getByTestId(`lead-row-${leadId}`)).toBeVisible();
-    await page.getByTestId(`lead-menu-${leadId}`).click();
     await page.getByTestId(`lead-archive-${leadId}`).click();
     await expect(page.getByTestId(`lead-row-${leadId}`)).toHaveCount(0);
     const { data: restored } = await db.from('leads').select('archived_at').eq('id', leadId).single();

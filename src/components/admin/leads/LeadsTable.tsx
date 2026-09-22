@@ -18,7 +18,6 @@ function initials(email: string): string {
 export function LeadsTable({ rows, ready, archivedView }: { rows: LeadsTableRow[]; ready: boolean; archivedView: boolean }) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [menu, setMenu] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -40,7 +39,6 @@ export function LeadsTable({ rows, ready, archivedView }: { rows: LeadsTableRow[
       const r = await archiveLeads(targets, archived);
       setMessage(r.ok ? (r.message ?? 'Done') : r.error);
       setSelected(new Set());
-      setMenu(null);
       router.refresh();
     });
 
@@ -53,7 +51,6 @@ export function LeadsTable({ rows, ready, archivedView }: { rows: LeadsTableRow[
     } catch {
       /* clipboard blocked */
     }
-    setMenu(null);
   };
 
   return (
@@ -83,7 +80,7 @@ export function LeadsTable({ rows, ready, archivedView }: { rows: LeadsTableRow[
       )}
 
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-        <table className="w-full min-w-[960px] text-left text-sm">
+        <table className="w-full min-w-[1040px] text-left text-sm">
           <thead>
             <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
               <th className="w-10 px-4 py-3">
@@ -96,7 +93,7 @@ export function LeadsTable({ rows, ready, archivedView }: { rows: LeadsTableRow[
               <th className="px-4 py-3 font-bold">Status</th>
               <th className="px-4 py-3 font-bold">Owner</th>
               <th className="px-4 py-3 font-bold">Activity</th>
-              <th className="w-12 px-2 py-3" />
+              <th className="px-4 py-3 text-right font-bold">Actions</th>
             </tr>
           </thead>
           <tbody data-testid="leads-table">
@@ -179,40 +176,43 @@ export function LeadsTable({ rows, ready, archivedView }: { rows: LeadsTableRow[
                       </div>
                     )}
                   </td>
-                  <td className="relative px-2 py-3 align-top">
-                    <button
-                      type="button"
-                      onClick={() => setMenu(menu === r.id ? null : r.id)}
-                      aria-label="Actions"
-                      data-testid={`lead-menu-${r.id}`}
-                      className="rounded-lg px-2 py-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
-                    >
-                      ⋯
-                    </button>
-                    {menu === r.id && (
-                      <div className="absolute right-2 top-10 z-20 w-48 rounded-xl border border-slate-200 bg-white py-1 text-sm shadow-lg" data-testid={`lead-menu-open-${r.id}`}>
-                        <Link href={`/admin/leads/${r.id}`} className="block px-3 py-1.5 hover:bg-slate-50">
-                          Open
-                        </Link>
-                        {r.customerLink && (
-                          <button type="button" onClick={() => void copy(r)} className="block w-full px-3 py-1.5 text-left hover:bg-slate-50">
-                            {copied === r.id ? 'Link copied ✓' : 'Copy customer link'}
-                          </button>
-                        )}
-                        {ready && (
-                          <button
-                            type="button"
-                            disabled={pending}
-                            onClick={() => archive([r.id], !r.archived)}
-                            data-testid={`lead-archive-${r.id}`}
-                            title={r.archived ? 'Show the lead in the list again' : 'Hides the lead, nothing is deleted or closed'}
-                            className="block w-full px-3 py-1.5 text-left text-red-700 hover:bg-red-50"
-                          >
-                            {r.archived ? 'Restore' : 'Remove'}
-                          </button>
-                        )}
-                      </div>
-                    )}
+                  <td className="px-4 py-3 align-top">
+                    <div className="flex items-center justify-end gap-1 whitespace-nowrap">
+                      <Link
+                        href={`/admin/leads/${r.id}`}
+                        data-testid={`lead-open-${r.id}`}
+                        className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-bold text-slate-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
+                      >
+                        Open
+                      </Link>
+                      {r.customerLink && (
+                        <button
+                          type="button"
+                          onClick={() => void copy(r)}
+                          data-testid={`lead-copy-${r.id}`}
+                          title="Copy the customer's quote link"
+                          className={`rounded-lg border px-2.5 py-1 text-xs font-bold ${
+                            copied === r.id
+                              ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                              : 'border-slate-200 text-slate-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700'
+                          }`}
+                        >
+                          {copied === r.id ? 'Copied ✓' : 'Copy link'}
+                        </button>
+                      )}
+                      {ready && (
+                        <button
+                          type="button"
+                          disabled={pending}
+                          onClick={() => archive([r.id], !r.archived)}
+                          data-testid={`lead-archive-${r.id}`}
+                          title={r.archived ? 'Show the lead in the list again' : 'Hides the lead, nothing is deleted or closed'}
+                          className="rounded-lg border border-transparent px-2.5 py-1 text-xs font-bold text-slate-500 hover:border-red-200 hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
+                        >
+                          {r.archived ? 'Restore' : 'Remove'}
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))
