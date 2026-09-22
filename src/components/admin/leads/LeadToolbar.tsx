@@ -21,7 +21,6 @@ export interface LeadToolbarProps {
   /** Public configurator URL for the team (same link; the admin session switches it to team mode). */
   configuratorHref: string | null;
   status: string;
-  archived: boolean;
   onboardingFormId: string | null;
   onboardingFormHref: string | null;
 }
@@ -93,12 +92,24 @@ export function LeadToolbar(p: LeadToolbarProps) {
         <button
           type="button"
           disabled={pending}
-          onClick={() => run(p.archived ? 'Restored' : 'Removed', () => archiveLeads([p.leadId], !p.archived))}
-          title={p.archived ? 'Show the lead in the list again' : 'Hides the lead from the list, nothing is deleted or closed'}
-          className={`${btn} ${p.archived ? '' : 'text-red-700 hover:bg-red-50'}`}
+          onClick={() => {
+            if (!window.confirm('Remove this lead from the CMS? This cannot be undone here — the data stays in the database.')) return;
+            start(async () => {
+              setMsg(null);
+              const r = await archiveLeads([p.leadId], true);
+              if (!r.ok) {
+                setMsg({ ok: false, text: r.error });
+                return;
+              }
+              // The lead is gone from the CMS, so this page is gone with it.
+              router.push('/admin/leads');
+            });
+          }}
+          title="Takes the lead out of the CMS for good; the data stays in the database"
+          className={`${btn} text-red-700 hover:bg-red-50`}
           data-testid="lead-archive"
         >
-          {p.archived ? 'Restore' : 'Remove'}
+          Remove
         </button>
       )}
       {pending && <span className="text-sm text-slate-500">Working…</span>}

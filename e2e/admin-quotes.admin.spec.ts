@@ -52,7 +52,7 @@ test.describe.serial('admin — quotes pipeline', () => {
     expect(lead?.telefon).toBeNull();
   });
 
-  test('Remove hides a lead without deleting it; Restore brings it back', async ({ page, request }) => {
+  test('Remove takes a lead out of the CMS for good, the row stays in the database', async ({ page, request }) => {
     const email = testEmail('archive');
     const leadId = await createLeadViaApi(request, email);
     await page.goto(`/admin/leads?q=${encodeURIComponent(email)}`);
@@ -61,18 +61,33 @@ test.describe.serial('admin — quotes pipeline', () => {
     await expect(page.getByTestId(`lead-open-${leadId}`)).toBeVisible();
     await expect(page.getByTestId(`lead-copy-${leadId}`)).toBeVisible();
 
+    // Removing cannot be undone from the CMS, so it asks first.
+    page.once('dialog', (d) => d.accept());
     await page.getByTestId(`lead-archive-${leadId}`).click();
     await expect(page.getByTestId(`lead-row-${leadId}`)).toHaveCount(0);
 
-    const { data: stillThere } = await db.from('leads').select('archived_at').eq('id', leadId).single();
+    // Gone from every view, including "All" and the detail page — but still in the database.
+    await page.goto(`/admin/leads?q=${encodeURIComponent(email)}&status=all`);
+    await expect(page.getByTestId(`lead-row-${leadId}`)).toHaveCount(0);
+    await expect(page.getByTestId('lead-filter-archived')).toHaveCount(0);
+    const detail = await page.goto(`/admin/leads/${leadId}`);
+    expect(detail?.status()).toBe(404);
+    const { data: stillThere } = await db.from('leads').select('archived_at, archived_by, email').eq('id', leadId).single();
     expect(stillThere?.archived_at).toBeTruthy();
+    expect(stillThere?.email).toBe(email);
+    const { data: versions } = await db.from('lead_versions').select('id').eq('lead_id', leadId);
+    expect(versions?.length).toBeGreaterThan(0);
+  });
 
-    await page.goto(`/admin/leads?q=${encodeURIComponent(email)}&status=archived`);
-    await expect(page.getByTestId(`lead-row-${leadId}`)).toBeVisible();
+  test('cancelling the confirmation keeps the lead', async ({ page, request }) => {
+    const email = testEmail('keep');
+    const leadId = await createLeadViaApi(request, email);
+    await page.goto(`/admin/leads?q=${encodeURIComponent(email)}`);
+    page.once('dialog', (d) => d.dismiss());
     await page.getByTestId(`lead-archive-${leadId}`).click();
-    await expect(page.getByTestId(`lead-row-${leadId}`)).toHaveCount(0);
-    const { data: restored } = await db.from('leads').select('archived_at').eq('id', leadId).single();
-    expect(restored?.archived_at).toBeNull();
+    await expect(page.getByTestId(`lead-row-${leadId}`)).toBeVisible();
+    const { data: lead } = await db.from('leads').select('archived_at').eq('id', leadId).single();
+    expect(lead?.archived_at).toBeNull();
   });
 
   test('detail: readable answers, notes, agreed amount, customer link', async ({ page, request }) => {

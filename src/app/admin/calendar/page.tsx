@@ -28,6 +28,14 @@ export default async function CalendarPage({
     .order('start_time');
   const appointments = (data ?? []) as Appointment[];
 
+  // A lead removed from the CMS has no page any more, so its bookings are shown without a link.
+  const removedLeads = new Set<string>();
+  const leadIds = [...new Set(appointments.map((a) => a.lead_id).filter((id): id is string => !!id))];
+  if (leadIds.length) {
+    const { data: removed } = await supabase.from('leads').select('id').in('id', leadIds).not('archived_at', 'is', null);
+    for (const row of removed ?? []) removedLeads.add(row.id);
+  }
+
   const byDay = new Map<number, Appointment[]>();
   for (const a of appointments) {
     const day = new Date(a.start_time).getDate();
@@ -100,11 +108,13 @@ export default async function CalendarPage({
                   {(byDay.get(day) ?? []).map((a) => (
                     <Link
                       key={a.id}
-                      href={a.lead_id ? `/admin/leads/${a.lead_id}` : '#'}
+                      href={a.lead_id && !removedLeads.has(a.lead_id) ? `/admin/leads/${a.lead_id}` : '#'}
                       className={`mb-1 block truncate rounded px-1.5 py-1 text-xs font-semibold ${
                         a.status === 'canceled'
                           ? 'bg-slate-100 text-slate-400 line-through'
-                          : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
+                          : a.lead_id && removedLeads.has(a.lead_id)
+                            ? 'bg-slate-100 text-slate-500'
+                            : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
                       }`}
                       title={`${a.invitee_name ?? a.invitee_email ?? ''}`}
                     >

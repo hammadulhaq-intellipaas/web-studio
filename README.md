@@ -17,7 +17,7 @@ After a submit the link becomes the customer's **permanent quote link**: it keep
 live configuration (with a banner showing what was submitted and when), every pause in editing
 is kept as a version the team can see, and sending it again *updates* the same lead instead of
 creating a duplicate. `won` / `lost` quotes are closed for the customer (the link is read-only);
-a lead that is *Removed* in the admin is only hidden. A signed-in team member opening a customer
+a lead that is *Removed* in the admin disappears from the CMS but keeps its row. A signed-in team member opening a customer
 link works in **team mode** (saves versions, no customer emails).
 
 ## Stack
@@ -80,8 +80,9 @@ Admin users are provisioned manually (no public sign-up) — Supabase dashboard 
 ## Admin portal (`/admin`)
 
 - **Leads** — the quote pipeline (`draft → new → contacted → agreed → won / lost`): searchable
-  list with owner, last activity and bulk **Remove** (hides, never deletes; the *Removed* tab
-  restores), **New quote** (a team-created draft, configured on the public site in team mode and
+  list with owner, last activity and bulk **Remove** (takes a lead out of the CMS for good after
+  a confirmation — the row, its versions, notes and files stay in the database, and an undo is
+  `update leads set archived_at = null`), **New quote** (a team-created draft, configured on the public site in team mode and
   sent to the customer with its link), and a detail with the submitted quote, the live
   configuration's diff, every version (with "Mark as agreed" + agreed amount), readable
   questionnaire answers, notes and the automatic timeline, uploaded files via signed URLs,

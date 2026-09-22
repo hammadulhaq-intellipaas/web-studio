@@ -42,7 +42,9 @@ function KV({ label, value }: { label: string; value: React.ReactNode }) {
 export default async function LeadDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const detail = await loadLeadDetail(id);
-  if (!detail) notFound();
+  // A removed lead is out of the CMS: its row lives on in the database, but nothing here
+  // opens it again.
+  if (!detail || detail.lead.archived_at) notFound();
   const { ready, lead, catalog, files, appointments, plans, versions, activity, live, onboardingForms, adminUsers } = detail;
   const config = lead.config;
   const link = lead.session_id ? customerLink(lead.session_id, lead.locale) : null;
@@ -81,13 +83,6 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
       </Link>
 
       {!ready && <div className="mt-4"><MigrationNotice /></div>}
-
-      {lead.archived_at && (
-        <div className="mt-4 rounded-xl border border-slate-300 bg-slate-100 px-5 py-3 text-sm text-slate-700" data-testid="lead-archived-banner">
-          This lead was removed from the list on <LocalTime iso={lead.archived_at} />
-          {lead.archived_by ? ` by ${lead.archived_by}` : ''}. Nothing was deleted; use Restore to show it again.
-        </div>
-      )}
 
       {/* ------------------------------------------------------------ header */}
       <div className="mt-3 rounded-xl border border-slate-200 bg-white p-5">
@@ -128,7 +123,6 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             customerLink={link}
             configuratorHref={link ? `${lead.locale === 'en' ? '/en' : '/'}?c=${lead.session_id}` : null}
             status={lead.status}
-            archived={!!lead.archived_at}
             onboardingFormId={onboarding?.id ?? null}
             onboardingFormHref={onboarding ? `/admin/onboarding/${onboarding.id}` : null}
           />

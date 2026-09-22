@@ -112,7 +112,7 @@ export function QuoteBanner({ catalog }: { catalog: Catalog }) {
             {teamBar && <span style={{ fontSize: 13, color: '#8FD8EA', fontWeight: 600 }}>{totals}</span>}
           </div>
           <div style={{ fontSize: 12.5, color: teamBar ? '#C7D4EA' : locked ? '#9A3412' : BODY, marginTop: 4, lineHeight: 1.45 }}>
-            {locked ? t('lockedSub') : teamBar ? '' : quote.draft ? t('bannerDraftSub') : t('bannerSub')}
+            {locked ? t('lockedSub') : teamBar ? t('teamSaveHint') : quote.draft ? t('bannerDraftSub') : t('bannerSub')}
           </div>
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
@@ -126,7 +126,10 @@ export function QuoteBanner({ catalog }: { catalog: Catalog }) {
             </a>
           )}
           {step !== 'config' && step !== 'lead' && (bundle || teamBar) && linkButton(t('toConfig'), () => go('config'))}
-          {!locked && step === 'config' && linkButton(quote.draft ? t('sendDraft') : t('send'), () => go('lead'), true, 'quote-send')}
+          {!locked &&
+            step === 'config' &&
+            // In team mode nothing goes to the customer: the next screen saves a version.
+            linkButton(teamBar ? t('teamSave') : quote.draft ? t('sendDraft') : t('send'), () => go('lead'), true, 'quote-send')}
           {!teamBar && step === 'config' && (
             <button
               type="button"

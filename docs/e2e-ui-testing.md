@@ -213,7 +213,7 @@ Needs the quotes migration (`20260922000012`) on the target database; the spec s
 | N1 | **Leads** → **+ New quote** → name/email → *Create draft* | Redirect to the new lead (`draft`, badge *team quote*, v1 in Versions, customer link shown). |
 | N2 | **Open in configurator** (same browser, signed in) | Public site in **Team-Modus** banner; configure; **Änderungen senden** → *Angebot speichern* (no phone/consent required) → "Angebot gespeichert." → *Zurück zum Admin* shows v2, status still draft, no customer email. |
 | N3 | **Send quote to customer** | Customer email with link + receipt; status draft → contacted; timeline entry. |
-| N4 | Row menu **⋯ → Remove** (or tick rows → *Remove selected*) | Lead disappears from Open/All; row still in the DB (`archived_at`); *Removed* tab lists it; **Restore** brings it back. Dashboard counts exclude removed leads. |
+| N4 | Row action **Remove** (or tick rows → *Remove selected*) | Confirmation first; then the lead is gone from every view (Open, All, its detail page 404s) while the row, its versions and notes stay in the DB (`archived_at` set). No restore in the CMS — undo is `update leads set archived_at = null`. Dashboard counts and calendar links exclude removed leads. |
 | N5 | Detail → add a note | Note on top of **Activity & notes**; every status change, version, email and link action is logged there automatically. |
 | N6 | Versions → **Mark as agreed** (optionally override the amounts) | Version highlighted *agreed*, status → agreed, agreed amount pill on the quote card. |
 | N7 | **Questionnaire** section | Question text + chosen labels ("Do you already have a website…" → "No, I'm starting fresh"), never raw keys; content intake with field labels. |

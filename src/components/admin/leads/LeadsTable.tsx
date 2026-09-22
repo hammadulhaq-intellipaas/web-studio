@@ -15,7 +15,11 @@ function initials(email: string): string {
   return (parts.length >= 2 ? parts[0][0] + parts[1][0] : local.slice(0, 2)).toUpperCase();
 }
 
-export function LeadsTable({ rows, ready, archivedView }: { rows: LeadsTableRow[]; ready: boolean; archivedView: boolean }) {
+/**
+ * Removing a lead takes it out of the CMS for good: the row (with its versions, notes and
+ * files) stays in the database, but no view here lists it again — hence the confirmation.
+ */
+export function LeadsTable({ rows, ready }: { rows: LeadsTableRow[]; ready: boolean }) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [copied, setCopied] = useState<string | null>(null);
@@ -34,13 +38,15 @@ export function LeadsTable({ rows, ready, archivedView }: { rows: LeadsTableRow[
     });
   const toggleAll = () => setSelected(allSelected ? new Set() : new Set(rows.map((r) => r.id)));
 
-  const archive = (targets: string[], archived: boolean) =>
+  const remove = (targets: string[], what: string) => {
+    if (!window.confirm(`Remove ${what} from the CMS? This cannot be undone here — the data stays in the database.`)) return;
     start(async () => {
-      const r = await archiveLeads(targets, archived);
+      const r = await archiveLeads(targets, true);
       setMessage(r.ok ? (r.message ?? 'Done') : r.error);
       setSelected(new Set());
       router.refresh();
     });
+  };
 
   const copy = async (row: LeadsTableRow) => {
     if (!row.customerLink) return;
@@ -61,11 +67,11 @@ export function LeadsTable({ rows, ready, archivedView }: { rows: LeadsTableRow[
           <button
             type="button"
             disabled={pending}
-            onClick={() => archive(ids, !archivedView)}
+            onClick={() => remove(ids, `${ids.length} lead${ids.length === 1 ? '' : 's'}`)}
             data-testid="leads-bulk-archive"
             className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-bold text-white hover:bg-slate-700 disabled:opacity-60"
           >
-            {archivedView ? 'Restore selected' : 'Remove selected'}
+            Remove selected
           </button>
           <button type="button" onClick={() => setSelected(new Set())} className="text-xs font-semibold text-slate-500 hover:text-slate-800">
             Clear
@@ -100,7 +106,7 @@ export function LeadsTable({ rows, ready, archivedView }: { rows: LeadsTableRow[
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-5 py-10 text-center text-slate-500">
-                  {archivedView ? 'Nothing removed yet.' : 'No leads found.'}
+                  No leads found.
                 </td>
               </tr>
             ) : (
@@ -204,12 +210,12 @@ export function LeadsTable({ rows, ready, archivedView }: { rows: LeadsTableRow[
                         <button
                           type="button"
                           disabled={pending}
-                          onClick={() => archive([r.id], !r.archived)}
+                          onClick={() => remove([r.id], r.name || r.firma || r.email)}
                           data-testid={`lead-archive-${r.id}`}
-                          title={r.archived ? 'Show the lead in the list again' : 'Hides the lead, nothing is deleted or closed'}
+                          title="Takes the lead out of the CMS for good; the data stays in the database"
                           className="rounded-lg border border-transparent px-2.5 py-1 text-xs font-bold text-slate-500 hover:border-red-200 hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
                         >
-                          {r.archived ? 'Restore' : 'Remove'}
+                          Remove
                         </button>
                       )}
                     </div>

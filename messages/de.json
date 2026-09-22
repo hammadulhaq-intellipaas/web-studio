@@ -623,6 +623,8 @@
     "backToAdmin": "Zurück zum Admin",
     "toConfig": "Zum Konfigurator",
     "newConfig": "Neue Konfiguration starten",
-    "linkDead": "Dieser Link ist nicht mehr gültig. Sie können eine neue Konfiguration starten."
+    "linkDead": "Dieser Link ist nicht mehr gültig. Sie können eine neue Konfiguration starten.",
+    "teamSave": "Angebot speichern",
+    "teamSaveHint": "Speichert diese Konfiguration als neue Version am Lead. Der Kunde wird nicht benachrichtigt."
   }
 }

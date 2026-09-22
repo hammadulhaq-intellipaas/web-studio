@@ -13,7 +13,6 @@ const FILTERS: { key: LeadListFilter; label: string }[] = [
   { key: 'open', label: 'Open' },
   ...LEAD_STATUSES.map((s) => ({ key: s as LeadListFilter, label: s })),
   { key: 'all', label: 'All' },
-  { key: 'archived', label: 'Removed' },
 ];
 
 function isFilter(v: string | undefined): v is LeadListFilter {
@@ -22,8 +21,8 @@ function isFilter(v: string | undefined): v is LeadListFilter {
 
 /**
  * Every lead as a quote in the pipeline: who, what they configured, where it stands,
- * who owns it and what happened last. "Remove" hides a lead (nothing is deleted); the
- * Removed tab brings it back.
+ * who owns it and what happened last. "Remove" takes a lead out of the CMS for good; its
+ * row (and history) stays in the database, but nothing here lists it again.
  */
 export default async function LeadsPage({
   searchParams,
@@ -76,7 +75,7 @@ export default async function LeadsPage({
               data-testid={`lead-filter-${f.key}`}
               className={`rounded-lg px-3 py-1.5 text-sm font-semibold capitalize ${
                 active ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 hover:bg-slate-100'
-              } ${f.key === 'archived' ? 'ml-auto' : ''}`}
+              }`}
             >
               {f.label} <span className={active ? 'text-slate-300' : 'text-slate-400'}>{count}</span>
             </Link>
@@ -84,7 +83,7 @@ export default async function LeadsPage({
         })}
       </div>
 
-      <LeadsTable rows={tableRows} ready={ready} archivedView={filter === 'archived'} />
+      <LeadsTable rows={tableRows} ready={ready} />
     </div>
   );
 }

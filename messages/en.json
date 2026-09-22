@@ -623,6 +623,8 @@
     "backToAdmin": "Back to admin",
     "toConfig": "Go to configurator",
     "newConfig": "Start a new configuration",
-    "linkDead": "This link is no longer valid. You can start a new configuration."
+    "linkDead": "This link is no longer valid. You can start a new configuration.",
+    "teamSave": "Save quote",
+    "teamSaveHint": "Saves this configuration as a new version on the lead. The customer is not notified."
   }
 }

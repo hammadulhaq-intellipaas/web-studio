@@ -16,7 +16,6 @@ export interface LeadsTableRow {
   status: string;
   source: string;
   ownerEmail: string | null;
-  archived: boolean;
   createdAt: string;
   customerLink: string | null;
   /** Last event, already phrased ("Customer edited", "Note by …"). */
@@ -38,7 +37,6 @@ export function toTableRow(l: LeadListRow, link: string | null): LeadsTableRow {
     status: l.status,
     source: l.source,
     ownerEmail: l.owner_email,
-    archived: !!l.archived_at,
     createdAt: l.created_at,
     customerLink: link,
     activityLabel: activity?.label ?? null,

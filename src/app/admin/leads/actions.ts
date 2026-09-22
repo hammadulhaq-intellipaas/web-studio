@@ -121,6 +121,11 @@ export async function addNote(leadId: string, body: string): Promise<ActionResul
 
 /* ------------------------------------------------------------------ archive */
 
+/**
+ * Takes leads out of the CMS (`archived_at`). The rows, their versions, notes and files stay
+ * in the database; no admin view lists them again, so this is not undoable from the UI.
+ * `archived: false` exists for a scripted undo (`update leads set archived_at = null`).
+ */
 export async function archiveLeads(ids: string[], archived: boolean): Promise<ActionResult> {
   try {
     const email = await requireAdmin();
@@ -134,7 +139,7 @@ export async function archiveLeads(ids: string[], archived: boolean): Promise<Ac
       .update({ archived_at: archived ? now : null, archived_by: archived ? email : null, updated_at: now })
       .in('id', clean);
     if (error) throw new Error(error.message);
-    await Promise.all(clean.map((id) => logActivity(id, 'archive', `team:${email}`, archived ? 'Removed from the list (archived)' : 'Restored', { archived })));
+    await Promise.all(clean.map((id) => logActivity(id, 'archive', `team:${email}`, archived ? 'Removed from the CMS (row kept in the database)' : 'Restored', { archived })));
     revalidateLead();
     clean.forEach((id) => revalidatePath(`/admin/leads/${id}`));
     return { ok: true, message: archived ? `${clean.length} removed` : `${clean.length} restored` };

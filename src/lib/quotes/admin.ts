@@ -12,7 +12,7 @@ import { loadVersions } from './versions';
 
 /* ------------------------------------------------------------------ list */
 
-export type LeadListFilter = 'open' | 'all' | 'archived' | Lead['status'];
+export type LeadListFilter = 'open' | 'all' | Lead['status'];
 
 export interface LeadListRow extends Lead {
   /** Last customer/team edit on the live configuration (from the bound session). */
@@ -30,9 +30,10 @@ export interface LeadListResult {
 const OPEN: Lead['status'][] = ['draft', 'new', 'contacted', 'agreed'];
 
 /**
- * Leads for the admin list. Archived leads are hidden unless asked for; every count the
- * tab bar shows comes from the same (unfiltered) load, so the numbers always agree with
- * what a tab would show. Before the migration the legacy columns are used as they are.
+ * Leads for the admin list. A removed lead is gone from the CMS — it keeps its row in the
+ * database (and its versions, notes and files), but no view here lists it again. Every count
+ * the tab bar shows comes from the same load, so the numbers always agree with the tabs.
+ * Before the migration the legacy columns are used as they are.
  */
 export async function loadLeadList(filter: LeadListFilter, q: string | undefined): Promise<LeadListResult> {
   const admin = createSupabaseAdminClient();
@@ -66,24 +67,16 @@ export async function loadLeadList(filter: LeadListFilter, q: string | undefined
     };
   });
 
-  const counts: Record<string, number> = { open: 0, all: 0, archived: 0 };
-  for (const l of all) {
-    if (l.archived_at) {
-      counts.archived++;
-      continue;
-    }
-    counts.all++;
+  const visible = all.filter((l) => !l.archived_at);
+  const counts: Record<string, number> = { open: 0, all: visible.length };
+  for (const l of visible) {
     counts[l.status] = (counts[l.status] ?? 0) + 1;
     if (OPEN.includes(l.status)) counts.open++;
   }
 
-  let rows = all;
-  if (filter === 'archived') rows = all.filter((l) => l.archived_at);
-  else {
-    rows = all.filter((l) => !l.archived_at);
-    if (filter === 'open') rows = rows.filter((l) => OPEN.includes(l.status));
-    else if (filter !== 'all') rows = rows.filter((l) => l.status === filter);
-  }
+  let rows = visible;
+  if (filter === 'open') rows = rows.filter((l) => OPEN.includes(l.status));
+  else if (filter !== 'all') rows = rows.filter((l) => l.status === filter);
 
   if (ready && rows.length) {
     const latest = await latestActivityFor(rows.map((r) => r.id));
