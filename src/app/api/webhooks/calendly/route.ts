@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import crypto from 'node:crypto';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import { quotesSchemaReady } from '@/lib/quotes/schema';
 import { sendBookingEmail } from '@/lib/emails';
 
 /** Calendly's guidance for how much clock skew / delivery lag to accept. */
@@ -107,13 +108,11 @@ export async function POST(request: Request) {
     if (data) leadId = data.id;
   }
   if (!leadId && invitee.email) {
-    const { data } = await supabase
-      .from('leads')
-      .select('id')
-      .eq('email', invitee.email)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    // Newest lead with that email — skipping removed leads and team drafts once the quotes
+    // migration is in place (the columns do not exist before it).
+    let query = supabase.from('leads').select('id').eq('email', invitee.email).order('created_at', { ascending: false }).limit(1);
+    if (await quotesSchemaReady()) query = query.is('archived_at', null).neq('status', 'draft');
+    const { data } = await query.maybeSingle();
     if (data) leadId = data.id;
   }
 

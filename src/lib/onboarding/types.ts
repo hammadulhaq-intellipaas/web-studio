@@ -299,7 +299,8 @@ export type AnswerValue = string | number | string[] | Record<string, string> | 
 export interface Answer {
   v: AnswerValue | null;
   dk?: true;
-  src?: 'followup' | 'edit';
+  /** `lead`: prefilled from the quote the form was created from. */
+  src?: 'followup' | 'edit' | 'lead';
   /** Free text for a checkboxes "other" tick. */
   other?: string;
   /**

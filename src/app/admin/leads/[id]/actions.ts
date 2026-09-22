@@ -6,6 +6,8 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { generatePhases } from '@/lib/plan-generator/generate';
 import type { Lead, SuggestedPlanPhase } from '@/lib/types';
 
+// Lead status / owner / notes / archive actions live in `src/app/admin/leads/actions.ts`.
+
 async function requireAdmin() {
   const supabase = await createSupabaseServerClient();
   const {
@@ -13,18 +15,6 @@ async function requireAdmin() {
   } = await supabase.auth.getUser();
   if (!user) throw new Error('Unauthorized');
   return supabase;
-}
-
-export async function updateLeadStatus(leadId: string, status: string) {
-  const supabase = await requireAdmin();
-  if (!['new', 'contacted', 'won', 'lost'].includes(status)) throw new Error('Invalid status');
-  const { error } = await supabase
-    .from('leads')
-    .update({ status, updated_at: new Date().toISOString() })
-    .eq('id', leadId);
-  if (error) throw new Error(error.message);
-  revalidatePath(`/admin/leads/${leadId}`);
-  revalidatePath('/admin/leads');
 }
 
 export async function generateSuggestedPlan(leadId: string) {

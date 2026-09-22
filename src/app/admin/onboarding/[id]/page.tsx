@@ -101,6 +101,11 @@ export default async function OnboardingDetailPage({ params }: { params: Promise
         <span className="text-xs text-slate-400">
           updated <LocalTime iso={record.updated_at} />
         </span>
+        {record.lead_id && (
+          <Link href={`/admin/leads/${record.lead_id}`} className="text-xs font-semibold text-blue-700 hover:underline" data-testid="onb-admin-lead-link">
+            Created from lead →
+          </Link>
+        )}
       </div>
 
       <div className="mb-6">

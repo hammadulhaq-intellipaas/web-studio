@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { eur, STATUS_COLORS } from '@/lib/admin/format';
+import { quotesSchemaReady } from '@/lib/quotes/schema';
 import { LocalTime } from '@/components/admin/LocalTime';
 import type { Lead, Appointment } from '@/lib/types';
 
@@ -8,9 +9,13 @@ export const dynamic = 'force-dynamic';
 
 export default async function AdminDashboard() {
   const supabase = await createSupabaseServerClient();
+  const ready = await quotesSchemaReady();
 
-  const [leadsRes, apptsRes, countRes, onbRes] = await Promise.all([
-    supabase.from('leads').select('*').order('created_at', { ascending: false }).limit(8),
+  // Removed (archived) leads stay out of every number on this page.
+  const visible = <T extends { is: (c: string, v: null) => T }>(q: T) => (ready ? q.is('archived_at', null) : q);
+
+  const [leadsRes, apptsRes, countRes, newRes, onbRes] = await Promise.all([
+    visible(supabase.from('leads').select('*')).order('created_at', { ascending: false }).limit(8),
     supabase
       .from('appointments')
       .select('*')
@@ -18,13 +23,15 @@ export default async function AdminDashboard() {
       .gte('start_time', new Date().toISOString())
       .order('start_time')
       .limit(5),
-    supabase.from('leads').select('id', { count: 'exact', head: true }),
+    visible(supabase.from('leads').select('id', { count: 'exact', head: true })),
+    visible(supabase.from('leads').select('id', { count: 'exact', head: true })).eq('status', 'new'),
     supabase.from('onboarding_forms').select('id, status').not('email', 'is', null),
   ]);
 
   const leads = (leadsRes.data ?? []) as Lead[];
   const appts = (apptsRes.data ?? []) as Appointment[];
   const total = countRes.count ?? 0;
+  const newCount = newRes.count ?? 0;
   const onboarding = (onbRes.data ?? []) as { id: string; status: string }[];
   const onboardingOpen = onboarding.filter((f) => f.status !== 'confirmed').length;
 
@@ -40,8 +47,8 @@ export default async function AdminDashboard() {
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-5">
           <div className="text-xs font-bold uppercase tracking-wide text-slate-500">New leads</div>
-          <div className="mt-1 text-3xl font-extrabold">
-            {leads.filter((l) => l.status === 'new').length}
+          <div className="mt-1 text-3xl font-extrabold" data-testid="stat-new-leads">
+            {newCount}
           </div>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-5">

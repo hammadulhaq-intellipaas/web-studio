@@ -110,7 +110,7 @@ export interface ExportedAnswer {
   /** Human-readable rendering in both languages. */
   display: { de: string; en: string };
   dont_know: boolean;
-  source: 'client' | 'followup' | 'edit';
+  source: 'client' | 'followup' | 'edit' | 'lead';
   /** Follow-up "question → answer" lines attached to this field, if any. */
   note: string | null;
 }
