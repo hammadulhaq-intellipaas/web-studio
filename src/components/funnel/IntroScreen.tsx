@@ -9,8 +9,10 @@ import { BODY, BORDER, CheckIcon, gradButton, INK } from './ui';
 
 export function IntroScreen({ catalog }: { catalog: Catalog }) {
   const t = useTranslations('intro');
+  const tq = useTranslations('quote');
   const locale = useLocale() as Locale;
   const startSession = useFunnel((s) => s.startSession);
+  const notice = useFunnel((s) => s.notice);
 
   return (
     <section
@@ -24,6 +26,24 @@ export function IntroScreen({ catalog }: { catalog: Catalog }) {
         padding: '72px 0 80px',
       }}
     >
+      {notice === 'link_dead' && (
+        <div
+          data-testid="notice-link-dead"
+          role="status"
+          style={{
+            background: '#FFF7ED',
+            border: '1px solid #FED7AA',
+            color: '#9A3412',
+            borderRadius: 12,
+            padding: '10px 16px',
+            fontSize: 13.5,
+            fontWeight: 600,
+            marginBottom: 22,
+          }}
+        >
+          {tq('linkDead')}
+        </div>
+      )}
       <Image
         src="/intellipaas-logo.png"
         alt=""

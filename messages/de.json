@@ -301,7 +301,15 @@
     "calendlySub": "Ihre Anfrage ist eingegangen. Buchen Sie jetzt Ihr unverbindliches Erstgespräch — oder ergänzen Sie zuerst Ihre Inhalte.",
     "calendlyBooked": "Termin gebucht — wir freuen uns auf das Gespräch!",
     "calendlyContinue": "Weiter →",
-    "calendlySkip": "Termin später vereinbaren →"
+    "calendlySkip": "Termin später vereinbaren →",
+    "updateTitle": "Anfrage aktualisieren",
+    "updateSub": "Ihre Änderungen werden an unser Team gesendet. Ihre Kontaktdaten können Sie hier anpassen.",
+    "updateCta": "Aktualisierte Anfrage senden",
+    "consentGiven": "Sie haben der Datenverarbeitung am {date} zugestimmt.",
+    "teamTitle": "Angebot speichern",
+    "teamSub": "Team-Modus: Diese Konfiguration wird als neue Version am Lead gespeichert. Es werden keine E-Mails an den Kunden gesendet.",
+    "teamCta": "Angebot speichern",
+    "teamSignIn": "Ihre Admin-Sitzung ist abgelaufen. Bitte melden Sie sich im Admin erneut an und laden Sie diese Seite neu."
   },
   "stage2": {
     "banner": "Geschafft! Wir melden uns in Kürze.",
@@ -418,7 +426,17 @@
     "monthlyLabel": "Monatlich",
     "yearlyLabel": "Jährlich",
     "disclaimer": "Unverbindliche Schätzung · Endpreise, keine USt. (Reverse-Charge, Rechnung der IntelliPaaS Inc., USA) · Wir senden Ihnen die Übersicht auch per E-Mail.",
-    "restart": "Neue Konfiguration starten"
+    "restart": "Neue Konfiguration starten",
+    "linkLabel": "Ihr persönlicher Link",
+    "linkHint": "Damit können Sie Ihre Konfiguration jederzeit wieder öffnen und anpassen. Wir haben ihn auch per E-Mail geschickt.",
+    "copyLink": "Link kopieren",
+    "copied": "Link kopiert",
+    "adjust": "Konfiguration anpassen",
+    "updatedTitle": "Danke, wir haben Ihre Änderungen erhalten.",
+    "updatedSub": "Unser Team sieht die aktualisierte Konfiguration und meldet sich bei Ihnen.",
+    "teamSavedTitle": "Angebot gespeichert.",
+    "teamSavedSub": "Die Konfiguration liegt als neue Version am Lead. Der Kunde wurde nicht benachrichtigt.",
+    "backToAdmin": "Zurück zum Admin"
   },
   "legal": {
     "impressumTitle": "Impressum",
@@ -438,14 +456,25 @@
       "sumMonthly": "Summe monatlich",
       "discount": "Rabatt {code} (−{pct} %)",
       "noRisk": "Kein Risiko — das Erstgespräch ist unverbindlich.",
-      "signoff": "Ihr IntelliPaaS Web Studio Team"
+      "signoff": "Ihr IntelliPaaS Web Studio Team",
+      "subjectUpdated": "Ihre aktualisierte Anfrage bei IntelliPaaS Web Studio",
+      "introUpdated": "vielen Dank, wir haben Ihre Änderungen erhalten. Hier ist Ihre aktualisierte Konfiguration im Überblick:",
+      "subjectQuote": "Ihr Angebot von IntelliPaaS Web Studio",
+      "introQuote": "wie besprochen haben wir Ihre Website-Konfiguration für Sie zusammengestellt. Über Ihren persönlichen Link können Sie sie jederzeit ansehen und anpassen:",
+      "linkLabel": "Ihr persönlicher Link",
+      "linkHint": "Öffnen Sie diesen Link jederzeit, um Ihre Konfiguration anzusehen oder anzupassen. Änderungen werden automatisch gespeichert."
     },
     "team": {
       "subject": "Neue Anfrage: {firma} ({bundle})",
       "contact": "Kontakt",
       "configuration": "Konfiguration",
       "goal": "Ziel",
-      "openInAdmin": "Im Admin-Portal öffnen"
+      "openInAdmin": "Im Admin-Portal öffnen",
+      "updatedSubject": "Angebot aktualisiert (v{version}): {firma} ({bundle})",
+      "changes": "Änderungen",
+      "changedBy": "Geändert von {actor}",
+      "noChanges": "Keine Änderungen an der Konfiguration (Kontaktdaten oder Inhalte aktualisiert).",
+      "customerLink": "Kundenlink"
     }
   },
   "onboarding": {
@@ -578,5 +607,22 @@
       "emailed": "Eine Kopie geht an {email}.",
       "confirmedBy": "Bestätigt von {name} am {date}"
     }
+  },
+  "quote": {
+    "bannerTitle": "Ihre Anfrage vom {date}",
+    "bannerDraft": "Ihr Angebot",
+    "bannerTotals": "{once} einmalig · {monthly}/Monat",
+    "bannerSub": "Änderungen hier werden automatisch gespeichert und sind für unser Team sichtbar. Wenn Sie fertig sind, senden Sie uns die Änderungen.",
+    "bannerDraftSub": "Unser Team hat diese Konfiguration für Sie zusammengestellt. Passen Sie sie an und senden Sie uns Ihre Anfrage.",
+    "send": "Änderungen senden",
+    "sendDraft": "Anfrage senden",
+    "locked": "Dieses Angebot ist abgeschlossen.",
+    "lockedSub": "Änderungen werden nicht mehr gespeichert. Melden Sie sich bei uns, wenn Sie etwas anpassen möchten.",
+    "teamBadge": "Team-Modus",
+    "teamFor": "Angebot für {name}",
+    "backToAdmin": "Zurück zum Admin",
+    "toConfig": "Zum Konfigurator",
+    "newConfig": "Neue Konfiguration starten",
+    "linkDead": "Dieser Link ist nicht mehr gültig. Sie können eine neue Konfiguration starten."
   }
 }

@@ -31,7 +31,10 @@ export function LanguageToggle({ onChange }: { onChange?: (locale: 'de' | 'en') 
         key={target}
         onClick={() => {
           onChange?.(target);
-          router.replace(pathname, { locale: target });
+          // Keep the query string: `?c=<id>` is the customer's link to this configuration,
+          // and dropping it would restart the funnel on the next mount.
+          const query = Object.fromEntries(new URLSearchParams(window.location.search).entries());
+          router.replace({ pathname, query }, { locale: target });
         }}
         aria-label={target === 'de' ? 'Deutsch' : 'English'}
         style={{

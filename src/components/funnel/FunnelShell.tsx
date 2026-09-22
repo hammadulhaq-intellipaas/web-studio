@@ -1,6 +1,6 @@
 'use client';
 
-import { useSyncExternalStore } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import type { Catalog } from '@/lib/types';
 import { useFunnel } from '@/stores/funnel';
 import { CatalogProvider } from './CatalogContext';
@@ -13,11 +13,17 @@ import { QuestionsStep } from './QuestionsStep';
 import { ConfiguratorStep } from './ConfiguratorStep';
 import { LeadStep } from './LeadStep';
 import { DoneScreen } from './DoneScreen';
+import { QuoteBanner } from './QuoteBanner';
 
-export function FunnelShell({ catalog }: { catalog: Catalog }) {
+export function FunnelShell({ catalog, teamEmail = null }: { catalog: Catalog; teamEmail?: string | null }) {
   const step = useFunnel((s) => s.step);
+  const setTeamMode = useFunnel((s) => s.setTeamMode);
   // Adopts/restores the shareable session and mirrors state to the server.
   useSessionSync();
+  // A signed-in team member (verified server-side on the page) edits quotes in team mode.
+  useEffect(() => {
+    setTeamMode(!!teamEmail);
+  }, [teamEmail, setTeamMode]);
   // Avoid hydration mismatches: the persisted store only exists client-side,
   // so the server (and first client render) always shows the intro.
   const hydrated = useSyncExternalStore(
@@ -40,6 +46,7 @@ export function FunnelShell({ catalog }: { catalog: Catalog }) {
       }}
     >
       <Header />
+      {hydrated && <QuoteBanner catalog={catalog} />}
       <main style={{ flex: 1, width: '100%', maxWidth: 1140, margin: '0 auto', padding: '0 24px' }}>
         {!hydrated || step === 'intro' ? (
           <IntroScreen catalog={catalog} />

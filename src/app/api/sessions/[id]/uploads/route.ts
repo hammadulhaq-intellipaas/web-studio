@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { isValidSessionId } from '@/lib/session-id';
+import { currentActor, isTeam } from '@/lib/quotes/actor';
+import { isLocked, loadBoundLead } from '@/lib/quotes/binding';
 
 const MAX_FILE = 25 * 1024 * 1024;
 
@@ -62,6 +64,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     .eq('id', id)
     .maybeSingle();
   if (!session) return NextResponse.json({ error: 'session_not_found' }, { status: 404 });
+
+  // A closed (won / lost) quote takes no more customer uploads either.
+  const bound = await loadBoundLead(id);
+  if (bound && isLocked(bound) && !isTeam(await currentActor())) {
+    return NextResponse.json({ error: 'locked' }, { status: 403 });
+  }
 
   const stored: { name: string }[] = [];
   const rejected: RejectedFile[] = [];

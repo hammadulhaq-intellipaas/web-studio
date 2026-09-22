@@ -75,6 +75,41 @@ async function handleAdmin(request: NextRequest) {
   return response;
 }
 
+/**
+ * A team member who is signed in to the admin is recognised on the public site too (team
+ * mode on a customer's quote link). Server components cannot persist a refreshed token,
+ * so the refresh has to happen here — otherwise `getUser()` on the page would rotate the
+ * refresh token without storing it and log the team out of `/admin`. Only runs when
+ * Supabase auth cookies are present; anonymous visitors are untouched.
+ */
+async function handlePublicWithSession(request: NextRequest) {
+  const cookiesToSet: { name: string; value: string; options?: Parameters<NextResponse['cookies']['set']>[2] }[] = [];
+  const supabase = createServerClient(SUPABASE_URL, SUPABASE_PUBLIC_KEY, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(list) {
+        list.forEach(({ name, value, options }) => {
+          request.cookies.set(name, value);
+          cookiesToSet.push({ name, value, options });
+        });
+      },
+    },
+  });
+  try {
+    await supabase.auth.getUser();
+  } catch {
+    // Best effort: an unreadable session simply means "not the team".
+  }
+  const response = intlMiddleware(request);
+  cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+  return response;
+}
+
+const hasSupabaseCookies = (request: NextRequest) =>
+  request.cookies.getAll().some((c) => c.name.startsWith('sb-'));
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -86,6 +121,9 @@ export async function proxy(request: NextRequest) {
   }
   if (pathname.startsWith('/api')) {
     return NextResponse.next();
+  }
+  if (process.env.TEAM_MODE !== 'off' && hasSupabaseCookies(request)) {
+    return handlePublicWithSession(request);
   }
   return intlMiddleware(request);
 }

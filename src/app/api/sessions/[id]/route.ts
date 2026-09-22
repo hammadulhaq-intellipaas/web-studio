@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { isValidSessionId } from '@/lib/session-id';
+import { loadBoundLead, quoteMeta } from '@/lib/quotes/binding';
 
-/** Restore a funnel state from a shared `?c=<id>` link. */
+/**
+ * Restore a funnel state from a shared `?c=<id>` link. When the session belongs to a
+ * submitted quote, `quote` tells the browser so it can show the quote banner and turn the
+ * contact form into an update — it never carries the team's data (owner, notes).
+ */
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!isValidSessionId(id)) {
@@ -10,11 +15,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   }
 
   const supabase = createSupabaseAdminClient();
-  const { data, error } = await supabase
-    .from('funnel_sessions')
-    .select('state')
-    .eq('id', id)
-    .maybeSingle();
+  const [{ data, error }, bound] = await Promise.all([
+    supabase.from('funnel_sessions').select('state').eq('id', id).maybeSingle(),
+    loadBoundLead(id),
+  ]);
 
   if (error) {
     console.error('[sessions] read failed:', error);
@@ -22,5 +26,5 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   }
   if (!data) return NextResponse.json({ error: 'not_found' }, { status: 404 });
 
-  return NextResponse.json({ state: data.state });
+  return NextResponse.json({ state: data.state, quote: bound ? quoteMeta(bound) : null });
 }

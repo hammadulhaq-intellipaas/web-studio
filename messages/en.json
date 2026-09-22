@@ -301,7 +301,15 @@
     "calendlySub": "Your inquiry has been received. Book your non-binding initial call now — or add your content first.",
     "calendlyBooked": "Appointment booked — we look forward to the call!",
     "calendlyContinue": "Continue →",
-    "calendlySkip": "Schedule later →"
+    "calendlySkip": "Schedule later →",
+    "updateTitle": "Update your inquiry",
+    "updateSub": "Your changes will be sent to our team. You can adjust your contact details here.",
+    "updateCta": "Send updated inquiry",
+    "consentGiven": "You agreed to the data processing on {date}.",
+    "teamTitle": "Save quote",
+    "teamSub": "Team mode: this configuration is saved as a new version on the lead. No emails are sent to the customer.",
+    "teamCta": "Save quote",
+    "teamSignIn": "Your admin session has expired. Please sign in to the admin again and reload this page."
   },
   "stage2": {
     "banner": "Done! We'll be in touch shortly.",
@@ -418,7 +426,17 @@
     "monthlyLabel": "Monthly",
     "yearlyLabel": "Yearly",
     "disclaimer": "Non-binding estimate · Final prices, no VAT (reverse charge, invoice from IntelliPaaS Inc., USA) · We'll also send you the summary by email.",
-    "restart": "Start a new configuration"
+    "restart": "Start a new configuration",
+    "linkLabel": "Your personal link",
+    "linkHint": "Use it to reopen and adjust your configuration any time. We also sent it by email.",
+    "copyLink": "Copy link",
+    "copied": "Link copied",
+    "adjust": "Adjust configuration",
+    "updatedTitle": "Thank you, we received your changes.",
+    "updatedSub": "Our team sees the updated configuration and will get back to you.",
+    "teamSavedTitle": "Quote saved.",
+    "teamSavedSub": "The configuration is stored as a new version on the lead. The customer was not notified.",
+    "backToAdmin": "Back to admin"
   },
   "legal": {
     "impressumTitle": "Legal notice",
@@ -438,14 +456,25 @@
       "sumMonthly": "Total monthly",
       "discount": "Discount {code} (−{pct}%)",
       "noRisk": "No risk — the initial call is non-binding.",
-      "signoff": "Your IntelliPaaS Web Studio team"
+      "signoff": "Your IntelliPaaS Web Studio team",
+      "subjectUpdated": "Your updated inquiry at IntelliPaaS Web Studio",
+      "introUpdated": "thank you, we received your changes. Here is your updated configuration at a glance:",
+      "subjectQuote": "Your quote from IntelliPaaS Web Studio",
+      "introQuote": "as discussed, we have put together your website configuration. You can review and adjust it any time through your personal link:",
+      "linkLabel": "Your personal link",
+      "linkHint": "Open this link any time to review or adjust your configuration. Changes are saved automatically."
     },
     "team": {
       "subject": "New inquiry: {firma} ({bundle})",
       "contact": "Contact",
       "configuration": "Configuration",
       "goal": "Goal",
-      "openInAdmin": "Open in admin portal"
+      "openInAdmin": "Open in admin portal",
+      "updatedSubject": "Quote updated (v{version}): {firma} ({bundle})",
+      "changes": "Changes",
+      "changedBy": "Changed by {actor}",
+      "noChanges": "No configuration changes (contact details or content updated).",
+      "customerLink": "Customer link"
     }
   },
   "onboarding": {
@@ -578,5 +607,22 @@
       "emailed": "A copy is on its way to {email}.",
       "confirmedBy": "Confirmed by {name} on {date}"
     }
+  },
+  "quote": {
+    "bannerTitle": "Your inquiry from {date}",
+    "bannerDraft": "Your quote",
+    "bannerTotals": "{once} one-time · {monthly}/month",
+    "bannerSub": "Changes here are saved automatically and visible to our team. When you are done, send us the changes.",
+    "bannerDraftSub": "Our team put this configuration together for you. Adjust it and send us your inquiry.",
+    "send": "Send changes",
+    "sendDraft": "Send inquiry",
+    "locked": "This quote is closed.",
+    "lockedSub": "Changes are no longer saved. Get in touch with us if you would like to adjust something.",
+    "teamBadge": "Team mode",
+    "teamFor": "Quote for {name}",
+    "backToAdmin": "Back to admin",
+    "toConfig": "Go to configurator",
+    "newConfig": "Start a new configuration",
+    "linkDead": "This link is no longer valid. You can start a new configuration."
   }
 }

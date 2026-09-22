@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import type { Catalog } from '@/lib/types';
 import { lt } from '@/lib/types';
@@ -8,7 +9,83 @@ import { calcTotals } from '@/lib/pricing/engine';
 import { buildReceipt } from '@/lib/pricing/summary';
 import { useFunnel } from '@/stores/funnel';
 import { useAppLocale, useSelection, useSummaryLabels } from './hooks';
-import { BLUE, BODY, BORDER, GREEN, INK, MUTED2 } from './ui';
+import { sessionShareUrl } from './useSessionSync';
+import { BLUE, BODY, BORDER, GREEN, INK, MUTED, MUTED2 } from './ui';
+
+/** The customer's permanent link, with a copy button. Shown once the quote is bound. */
+function QuoteLink() {
+  const t = useTranslations('done');
+  const sessionId = useFunnel((s) => s.sessionId);
+  const quote = useFunnel((s) => s.quote);
+  const [copied, setCopied] = useState(false);
+  if (!sessionId || !quote) return null;
+  const link = sessionShareUrl(sessionId);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  };
+  return (
+    <div
+      data-testid="quote-link-box"
+      style={{
+        background: '#EEF4FF',
+        border: '1px solid #D5E2FF',
+        borderRadius: 16,
+        padding: '16px 18px',
+        textAlign: 'left',
+        marginBottom: 22,
+      }}
+    >
+      <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 1.2, textTransform: 'uppercase', color: BLUE, marginBottom: 8 }}>
+        {t('linkLabel')}
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <input
+          readOnly
+          value={link}
+          data-testid="quote-link"
+          onFocus={(ev) => ev.currentTarget.select()}
+          style={{
+            flex: 1,
+            minWidth: 220,
+            fontFamily: 'inherit',
+            fontSize: 12.5,
+            padding: '10px 12px',
+            border: `1px solid ${BORDER}`,
+            borderRadius: 10,
+            background: '#ffffff',
+            color: INK,
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => void copy()}
+          data-testid="quote-link-copy"
+          className="hov-blue-border"
+          style={{
+            fontFamily: 'inherit',
+            cursor: 'pointer',
+            background: '#ffffff',
+            border: `1.5px solid ${BORDER}`,
+            borderRadius: 10,
+            padding: '10px 14px',
+            fontSize: 12.5,
+            fontWeight: 800,
+            color: copied ? GREEN : INK,
+          }}
+        >
+          {copied ? `✓ ${t('copied')}` : t('copyLink')}
+        </button>
+      </div>
+      <div style={{ fontSize: 12, color: MUTED, marginTop: 8, lineHeight: 1.45 }}>{t('linkHint')}</div>
+    </div>
+  );
+}
 
 export function DoneScreen({ catalog }: { catalog: Catalog }) {
   const t = useTranslations('done');
@@ -21,6 +98,9 @@ export function DoneScreen({ catalog }: { catalog: Catalog }) {
   const totals = calcTotals(catalog, selection);
   const receipt = buildReceipt(catalog, selection, locale, labels);
   const voucher = store.voucher;
+  const variant = store.doneVariant;
+  const title = variant === 'team' ? t('teamSavedTitle') : variant === 'updated' ? t('updatedTitle') : t('title');
+  const sub = variant === 'team' ? t('teamSavedSub') : variant === 'updated' ? t('updatedSub') : t('sub');
 
   return (
     <section
@@ -56,10 +136,11 @@ export function DoneScreen({ catalog }: { catalog: Catalog }) {
           />
         </svg>
       </div>
-      <h2 style={{ fontSize: 34, fontWeight: 800, letterSpacing: -0.9, margin: '0 0 10px' }}>
-        {t('title')}
+      <h2 style={{ fontSize: 34, fontWeight: 800, letterSpacing: -0.9, margin: '0 0 10px' }} data-testid="done-title">
+        {title}
       </h2>
-      <p style={{ fontSize: 15.5, color: BODY, margin: '0 0 36px' }}>{t('sub')}</p>
+      <p style={{ fontSize: 15.5, color: BODY, margin: '0 0 28px' }}>{sub}</p>
+      {variant !== 'team' && <QuoteLink />}
       <div
         style={{
           display: 'grid',
@@ -161,29 +242,57 @@ export function DoneScreen({ catalog }: { catalog: Catalog }) {
         )}
         <p style={{ margin: '12px 0 0', fontSize: 11.5, color: MUTED2 }}>{t('disclaimer')}</p>
       </div>
-      <button
-        onClick={() => store.restart()}
-        data-testid="restart"
-        className="hov-blue-border hov-blue-text"
-        style={{
-          fontFamily: 'inherit',
-          cursor: 'pointer',
-          marginTop: 26,
-          background: 'none',
-          border: `1.5px solid ${BORDER}`,
-          borderRadius: 11,
-          color: BODY,
-          fontSize: 13.5,
-          fontWeight: 700,
-          padding: '11px 22px',
-          transition: 'all .15s',
-        }}
-      >
-        {t('restart')}
-      </button>
+      <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap', marginTop: 26 }}>
+        {variant === 'team' && store.quote ? (
+          <a
+            href={`/admin/leads/${store.quote.leadId}`}
+            data-testid="done-back-to-admin"
+            className="hov-lift1"
+            style={{
+              textDecoration: 'none',
+              background: 'linear-gradient(100deg,#1E4FD6,#22B8D8)',
+              color: '#ffffff',
+              borderRadius: 11,
+              fontSize: 13.5,
+              fontWeight: 700,
+              padding: '11px 22px',
+            }}
+          >
+            {t('backToAdmin')}
+          </a>
+        ) : null}
+        {store.quote && (
+          <button
+            onClick={() => store.go('config')}
+            data-testid="done-adjust"
+            className="hov-blue-border hov-blue-text"
+            style={secondaryButton}
+          >
+            {t('adjust')}
+          </button>
+        )}
+        {variant !== 'team' && (
+          <button onClick={() => store.restart()} data-testid="restart" className="hov-blue-border hov-blue-text" style={secondaryButton}>
+            {t('restart')}
+          </button>
+        )}
+      </div>
     </section>
   );
 }
+
+const secondaryButton: React.CSSProperties = {
+  fontFamily: 'inherit',
+  cursor: 'pointer',
+  background: 'none',
+  border: `1.5px solid ${BORDER}`,
+  borderRadius: 11,
+  color: BODY,
+  fontSize: 13.5,
+  fontWeight: 700,
+  padding: '11px 22px',
+  transition: 'all .15s',
+};
 
 const capsStyle: React.CSSProperties = {
   fontSize: 12,

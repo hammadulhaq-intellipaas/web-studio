@@ -122,37 +122,68 @@ export function LeadStep({ catalog }: { catalog: Catalog }) {
   const totals = calcTotals(catalog, selection);
   const receipt = buildReceipt(catalog, selection, locale, labels);
   const voucher = store.voucher;
-  const submitted = !!store.leadId;
+  // The booking panel shows once, right after a submit in this tab. A quote that is
+  // reopened later shows the form again as an *update* (or as "save" in team mode).
+  const submitted = store.justSubmitted;
+  const quote = store.quote;
+  const teamMode = store.teamMode && !!quote;
+  const updateMode = !!quote && !teamMode;
+  const consentGiven = !!quote?.hasConsent && !teamMode;
+  const [teamSignIn, setTeamSignIn] = useState(false);
 
   const submit = async () => {
     const l = store.lead;
     const errs: Partial<Record<keyof LeadForm, string>> = {};
     if (!EMAIL_RE.test(l.email)) errs.email = t('errEmail');
-    if (!l.tel || l.tel.replace(/\D/g, '').length < 6) errs.tel = t('errTel');
-    if (!l.consent) errs.consent = t('errConsent');
+    if (!teamMode && (!l.tel || l.tel.replace(/\D/g, '').length < 6)) errs.tel = t('errTel');
+    if (!teamMode && !consentGiven && !l.consent) errs.consent = t('errConsent');
     if (Object.keys(errs).length) {
       store.setLeadErr(errs);
       return;
     }
     setSubmitting(true);
     setSubmitError(false);
+    setTeamSignIn(false);
     try {
       const res = await fetch('/api/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           locale,
-          lead: l,
+          lead: { ...l, consent: l.consent || consentGiven },
           selection,
           sessionId: store.sessionId,
           siteNotes: store.siteNotes,
           // Optional intake, collected in the collapsed sections of this same form.
           stage2: { fields: store.s2, goal: store.goal, driveLink: store.drive },
+          team: teamMode,
         }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 401 && teamMode) {
+        setTeamSignIn(true);
+        return;
+      }
+      if (res.status === 403 && quote) {
+        store.setQuote({ ...quote, locked: true });
+        store.go('config');
+        return;
+      }
       if (!res.ok || !data.id) throw new Error('submit failed');
       store.setLeadId(data.id);
+      if (data.quote) store.setQuote(data.quote);
+      if (teamMode) {
+        store.setDoneVariant('team');
+        store.go('done');
+        return;
+      }
+      if (updateMode) {
+        store.setDoneVariant('updated');
+        store.go('done');
+        return;
+      }
+      store.setDoneVariant('new');
+      store.setJustSubmitted(true);
       // Booking is the last step; without Calendly the inquiry is already complete.
       if (!catalog.calendlyEventUrl) store.go('done');
     } catch {
@@ -173,8 +204,12 @@ export function LeadStep({ catalog }: { catalog: Catalog }) {
     { key: 'nachname', span: 'auto', type: 'text', required: false },
     { key: 'firma', span: '1 / -1', type: 'text', required: false },
     { key: 'email', span: 'auto', type: 'email', ph: t('phEmail'), required: true },
-    { key: 'tel', span: 'auto', type: 'tel', ph: t('phTel'), required: true },
+    { key: 'tel', span: 'auto', type: 'tel', ph: t('phTel'), required: !teamMode },
   ];
+
+  const consentDate = quote?.submittedAt
+    ? new Date(quote.submittedAt).toLocaleDateString(locale === 'de' ? 'de-DE' : 'en-GB')
+    : '';
 
   return (
     <section
@@ -184,10 +219,12 @@ export function LeadStep({ catalog }: { catalog: Catalog }) {
       <button onClick={() => store.go('config')} className="hov-blue-text" style={backButton}>
         {t('back')}
       </button>
-      <h2 style={{ fontSize: 32, fontWeight: 800, letterSpacing: -0.8, margin: '0 0 8px' }}>
-        {t('title')}
+      <h2 style={{ fontSize: 32, fontWeight: 800, letterSpacing: -0.8, margin: '0 0 8px' }} data-testid="lead-heading">
+        {teamMode ? t('teamTitle') : updateMode && !quote.draft ? t('updateTitle') : t('title')}
       </h2>
-      <p style={{ fontSize: 15.5, color: BODY, margin: '0 0 24px' }}>{t('sub')}</p>
+      <p style={{ fontSize: 15.5, color: BODY, margin: '0 0 24px' }}>
+        {teamMode ? t('teamSub') : updateMode && !quote.draft ? t('updateSub') : t('sub')}
+      </p>
 
       {/* Summary */}
       <div
@@ -328,33 +365,44 @@ export function LeadStep({ catalog }: { catalog: Catalog }) {
               </div>
               <IntakeSections />
             </div>
-            <div style={{ gridColumn: '1 / -1' }}>
-              <label style={{ display: 'flex', gap: 11, alignItems: 'flex-start', cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  data-testid="lead-consent"
-                  checked={store.lead.consent}
-                  onChange={(ev) => store.setLeadField('consent', ev.target.checked)}
-                  style={{ marginTop: 3, width: 17, height: 17, accentColor: BLUE, flex: 'none' }}
-                />
-                <span style={{ fontSize: 13, lineHeight: 1.5, color: BODY }}>
-                  <ConsentText catalog={catalog} />
-                  <span style={{ color: '#D6493E' }}> *</span>
-                </span>
-              </label>
-              {store.leadErr.consent && (
-                <div
-                  data-testid="lead-err-consent"
-                  style={{ fontSize: 12, fontWeight: 600, color: '#D6493E', marginTop: 5 }}
-                >
-                  {store.leadErr.consent}
-                </div>
-              )}
-            </div>
+            {teamMode ? null : consentGiven ? (
+              <div style={{ gridColumn: '1 / -1', fontSize: 12.5, color: MUTED }} data-testid="lead-consent-given">
+                ✓ {t('consentGiven', { date: consentDate })}
+              </div>
+            ) : (
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label style={{ display: 'flex', gap: 11, alignItems: 'flex-start', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    data-testid="lead-consent"
+                    checked={store.lead.consent}
+                    onChange={(ev) => store.setLeadField('consent', ev.target.checked)}
+                    style={{ marginTop: 3, width: 17, height: 17, accentColor: BLUE, flex: 'none' }}
+                  />
+                  <span style={{ fontSize: 13, lineHeight: 1.5, color: BODY }}>
+                    <ConsentText catalog={catalog} />
+                    <span style={{ color: '#D6493E' }}> *</span>
+                  </span>
+                </label>
+                {store.leadErr.consent && (
+                  <div
+                    data-testid="lead-err-consent"
+                    style={{ fontSize: 12, fontWeight: 600, color: '#D6493E', marginTop: 5 }}
+                  >
+                    {store.leadErr.consent}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           {submitError && (
             <div style={{ fontSize: 12.5, fontWeight: 600, color: '#D6493E', marginTop: 14 }}>
               {t('errSubmit')}
+            </div>
+          )}
+          {teamSignIn && (
+            <div data-testid="lead-team-signin" style={{ fontSize: 12.5, fontWeight: 600, color: '#D6493E', marginTop: 14 }}>
+              {t('teamSignIn')}
             </div>
           )}
           <button
@@ -374,11 +422,13 @@ export function LeadStep({ catalog }: { catalog: Catalog }) {
               opacity: submitting ? 0.7 : 1,
             }}
           >
-            {submitting ? t('submitting') : t('cta')}
+            {submitting ? t('submitting') : teamMode ? t('teamCta') : updateMode && !quote.draft ? t('updateCta') : t('cta')}
           </button>
-          <p style={{ margin: '12px 0 0', textAlign: 'center', fontSize: 12, color: MUTED }}>
-            {t('noRisk')}
-          </p>
+          {!teamMode && (
+            <p style={{ margin: '12px 0 0', textAlign: 'center', fontSize: 12, color: MUTED }}>
+              {t('noRisk')}
+            </p>
+          )}
           <div
             style={{
               display: 'flex',
