@@ -7,25 +7,27 @@ import { EMPTY_ANSWERS, pickAnswer, type QuestionDef } from '@/lib/questions';
 import { isAddonIncluded, isAddonVisible } from '@/lib/pricing/engine';
 import { recommend, recSet } from '@/lib/pricing/recommend';
 import { generateSessionId } from '@/lib/session-id';
+import {
+  INITIAL_LEAD_FORM,
+  currentBundle,
+  toSessionState,
+  type FileKind,
+  type FunnelStep,
+  type LeadForm,
+  type QuoteMeta,
+  type SessionState,
+  type UploadedFile,
+} from '@/lib/funnel/state';
 
-export type FunnelStep = 'intro' | 'persona' | 'questions' | 'config' | 'lead' | 'done';
+// The data shapes live in a React-free module so server code can share them.
+export { currentBundle, toSessionState };
+export type { FileKind, FunnelStep, LeadForm, QuoteMeta, SessionState, UploadedFile };
 
-export interface LeadForm {
-  vorname: string;
-  nachname: string;
-  firma: string;
-  email: string;
-  tel: string;
-  ziel: string;
-  consent: boolean;
-}
+/** Transient notices shown on the intro (never persisted). */
+export type FunnelNotice = 'link_dead' | null;
 
-export interface UploadedFile {
-  name: string;
-}
-
-/** Files uploaded before a lead exists; keyed to the funnel session. */
-export type FileKind = 'logo' | 'foto' | 'site';
+/** Which thank-you screen a submit ends on (never persisted). */
+export type DoneVariant = 'new' | 'updated' | 'team';
 
 interface FunnelState {
   /** nanoid; identifies the shareable server-side copy of this funnel state. */
@@ -54,6 +56,14 @@ interface FunnelState {
   lead: LeadForm;
   leadErr: Partial<Record<keyof LeadForm, string>>;
   leadId: string | null;
+  /** Set when this session is bound to a submitted (or team-created) quote. */
+  quote: QuoteMeta | null;
+  /** True right after a submit in this tab: shows the booking panel once, never restored. */
+  justSubmitted: boolean;
+  /** A signed-in team member editing a customer's quote (server-verified, never persisted). */
+  teamMode: boolean;
+  notice: FunnelNotice;
+  doneVariant: DoneVariant;
   calendlyBooked: boolean;
   s2: Record<string, string>;
   goal: string | null;
@@ -65,7 +75,12 @@ interface FunnelState {
   go: (step: FunnelStep) => void;
   startSession: () => void;
   setSessionId: (id: string) => void;
-  hydrateFromSession: (state: Partial<FunnelState>) => void;
+  hydrateFromSession: (state: Partial<SessionState> & { sessionId?: string }, quote?: QuoteMeta | null) => void;
+  setQuote: (quote: QuoteMeta | null) => void;
+  setJustSubmitted: (v: boolean) => void;
+  setTeamMode: (v: boolean) => void;
+  setNotice: (n: FunnelNotice) => void;
+  setDoneVariant: (v: DoneVariant) => void;
   setUrl: (url: string) => void;
   setSiteNotes: (v: string) => void;
   pickPersona: (catalog: Catalog, personaId: string) => void;
@@ -96,17 +111,9 @@ interface FunnelState {
   restart: () => void;
 }
 
-const initialLead: LeadForm = {
-  vorname: '',
-  nachname: '',
-  firma: '',
-  email: '',
-  tel: '',
-  ziel: '',
-  consent: false,
-};
+const initialLead: LeadForm = { ...INITIAL_LEAD_FORM };
 
-/** A blank questionnaire back at the intro. The session is minted on `startSession`. */
+/** A blank questionnaire back at the intro. The session is minted on the persona pick. */
 function freshState() {
   return {
     sessionId: null,
@@ -133,6 +140,11 @@ function freshState() {
     lead: { ...initialLead },
     leadErr: {},
     leadId: null,
+    quote: null,
+    justSubmitted: false,
+    teamMode: false,
+    notice: null as FunnelNotice,
+    doneVariant: 'new' as DoneVariant,
     calendlyBooked: false,
     s2: {},
     goal: null,
@@ -141,16 +153,6 @@ function freshState() {
     fotoFiles: [] as UploadedFile[],
     openSec: null,
   };
-}
-
-/** Resolve the effective bundle: explicit choice, else recommendation, else the CMS default. */
-export function currentBundle(
-  state: Pick<FunnelState, 'bundle' | 'answers' | 'persona' | 'url'>,
-  catalog: Catalog,
-): string {
-  if (state.bundle) return state.bundle;
-  if (state.persona) return recommend(catalog, state.answers, state.url).bundle;
-  return catalog.defaultBundle;
 }
 
 export const useFunnel = create<FunnelState>()(
@@ -180,6 +182,11 @@ export const useFunnel = create<FunnelState>()(
       lead: { ...initialLead },
       leadErr: {},
       leadId: null,
+      quote: null,
+      justSubmitted: false,
+      teamMode: false,
+      notice: null,
+      doneVariant: 'new',
       calendlyBooked: false,
       s2: {},
       goal: null,
@@ -196,12 +203,33 @@ export const useFunnel = create<FunnelState>()(
       // A session row saved before sub-options existed carries no `selectedSubAddons`
       // key, and a shallow set() would then leave the *recipient's* own ticks in place
       // instead of the sender's. Reset it explicitly so a shared link always shows the
-      // configuration it was shared with.
-      hydrateFromSession: (state) =>
-        set({ selectedSubAddons: {}, ...(state as Partial<FunnelState>) }),
+      // configuration it was shared with. The quote binding is server truth (it is not
+      // part of the mirrored state), so it is reset here too — never inherited.
+      hydrateFromSession: (state, quote = null) => {
+        const step = state.step;
+        set({
+          selectedSubAddons: {},
+          ...(state as Partial<FunnelState>),
+          quote,
+          leadId: quote?.leadId ?? null,
+          justSubmitted: false,
+          calendlyBooked: false,
+          // A bound quote reopens on the configurator (with the quote banner), never on
+          // the contact form or the thank-you screen.
+          ...(quote && (step === 'lead' || step === 'done') ? { step: 'config' as FunnelStep } : {}),
+        });
+      },
+      setQuote: (quote) => set({ quote, leadId: quote?.leadId ?? get().leadId }),
+      setJustSubmitted: (v) => set({ justSubmitted: v }),
+      setTeamMode: (v) => set({ teamMode: v }),
+      setNotice: (n) => set({ notice: n }),
+      setDoneVariant: (v) => set({ doneVariant: v }),
       setUrl: (url) => set({ url }),
       setSiteNotes: (siteNotes) => set({ siteNotes }),
 
+      // The first real signal mints the shareable session (not the click on "start"),
+      // so a bounce from the landing page leaves no row behind. Minted in the same set()
+      // as the persona so the immediate first write already carries it.
       pickPersona: (catalog, personaId) => {
         const persona = catalog.personas.find((p) => p.id === personaId);
         set({
@@ -212,6 +240,7 @@ export const useFunnel = create<FunnelState>()(
             aiHas: [],
             aiMissing: [],
           },
+          ...(get().sessionId ? {} : { sessionId: generateSessionId() }),
         });
         get().go('questions');
       },
@@ -285,88 +314,32 @@ export const useFunnel = create<FunnelState>()(
       },
       setOpenSec: (id) => set({ openSec: id }),
 
-      // Pressing "start" always begins a brand-new questionnaire instance — and with it
-      // a brand-new shareable session, so a previous run's link keeps its own state.
+      // Pressing "start" always begins a brand-new questionnaire instance; a previous
+      // run's link keeps its own state. The session id itself is minted on the persona pick.
       startSession: () => {
-        set({ ...freshState(), sessionId: generateSessionId() });
+        set({ ...freshState(), teamMode: get().teamMode });
         get().go('persona');
       },
 
-      restart: () => set(freshState()),
+      restart: () => set({ ...freshState(), teamMode: get().teamMode }),
     }),
     {
       // v4: added sessionId/siteNotes/siteFiles and removed the stage2 step.
       name: 'ipaas-konfigurator-v4',
       partialize: (state) => {
-        const { leadErr, ...rest } = state;
+        const { leadErr, teamMode, notice, justSubmitted, doneVariant, ...rest } = state;
         void leadErr;
-        // Never restore into the finished state (matches the prototype).
-        return { ...rest, step: rest.step === 'done' ? 'intro' : rest.step };
+        void teamMode;
+        void notice;
+        void justSubmitted;
+        void doneVariant;
+        // Never restore into the finished state (matches the prototype). A submitted
+        // quote reopens on the configurator, where the quote banner explains the link.
+        return {
+          ...rest,
+          step: rest.step === 'done' ? (rest.quote ? 'config' : 'intro') : rest.step,
+        };
       },
     },
   ),
 );
-
-/**
- * The slice of funnel state mirrored to `funnel_sessions` so a shared `?c=<id>` link
- * reopens the questionnaire exactly as it was left — answers, configuration, voucher
- * and contact details included.
- */
-export interface SessionState {
-  step: FunnelStep;
-  url: string;
-  siteNotes: string;
-  siteFiles: UploadedFile[];
-  persona: string | null;
-  answers: Answers;
-  bundle: string | null;
-  sel: Record<string, boolean>;
-  recSel: Record<string, boolean>;
-  qty: Record<string, number>;
-  selectedSubAddons: Record<string, string[]>;
-  care: string | null;
-  support: string;
-  cf: string;
-  backupUp: boolean;
-  aiBundle: boolean;
-  payYearly: boolean;
-  promoInput: string;
-  voucher: Voucher | null;
-  lead: LeadForm;
-  s2: Record<string, string>;
-  goal: string | null;
-  drive: string;
-  logoFiles: UploadedFile[];
-  fotoFiles: UploadedFile[];
-}
-
-export function toSessionState(s: SessionState): SessionState {
-  return {
-    // A shared link never drops the recipient into the finished screen.
-    step: s.step === 'done' ? 'lead' : s.step,
-    url: s.url,
-    siteNotes: s.siteNotes,
-    siteFiles: s.siteFiles,
-    persona: s.persona,
-    answers: s.answers,
-    bundle: s.bundle,
-    sel: s.sel,
-    recSel: s.recSel,
-    qty: s.qty,
-    selectedSubAddons: s.selectedSubAddons,
-    care: s.care,
-    support: s.support,
-    cf: s.cf,
-    backupUp: s.backupUp,
-    aiBundle: s.aiBundle,
-    payYearly: s.payYearly,
-    promoInput: s.promoInput,
-    voucher: s.voucher,
-    lead: s.lead,
-    s2: s.s2,
-    goal: s.goal,
-    drive: s.drive,
-    logoFiles: s.logoFiles,
-    fotoFiles: s.fotoFiles,
-  };
-}

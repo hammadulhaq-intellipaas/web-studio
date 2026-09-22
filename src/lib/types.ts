@@ -284,6 +284,18 @@ export interface SuggestedPlanPhase {
   inputs: string[];
 }
 
+/**
+ * Pipeline: `draft` = created by the team, not sent yet · `new` = submitted by the customer
+ * · `contacted` · `agreed` = a quote version was marked as agreed · `won` / `lost` (closed:
+ * the customer link stops saving). Archiving ("Remove") is a separate flag, not a status.
+ */
+export type LeadStatus = 'draft' | 'new' | 'contacted' | 'agreed' | 'won' | 'lost';
+export const LEAD_STATUSES: LeadStatus[] = ['draft', 'new', 'contacted', 'agreed', 'won', 'lost'];
+/** Statuses that still need work from the team. */
+export const OPEN_LEAD_STATUSES: LeadStatus[] = ['draft', 'new', 'contacted', 'agreed'];
+/** A closed lead's customer link is read-only for the customer (team mode still edits). */
+export const LOCKED_LEAD_STATUSES: LeadStatus[] = ['won', 'lost'];
+
 export interface Lead {
   id: string;
   locale: Locale;
@@ -291,11 +303,14 @@ export interface Lead {
   nachname: string;
   firma: string;
   email: string;
-  telefon: string;
+  /** Optional for team-created drafts. */
+  telefon: string | null;
   ziel: string | null;
-  consent_at: string;
+  /** Null until the customer submitted the form themselves (team drafts). */
+  consent_at: string | null;
   persona_id: string | null;
   source_url: string | null;
+  /** The latest submitted snapshot; earlier ones are `lead_versions` rows. */
   config: LeadConfig;
   total_one_time: number;
   total_monthly: number;
@@ -304,9 +319,63 @@ export interface Lead {
   stage2: Stage2Data | null;
   drive_link: string | null;
   goal: string | null;
-  status: 'new' | 'contacted' | 'won' | 'lost';
+  status: LeadStatus;
+  /** The permanent customer link: `/?c=<session_id>` reopens the live configuration. */
+  session_id: string | null;
+  source: 'customer' | 'team';
+  owner_email: string | null;
+  archived_at: string | null;
+  archived_by: string | null;
+  /** Last submit by the customer (null for API-seeded rows). */
+  submitted_at: string | null;
+  agreed_version_id: string | null;
+  agreed_one_time: number | null;
+  agreed_monthly: number | null;
+  agreed_at: string | null;
+  agreed_by: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export type LeadVersionReason = 'submit' | 'idle' | 'actor_change' | 'manual' | 'restore' | 'backfill';
+
+/** One snapshot of a quote. `state` is the funnel state it was priced from (null on backfill). */
+export interface LeadVersion {
+  id: string;
+  lead_id: string;
+  version: number;
+  /** `customer` | `team:<email>` | `system` */
+  actor: string;
+  reason: LeadVersionReason;
+  state: Record<string, unknown> | null;
+  config: LeadConfig;
+  totals: Partial<Totals> & Pick<Totals, 'oneTimeEffective' | 'monthlyEffective' | 'yearlyEffective'>;
+  locale: Locale;
+  eur_to_usd_rate: number | null;
+  state_hash: string | null;
+  created_at: string;
+}
+
+export type LeadActivityKind =
+  | 'note'
+  | 'status'
+  | 'version'
+  | 'email'
+  | 'link'
+  | 'onboarding'
+  | 'archive'
+  | 'owner'
+  | 'agreed'
+  | 'system';
+
+export interface LeadActivity {
+  id: string;
+  lead_id: string;
+  kind: LeadActivityKind | string;
+  actor: string | null;
+  body: string;
+  meta: Record<string, unknown>;
+  created_at: string;
 }
 
 export interface LeadConfig {
@@ -315,7 +384,15 @@ export interface LeadConfig {
   siteNotes?: string;
   bundle: string;
   bundleName: string;
-  addons: { id: string; name: string; qty: number | null; billing: string; price: number }[];
+  addons: {
+    id: string;
+    name: string;
+    qty: number | null;
+    /** Ticked sub-options (e.g. widget types), when the add-on has any. */
+    subAddons?: string[] | null;
+    billing: string;
+    price: number;
+  }[];
   care: string;
   support: string;
   cf: string;

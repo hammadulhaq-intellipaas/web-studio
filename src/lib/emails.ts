@@ -1,19 +1,17 @@
 import 'server-only';
 import { Resend } from 'resend';
-import deMessages from '../../messages/de.json';
 import enMessages from '../../messages/en.json';
 import type { Catalog, Locale } from './types';
 import type { Receipt } from './pricing/summary';
 import type { SummaryLabels } from './pricing/summary';
 import { fmt, mon } from './format';
+import { messagesFor, summaryLabelsFor } from './messages';
 import type { Totals, Voucher } from './types';
 
-export function messagesFor(locale: Locale) {
-  return locale === 'de' ? deMessages : enMessages;
-}
+export { messagesFor };
 
 export function serverSummaryLabels(locale: Locale): SummaryLabels {
-  return messagesFor(locale).summaryLabels;
+  return summaryLabelsFor(locale);
 }
 
 function interp(template: string, params: Record<string, string | number>): string {
@@ -30,7 +28,10 @@ function receiptRows(lines: Receipt['oneOff']): string {
     .join('');
 }
 
-interface EmailContext {
+/** Which customer email is being sent: first submit, a resubmit, or a quote the team sends. */
+export type CustomerEmailVariant = 'new' | 'updated' | 'quote';
+
+export interface EmailContext {
   locale: Locale;
   catalog: Pick<Catalog, 'eurToUsdRate'>;
   lead: {
@@ -39,7 +40,7 @@ interface EmailContext {
     nachname: string;
     firma: string;
     email: string;
-    telefon: string;
+    telefon: string | null;
     ziel: string | null;
   };
   bundleName: string;
@@ -47,16 +48,26 @@ interface EmailContext {
   receipt: Receipt;
   totals: Totals;
   voucher: Voucher | null;
+  /** The customer's permanent configurator link, shown in the customer email when known. */
+  customerLink?: string | null;
+  variant?: CustomerEmailVariant;
 }
 
 function wrap(body: string): string {
   return `<div style="font-family:Inter,'Helvetica Neue',Arial,sans-serif;color:#0F2440;font-size:14px;line-height:1.55;max-width:560px">${body}</div>`;
 }
 
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] ?? c);
+}
+
 export function renderCustomerEmail(ctx: EmailContext): { subject: string; html: string } {
   const m = messagesFor(ctx.locale).emails.customer;
   const { receipt, totals, voucher, locale, catalog } = ctx;
   const name = [ctx.lead.vorname, ctx.lead.nachname].filter(Boolean).join(' ') || ctx.lead.firma;
+  const variant = ctx.variant ?? 'new';
+  const subject = variant === 'updated' ? m.subjectUpdated : variant === 'quote' ? m.subjectQuote : m.subject;
+  const intro = variant === 'updated' ? m.introUpdated : variant === 'quote' ? m.introQuote : m.intro;
 
   const discountRow = (saved: string) =>
     voucher
@@ -66,9 +77,18 @@ export function renderCustomerEmail(ctx: EmailContext): { subject: string; html:
         })}</td><td align="right" style="color:#2E8B57;font-weight:700">−${saved}</td></tr>`
       : '';
 
+  const linkBlock = ctx.customerLink
+    ? `<div style="margin:20px 0;padding:14px 16px;background:#F5F7FB;border:1px solid #E3E8F2;border-radius:12px">
+         <div style="font-weight:800;margin-bottom:4px">${m.linkLabel}</div>
+         <a href="${escapeHtml(ctx.customerLink)}" style="color:#1E5EFF;font-weight:700;word-break:break-all">${escapeHtml(ctx.customerLink)}</a>
+         <div style="color:#5B6B85;font-size:12.5px;margin-top:6px">${m.linkHint}</div>
+       </div>`
+    : '';
+
   const html = wrap(`
     <p>${interp(m.greeting, { name })}</p>
-    <p>${m.intro}</p>
+    <p>${intro}</p>
+    ${linkBlock}
     <h3 style="margin:18px 0 6px;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#5B6B85">${m.onceLabel}</h3>
     <table width="100%" style="border-collapse:collapse;font-size:14px">
       ${receiptRows(receipt.oneOff)}
@@ -95,24 +115,42 @@ export function renderCustomerEmail(ctx: EmailContext): { subject: string; html:
     <p style="color:#7A879B">${m.signoff}</p>
   `);
 
-  return { subject: m.subject, html };
+  return { subject, html };
 }
 
-export function renderTeamEmail(ctx: EmailContext, adminUrl: string): { subject: string; html: string } {
+export interface TeamEmailExtras {
+  /** "Quote updated" notifications list what changed and which version this is. */
+  updated?: { version: number; changes: string[]; actor: string };
+}
+
+export function renderTeamEmail(ctx: EmailContext, adminUrl: string, extras: TeamEmailExtras = {}): { subject: string; html: string } {
   // Internal notification — chrome is always English (the admin portal language), but the
   // money is shown in the CUSTOMER's currency so this matches their quote line for line.
   const m = enMessages.emails.team;
   const { receipt, totals, locale, catalog } = ctx;
+  const params = { firma: ctx.lead.firma || '—', bundle: ctx.bundleName, version: extras.updated?.version ?? 0 };
+  const subject = extras.updated ? interp(m.updatedSubject, params) : interp(m.subject, params);
+
+  const changesBlock = extras.updated
+    ? `<h3 style="margin:14px 0 4px">${m.changes}</h3>
+       <p style="margin:0 0 4px;color:#5B6B85">${interp(m.changedBy, { actor: escapeHtml(extras.updated.actor) })}</p>
+       ${
+         extras.updated.changes.length
+           ? `<ul style="margin:0;padding-left:18px">${extras.updated.changes.map((c) => `<li>${escapeHtml(c)}</li>`).join('')}</ul>`
+           : `<p style="margin:0">${m.noChanges}</p>`
+       }`
+    : '';
 
   const html = wrap(`
-    <h2 style="margin:0 0 12px">${interp(m.subject, { firma: ctx.lead.firma || '—', bundle: ctx.bundleName })}</h2>
+    <h2 style="margin:0 0 12px">${subject}</h2>
     <h3 style="margin:14px 0 4px">${m.contact}</h3>
     <p style="margin:0">
       ${ctx.lead.vorname} ${ctx.lead.nachname}${ctx.lead.firma ? ` · ${ctx.lead.firma}` : ''}<br/>
-      <a href="mailto:${ctx.lead.email}">${ctx.lead.email}</a> · ${ctx.lead.telefon}<br/>
+      <a href="mailto:${ctx.lead.email}">${ctx.lead.email}</a>${ctx.lead.telefon ? ` · ${ctx.lead.telefon}` : ''}<br/>
       ${ctx.personaLabel ? `Persona: ${ctx.personaLabel} · ` : ''}Locale: ${locale}
     </p>
     ${ctx.lead.ziel ? `<h3 style="margin:14px 0 4px">${m.goal}</h3><p style="margin:0">${ctx.lead.ziel}</p>` : ''}
+    ${changesBlock}
     <h3 style="margin:14px 0 4px">${m.configuration}</h3>
     <table width="100%" style="border-collapse:collapse;font-size:13px">
       ${receiptRows(receipt.oneOff)}
@@ -124,9 +162,14 @@ export function renderTeamEmail(ctx: EmailContext, adminUrl: string): { subject:
       </td></tr>
     </table>
     <p style="margin-top:18px"><a href="${adminUrl}" style="color:#1E5EFF;font-weight:700">${m.openInAdmin}</a></p>
+    ${
+      ctx.customerLink
+        ? `<p style="margin-top:6px;color:#5B6B85;font-size:12.5px">${m.customerLink}: <a href="${escapeHtml(ctx.customerLink)}" style="color:#1E5EFF">${escapeHtml(ctx.customerLink)}</a></p>`
+        : ''
+    }
   `);
 
-  return { subject: interp(m.subject, { firma: ctx.lead.firma || '—', bundle: ctx.bundleName }), html };
+  return { subject, html };
 }
 
 /**
@@ -141,30 +184,57 @@ export function teamRecipients(teamEmailSetting = ''): string[] {
     .filter(Boolean);
 }
 
-export async function sendLeadEmails(ctx: EmailContext, teamEmailSetting: string): Promise<void> {
+export interface SendLeadEmailsOptions {
+  /** Skip the customer copy (team-only notifications). */
+  customer?: boolean;
+  /** Skip the team copy (e.g. a quote the team sends to the customer). */
+  team?: boolean;
+  teamExtras?: TeamEmailExtras;
+}
+
+export interface SendLeadEmailsResult {
+  /** False when Resend is not configured or the send was rejected. */
+  customer: boolean;
+  team: boolean;
+}
+
+/** Customer confirmation + team notification for a new or updated inquiry. */
+export async function sendLeadEmails(
+  ctx: EmailContext,
+  teamEmailSetting: string,
+  options: SendLeadEmailsOptions = {},
+): Promise<SendLeadEmailsResult> {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM_EMAIL;
   if (!apiKey || !from) {
     console.warn('[emails] RESEND_API_KEY / RESEND_FROM_EMAIL not set — skipping lead emails');
-    return;
+    return { customer: false, team: false };
   }
   const resend = new Resend(apiKey);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? '';
   const adminUrl = `${siteUrl}/admin/leads/${ctx.lead.id}`;
   const team = teamRecipients(teamEmailSetting);
+  const sendCustomer = options.customer !== false;
+  const sendTeam = options.team !== false && team.length > 0;
 
   const customer = renderCustomerEmail(ctx);
-  const teamMail = renderTeamEmail(ctx, adminUrl);
+  const teamMail = renderTeamEmail(ctx, adminUrl, options.teamExtras);
 
   const results = await Promise.allSettled([
-    resend.emails.send({ from, to: ctx.lead.email, subject: customer.subject, html: customer.html }),
-    team.length
+    sendCustomer
+      ? resend.emails.send({ from, to: ctx.lead.email, subject: customer.subject, html: customer.html })
+      : Promise.resolve(null),
+    sendTeam
       ? resend.emails.send({ from, to: team, subject: teamMail.subject, html: teamMail.html })
       : Promise.resolve(null),
   ]);
   for (const r of results) {
     if (r.status === 'rejected') console.error('[emails] send failed:', r.reason);
   }
+  // Resend reports delivery problems (e.g. a rejected recipient) in `error`, not by throwing.
+  const ok = (r: PromiseSettledResult<{ error: unknown } | null>, wanted: boolean) =>
+    wanted && r.status === 'fulfilled' && r.value != null && !r.value.error;
+  return { customer: ok(results[0], sendCustomer), team: ok(results[1], sendTeam) };
 }
 
 export interface BookingEmailContext {
