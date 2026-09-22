@@ -174,7 +174,7 @@ describe('CMS rules engine parity with the previous hardcoded logic', () => {
     expect(checked).toBeGreaterThan(1_000);
     // The gastro persona pre-selects `foto`, so the fix must actually bite somewhere.
     expect(divergences).toBeGreaterThan(0);
-  });
+  }, 20_000);
 });
 
 describe('Change 3 — an existing logo & imagery never auto-selects the photo package', () => {

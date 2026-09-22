@@ -10,7 +10,15 @@ via `/admin`.
 
 Each run of the questionnaire gets a shareable `?c=<id>` link: the full state (answers,
 configuration, voucher, contact details) is mirrored to `funnel_sessions`, so the link reopens
-it on any device. The **Share** button under the voucher field copies it.
+it on any device. The **Share** button under the voucher field copies it. The session is minted
+on the persona pick (a bounce from the landing page leaves no row behind).
+
+After a submit the link becomes the customer's **permanent quote link**: it keeps reopening the
+live configuration (with a banner showing what was submitted and when), every pause in editing
+is kept as a version the team can see, and sending it again *updates* the same lead instead of
+creating a duplicate. `won` / `lost` quotes are closed for the customer (the link is read-only);
+a lead that is *Removed* in the admin is only hidden. A signed-in team member opening a customer
+link works in **team mode** (saves versions, no customer emails).
 
 ## Stack
 
@@ -39,6 +47,7 @@ npm run dev
 | `CALENDLY_WEBHOOK_SIGNING_KEY` | HMAC verification of `/api/webhooks/calendly` |
 | `OPENAI_API_KEY` / `OPENAI_PLAN_MODEL` | Suggested-plan generator (default `gpt-4o`); the key is also used by the onboarding form's AI layer (its model id is the `onb_model` setting) |
 | `ONBOARDING_BASIC_USER` / `ONBOARDING_BASIC_PASS` | HTTP Basic auth in front of `/onboardingform/**` and `/api/onboarding/**`. **Fails closed**: unset = locked for everyone. `ONBOARDING_BASIC_AUTH=off` opens the form publicly |
+| `TEAM_MODE` | `off` disables team mode on the public configurator (the proxy then no longer refreshes an admin's session on public paths). Default: on |
 
 ### Supabase
 
@@ -50,6 +59,12 @@ personas, settings, `TKFF20` voucher) in `supabase/seed.sql`:
 supabase link --project-ref <ref>
 supabase db push --include-seed
 ```
+
+The quotes pipeline (`20260922000012_quotes_pipeline.sql`) is detected at runtime
+(`src/lib/quotes/schema.ts`): until it has been applied the app keeps the legacy lead behaviour
+and the admin shows a "migration pending" notice; no redeploy is needed afterwards.
+`node scripts/purge-sessions.mts [--apply]` removes abandoned funnel sessions (unbound, no
+uploads, no persona and older than 2 days, or older than 90 days).
 
 Admin users are provisioned manually (no public sign-up) — Supabase dashboard → Auth → Add user
 (email confirmed), or via the admin API. Any authenticated user is an admin.
@@ -64,14 +79,20 @@ Admin users are provisioned manually (no public sign-up) — Supabase dashboard 
 
 ## Admin portal (`/admin`)
 
-- **Leads** — searchable list, full detail (config snapshot, questionnaire, stage-2 content,
-  uploaded files via signed URLs, appointment, status).
+- **Leads** — the quote pipeline (`draft → new → contacted → agreed → won / lost`): searchable
+  list with owner, last activity and bulk **Remove** (hides, never deletes; the *Removed* tab
+  restores), **New quote** (a team-created draft, configured on the public site in team mode and
+  sent to the customer with its link), and a detail with the submitted quote, the live
+  configuration's diff, every version (with "Mark as agreed" + agreed amount), readable
+  questionnaire answers, notes and the automatic timeline, uploaded files via signed URLs,
+  appointment, and **Create onboarding form** (prefills contact, package and page band).
 - **Calendar** — month view of all Calendly appointments.
 - **Catalog** — CMS for bundles, add-ons (+categories), care/Cloudflare/support plans, personas,
   recommendation rules, legal pages, and settings (yearly-discount %, team email, Calendly URL,
   AI-bundle pricing, defaults). Every entity supports create/edit/delete; a row still referenced
-  by another table refuses to delete. Edits are live on the public site immediately. Lead price
-  snapshots are immutable.
+  by another table refuses to delete. Edits are live on the public site immediately. `leads.config` is the latest
+  submitted snapshot and changes only together with a `lead_versions` row — earlier snapshots are
+  never rewritten. Voucher redemptions count once per code and are never decremented.
 - **Vouchers** — multi-code percent discounts with scope (one-time/recurring/both), validity
   window, redemption limits.
 - **Onboarding** — every client onboarding form: status, step, sales flags, the answers screen
@@ -159,3 +180,10 @@ of the pre-CMS implementation and asserts they agree — the one intended diverg
 The e2e suite covers the full DE funnel (exact pricing math incl. TKFF20), the BYOW branch, the
 shareable session link, pre-lead uploads, the EN locale + language toggle, admin auth, lead
 detail, live CMS price edits, catalog CRUD, and the SEO + GEO bundle's no-double-pricing rule.
+
+The quotes pipeline is covered by `e2e/quote-link.spec.ts` (permanent link, resubmit, dead link,
+language toggle) and `e2e/admin-quotes.admin.spec.ts` (New quote + team mode, Remove/Restore,
+notes, agreed amount, readable answers, onboarding hand-off); both skip themselves while the
+quotes migration is not applied to the target database. Vitest: `quotes-selection` (lead ↔
+session round trip reproduces the stored totals), `quotes-diff`, `quotes-answers`,
+`quotes-versions`.

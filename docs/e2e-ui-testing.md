@@ -82,7 +82,7 @@ run for a clean state, or click **Restart** on the Done screen.
 | D4 | In **Marke**, upload a **logo** and a **photo** (drag-drop or picker) | File chips (📎 name) appear. Accepts jpg/png/webp/pdf/doc/docx; **>25 MB rejected**. Hits `POST /api/leads/[id]/uploads`. |
 | D5 | Paste a **Drive link** | Counts toward readiness. |
 | D6 | In **Ziel**, pick a goal chip | Toggles selected; counts toward readiness. |
-| D7 | Click **Send** (`s2-finish`) or **"later"** | Both persist Stage 2 (`PATCH /api/leads/[id]/stage2`) and go to **Done**. Stage 2 never blocks completion. |
+| D7 | Fill the collapsed **optional intake** sections on the contact form (or skip them) | Sent together with the inquiry (`POST /api/leads`, `stage2`); the intake never blocks completion. The done screen shows the customer's permanent link (`quote-link`) with a copy button. |
 | D8 | Confirm in admin | Lead detail shows Stage-2 content + uploaded files (signed URLs). |
 
 ---
@@ -126,7 +126,7 @@ run for a clean state, or click **Restart** on the Done screen.
 |---|--------|----------|
 | H1 | Open **Leads** | Searchable list of captured leads. |
 | H2 | Open a lead detail | Full config snapshot, questionnaire, totals, Stage-2 content, uploaded files, source URL, persona. |
-| H3 | Change the lead **status** (`StatusSelect`) | Persists; reflected in the list. |
+| H3 | Change the lead **status** (`lead-status`: draft, new, contacted, agreed, won, lost) | Persists; reflected in the list; logged in the activity timeline. Setting *agreed* without picking a version takes the latest one. |
 | H4 | Click **Generate plan** (`generate-plan`) | Calls OpenAI (via `OPENAI_API_KEY`, model `gpt-4o`); returns a phased **Claude Design → Claude Code** prompt chain as phase cards. |
 | H5 | **Copy prompt** on a phase | Copies markdown to clipboard ("Copied ✓"). |
 | H6 | **Edit** a phase prompt, **Save** | Persists; plan version marked "edited". |
@@ -190,6 +190,36 @@ model answers (needs `OPENAI_API_KEY`). The route is behind Basic auth (`ONBOARD
 | L8 | *Weiter zum Briefing* | Nine numbered sections; *Bearbeiten* saves inline (badge *bearbeitet*); *Neu schreiben lassen* changes only that section; section 9 lists open items. |
 | L9 | *Weiter zur Bestätigung* → tick all → name → confirm | Terms show "3 bis 6 Wochen" / "24 Stunden"; done screen with PDF download; client + team emails (Resend rejects `example.com` recipients — use a real address). Record locked afterwards. |
 | L10 | Admin → **Onboarding** → the form | Flags, follow-up history, answers (don't-know / follow-up marked), brief versions, AI log, PDF/JSON downloads. **Catalog → Onboarding form → Fields**: edit a label → reload the public form → new label. |
+
+---
+
+## Suite M — Permanent quote link (`e2e/quote-link.spec.ts`)
+
+Needs the quotes migration (`20260922000012`) on the target database; the spec skips itself otherwise.
+
+| # | Action | Expected |
+|---|--------|----------|
+| M1 | Complete a DE run and submit | Done screen shows **Ihr persönlicher Link** (`quote-link`, `?c=<21 chars>`); `leads.session_id` is that id; `GET /api/sessions/<id>` returns `quote.leadId`. The confirmation email carries the link. |
+| M2 | Open the link in a private window | Configurator with the quote banner ("Ihre Anfrage vom …", totals) and the same `sum-once`. |
+| M3 | Toggle an add-on → **Änderungen senden** → submit | Heading *Anfrage aktualisieren*, consent shown as already given, done variant "Danke, wir haben Ihre Änderungen erhalten." Same lead (no duplicate), `total_one_time` updated, `lead_versions` v1 + v2, team gets "Quote updated (v2)" with the diff. |
+| M4 | Open `/?c=<unknown id>` | Intro with the notice "Dieser Link ist nicht mehr gültig", clean URL, no row created (`GET /api/sessions/<id>` stays 404). |
+| M5 | DE → EN toggle on the configurator | `/en?c=<same id>`; no restart. |
+| M6 | Set the lead to *won* in the admin, reopen the link, change something | Banner "Dieses Angebot ist abgeschlossen"; `POST /api/sessions` answers 403; nothing saved. |
+
+## Suite N — Admin: quotes pipeline (`e2e/admin-quotes.admin.spec.ts`)
+
+| # | Action | Expected |
+|---|--------|----------|
+| N1 | **Leads** → **+ New quote** → name/email → *Create draft* | Redirect to the new lead (`draft`, badge *team quote*, v1 in Versions, customer link shown). |
+| N2 | **Open in configurator** (same browser, signed in) | Public site in **Team-Modus** banner; configure; **Änderungen senden** → *Angebot speichern* (no phone/consent required) → "Angebot gespeichert." → *Zurück zum Admin* shows v2, status still draft, no customer email. |
+| N3 | **Send quote to customer** | Customer email with link + receipt; status draft → contacted; timeline entry. |
+| N4 | Row menu **⋯ → Remove** (or tick rows → *Remove selected*) | Lead disappears from Open/All; row still in the DB (`archived_at`); *Removed* tab lists it; **Restore** brings it back. Dashboard counts exclude removed leads. |
+| N5 | Detail → add a note | Note on top of **Activity & notes**; every status change, version, email and link action is logged there automatically. |
+| N6 | Versions → **Mark as agreed** (optionally override the amounts) | Version highlighted *agreed*, status → agreed, agreed amount pill on the quote card. |
+| N7 | **Questionnaire** section | Question text + chosen labels ("Do you already have a website…" → "No, I'm starting fresh"), never raw keys; content intake with field labels. |
+| N8 | Customer edits the link without resubmitting | Quote card shows "Live configuration differs from the submitted quote" with the diff; a version is saved once the customer pauses for `quote_idle_minutes` (Catalog → Settings) or via **Save version now**. |
+| N9 | **Create onboarding form** | Redirect to the new onboarding form (linked to the lead, "Created from lead →"); Screen 1 prefilled with contact, booked package (silver/gold/platinum), page band, project type, existing URL. |
+| N10 | Lead without a link (submitted before this release) → **Create customer link** | Link minted from the stored snapshot; version *link restored*. |
 
 ---
 
