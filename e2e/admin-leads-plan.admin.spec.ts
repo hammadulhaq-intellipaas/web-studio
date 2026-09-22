@@ -15,7 +15,8 @@ test.describe.serial('admin — leads & plan', () => {
     await page.goto(`/admin/leads/${leadId}`);
     await expect(page.getByTestId('lead-title')).toContainText(fullName);
     await expect(page.getByTestId('lead-totals')).toContainText('€');
-    await expect(page.getByText(SEEDED_VOUCHER.code)).toBeVisible();
+    // The voucher shows on the quote card (and again in the versions timeline).
+    await expect(page.getByTestId('lead-quote').getByText(SEEDED_VOUCHER.code)).toBeVisible();
     await expect(page.getByTestId('generate-plan')).toBeVisible();
   });
 

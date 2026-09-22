@@ -27,9 +27,9 @@ test.describe.serial('admin — calendar (calendly webhook)', () => {
     });
 
     await page.goto('/admin/calendar');
-    const appt = page.getByRole('link', { name: /E2E Booker/ }).first();
+    // Scoped to this run's lead: an interrupted earlier run can leave another "E2E Booker" behind.
+    const appt = page.locator(`a[href="/admin/leads/${leadId}"]`, { hasText: 'E2E Booker' }).first();
     await expect(appt).toBeVisible();
-    await expect(appt).toHaveAttribute('href', `/admin/leads/${leadId}`);
   });
 
   test('canceled webhook flips the appointment status', async ({ request }) => {
