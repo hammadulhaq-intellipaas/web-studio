@@ -139,7 +139,7 @@ export function LeadsTable({ rows, ready, archivedView }: { rows: LeadsTableRow[
                       {r.bundleName}
                       {r.addonCount > 0 && <span className="font-normal text-slate-500"> + {r.addonCount} add-on{r.addonCount === 1 ? '' : 's'}</span>}
                     </div>
-                    <div className="text-xs text-slate-500">
+                    <div className="whitespace-nowrap text-xs text-slate-500">
                       {eur(r.oneTime)} · {eur(r.monthly)}/mo.
                     </div>
                   </td>

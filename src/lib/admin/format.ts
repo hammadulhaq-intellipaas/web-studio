@@ -1,8 +1,8 @@
 export function eur(n: number | string): string {
-  return (
-    '€' +
-    Number(n).toLocaleString('en-IE', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
-  );
+  const value = Number(n);
+  // Whole amounts stay clean (€2,990); anything with cents shows both digits (€4,483.20).
+  const decimals = Number.isInteger(value) ? 0 : 2;
+  return '€' + value.toLocaleString('en-IE', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 }
 
 export function dateTime(iso: string): string {
