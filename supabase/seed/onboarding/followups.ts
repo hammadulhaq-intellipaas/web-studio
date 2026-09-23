@@ -38,7 +38,7 @@ const rows: Omit<OnbFollowup, 'sort' | 'active'>[] = [
   },
   {
     id: 'fu_crm_name',
-    trigger: { field: 'crm_name', when: 'empty' },
+    trigger: { field: 'crm_provider', when: 'empty' },
     question_de: 'Welches CRM nutzen Sie?',
     question_en: 'Which CRM do you use?',
     quick_replies: [
@@ -46,26 +46,25 @@ const rows: Omit<OnbFollowup, 'sort' | 'active'>[] = [
       qr('Salesforce', 'Salesforce', 'Salesforce'),
       qr('Pipedrive', 'Pipedrive', 'Pipedrive'),
     ],
-    writes_to: 'crm_name',
+    writes_to: 'crm_provider',
     mode: 'set',
     raises: null,
   },
   {
     id: 'fu_maps_link',
-    trigger: { field: 'maps_link', when: 'empty' },
-    question_de: 'Können Sie den Link zu Ihrem Standort auf Google Maps einfügen?',
-    question_en: 'Can you paste the link to your location on Google Maps?',
+    trigger: { field: 'gbp_link', when: 'empty' },
+    question_de: 'Können Sie den Link zu Ihrem Google-Unternehmensprofil einfügen? Daraus kommen Karte und Bewertungen.',
+    question_en: 'Can you paste the link to your Google Business Profile? That is where the map and the reviews come from.',
     quick_replies: [],
-    writes_to: 'maps_link',
+    writes_to: 'gbp_link',
     mode: 'set',
     raises: null,
   },
   {
     id: 'fu_page_list_thin',
     trigger: { field: 'page_list', when: 'lt_lines', value: 3 },
-    question_de:
-      'Sie haben nur wenige Seiten aufgeführt. Soll jede Leistung bzw. jedes Produkt eine eigene Seite bekommen?',
-    question_en: "You've listed only a few pages. Should each service or product have its own page?",
+    question_de: 'Sie haben nur wenige Seiten aufgeführt. Soll jede Leistung oder jedes Produkt eine eigene Seite bekommen?',
+    question_en: 'You have listed only a few pages. Should each service or product have its own page?',
     quick_replies: [qr('yes', 'Ja', 'Yes'), qr('no', 'Nein', 'No'), qr('unsure', 'Weiß ich nicht', 'Not sure')],
     writes_to: 'page_relationships',
     mode: 'append',
@@ -74,8 +73,8 @@ const rows: Omit<OnbFollowup, 'sort' | 'active'>[] = [
   {
     id: 'fu_reference_likes',
     trigger: { field: 'references', when: 'lt_chars', value: 15, sub: 'likes' },
-    question_de: 'Was genau gefällt Ihnen an dieser Referenzseite – der Aufbau, die Farben, die Art, wie sie geschrieben ist?',
-    question_en: 'What is it about that reference site you like — the layout, the colours, the way it is written?',
+    question_de: 'Was genau gefällt Ihnen an dieser Seite? Der Aufbau, die Fotos, die Art, wie sie geschrieben ist?',
+    question_en: 'What is it about that site you like? The layout, the photography, the way it is written?',
     quick_replies: [],
     writes_to: 'references',
     mode: 'set',
@@ -84,9 +83,10 @@ const rows: Omit<OnbFollowup, 'sort' | 'active'>[] = [
   {
     id: 'fu_dont_know',
     trigger: { when: 'dont_know' },
-    question_de: 'Bei „{label}“ haben Sie „Weiß ich nicht“ gewählt. Können Sie inzwischen etwas dazu sagen? Sonst überspringen Sie die Frage einfach – wir kommen darauf zurück.',
+    question_de:
+      'Bei „{label}“ haben Sie „Weiß ich nicht“ gewählt. Können Sie uns jetzt etwas dazu sagen? Wenn nicht, überspringen Sie die Frage einfach, wir kommen zum genannten Termin darauf zurück.',
     question_en:
-      'You chose "not sure" for "{label}". Can you say anything about it now? If not, just skip it — we will come back to it.',
+      'You chose "I do not know" for "{label}". Can you tell us anything about it now? If not, please just skip it and we will come back to you on the date you gave.',
     quick_replies: [],
     writes_to: null, // resolved to the triggering field at runtime
     mode: 'set',
@@ -96,9 +96,9 @@ const rows: Omit<OnbFollowup, 'sort' | 'active'>[] = [
     id: 'fu_scope_flag',
     trigger: { when: 'flag', flag: 'scope_flag' },
     question_de:
-      'Sie haben mehr Seiten aufgeführt, als Ihr Angebot umfasst. Wir melden uns dazu bei Ihnen – Sie müssen jetzt nichts tun.',
+      'Sie haben mehr Seiten aufgeführt, als Ihr Angebot umfasst. Wir melden uns dazu bei Ihnen, Sie müssen jetzt nichts tun.',
     question_en:
-      "You've listed more pages than your quote covers. We'll come back to you on that — nothing to do now.",
+      'You have listed more pages than your quote covers. We will come back to you about that and there is nothing for you to do now.',
     quick_replies: [qr('ok', 'Verstanden', 'Understood')],
     writes_to: null,
     mode: 'acknowledge',

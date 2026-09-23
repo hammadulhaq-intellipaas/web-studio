@@ -15,6 +15,8 @@ export const valueSchema = z.union([
 export const answerSchema = z.object({
   v: valueSchema.nullable(),
   dk: z.literal(true).optional(),
+  dk_date: z.string().max(10).optional(),
+  none: z.literal(true).optional(),
   src: z.enum(['followup', 'edit', 'lead']).optional(),
   other: z.string().max(500).optional(),
   note: z.string().max(4000).optional(),

@@ -265,6 +265,7 @@ export function OnboardingShell({
               const i = steps.findIndex((s) => s.id === screenId);
               if (i >= 0) goTo(i);
             }}
+            onChange={setAnswer}
             flush={flush}
           />
         ) : step ? (

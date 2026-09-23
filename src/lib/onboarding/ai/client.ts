@@ -6,7 +6,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { redactSecrets } from '../guardrails';
 import type { OnbPrompt, OnboardingSettings, PromptId } from '../types';
 
-export type AiJob = 'completeness' | 'brief' | 'rewrite';
+export type AiJob = 'completeness' | 'brief' | 'rewrite' | 'assist';
 
 /** Canned outputs stand in for the model in e2e runs (no key, no cost, deterministic). */
 export function fixtureMode(): boolean {

@@ -76,13 +76,15 @@ describe('clearHidden', () => {
     const answers = {
       ...completeAnswers(),
       integrations: a(['crm']),
-      crm_name: a('HubSpot'),
-      crm_account_holder: a('Lena'),
+      crm_provider: a('HubSpot'),
+      crm_account: a('Lena'),
     };
     const { answers: cleared, removed } = clearHidden(def.fields, { ...answers, integrations: a(['none']) });
-    expect(cleared.crm_name).toBeUndefined();
-    expect(cleared.crm_account_holder).toBeUndefined();
-    expect(Object.keys(removed).sort()).toEqual(['crm_account_holder', 'crm_name', 'maps_link', 'booking_provider'].sort());
+    expect(cleared.crm_provider).toBeUndefined();
+    expect(cleared.crm_account).toBeUndefined();
+    expect(Object.keys(removed).sort()).toEqual(
+      ['crm_provider', 'crm_account', 'gbp_link', 'booking_provider', 'booking_url', 'booking_account'].sort(),
+    );
   });
 
   it('drops answers for keys the definition no longer has', () => {
@@ -99,6 +101,14 @@ describe('validateField', () => {
     expect(validateField(field('legal_name'), ctx({ legal_name: dk() }))).toEqual([{ field: 'legal_name', code: 'invalid_option' }]);
   });
 
+  it('accepts the "we do not have one" tick as a complete answer, but only where it is offered', () => {
+    // It carries no value of its own, so it has to pass before the type checks run.
+    expect(validateField(field('avoid'), ctx({ avoid: { v: null, none: true } }))).toEqual([]);
+    expect(validateField(field('legal_name'), ctx({ legal_name: { v: null, none: true } }))).toEqual([
+      { field: 'legal_name', code: 'invalid_option' },
+    ]);
+  });
+
   it('checks emails, urls (bare domains allowed), phones and lengths', () => {
     expect(validateField(field('contact_email'), ctx({ contact_email: a('nope') }))[0].code).toBe('invalid_email');
     expect(validateField(field('contact_email'), ctx({ contact_email: a('a@b.de') }))).toEqual([]);
@@ -109,8 +119,6 @@ describe('validateField', () => {
   });
 
   it('checks numbers, dates and options', () => {
-    expect(validateField(field('page_count'), ctx({ page_count: a(0) }))[0].code).toBe('min');
-    expect(validateField(field('page_count'), ctx({ page_count: a(6) }))).toEqual([]);
     expect(validateField(field('launch_date'), ctx({ launch_date: a('2026-01-01') }))[0].code).toBe('date_min');
     expect(validateField(field('launch_date'), ctx({ launch_date: a('garbage') }))[0].code).toBe('invalid_date');
     expect(validateField(field('project_type'), ctx({ project_type: a('maybe') }))[0].code).toBe('invalid_option');
@@ -118,14 +126,12 @@ describe('validateField', () => {
     expect(validateField(field('tone_scale'), ctx({ tone_scale: a(4) }))).toEqual([]);
   });
 
-  it('enforces the ranking buckets: exactly one "most", at most three "very"', () => {
-    const ok = ctx({ visitor_actions: a({ book: 'most', call: 'very' }) });
-    expect(validateField(field('visitor_actions'), ok)).toEqual([]);
-    const twoMost = ctx({ visitor_actions: a({ book: 'most', call: 'most' }) });
-    expect(validateField(field('visitor_actions'), twoMost)[0]).toMatchObject({ code: 'ranking_exact', params: { n: 1 } });
-    const fourVery = ctx({ visitor_actions: a({ book: 'most', call: 'very', visit: 'very', enquiry: 'very', buy: 'very' }) });
-    expect(validateField(field('visitor_actions'), fourVery)[0]).toMatchObject({ code: 'ranking_max', params: { n: 3 } });
-    expect(validateField(field('visitor_actions'), ctx({}))).toEqual([{ field: 'visitor_actions', code: 'required' }]);
+  it('takes one main visitor action and caps the colour mood at two', () => {
+    expect(validateField(field('visitor_action'), ctx({ visitor_action: a('booking') }))).toEqual([]);
+    expect(validateField(field('visitor_action'), ctx({ visitor_action: a('teleport') }))[0].code).toBe('invalid_option');
+    expect(validateField(field('visitor_action'), ctx({}))).toEqual([{ field: 'visitor_action', code: 'required' }]);
+    const three = ctx({ colour_mood: a(['light', 'warm', 'bold']) });
+    expect(validateField(field('colour_mood'), three)[0]).toMatchObject({ code: 'checkboxes_max', params: { max: 2 } });
   });
 
   it('enforces checkbox rules incl. an exclusive "none" option', () => {
@@ -146,8 +152,8 @@ describe('validateField', () => {
       references: a([1, 2, 3, 4].map((i) => ({ _id: `r${i}`, url: 'https://x.de', likes: 'Schöne Farben überall' }))),
     });
     expect(validateField(f, tooMany)[0]).toMatchObject({ code: 'rows_max', params: { max: 3 } });
-    const badSelect = ctx({ notification_routing: a([{ _id: 'n1', trigger: 'bogus', email: 'a@b.de' }]) });
-    expect(validateField(field('notification_routing'), badSelect)[0]).toMatchObject({ code: 'invalid_option', sub: 'trigger' });
+    const badEmail = ctx({ notification_routing: a([{ _id: 'n1', type: 'Anfrage', address: 'not-an-email' }]) });
+    expect(validateField(field('notification_routing'), badEmail)[0]).toMatchObject({ code: 'invalid_email', sub: 'address' });
   });
 
   it('makes the assets folder optional once files were uploaded', () => {
@@ -155,7 +161,7 @@ describe('validateField', () => {
     expect(isRequiredNow(f, ctx({}))).toBe(true);
     expect(isRequiredNow(f, ctx({}, { assets_upload: 2 }))).toBe(false);
     expect(validateField(f, ctx({}, { assets_upload: 2 }))).toEqual([]);
-    expect(validateField(field('premises_photos'), ctx({}))).toEqual([]);
+    expect(validateField(field('reference_screenshots'), ctx({}))).toEqual([]);
   });
 });
 
@@ -163,10 +169,10 @@ describe('validateScreen / validateAll', () => {
   it('only reports visible fields of the requested screen', () => {
     const answers = completeAnswers();
     delete answers.legal_name;
-    delete answers.page_count;
+    delete answers.catalogue;
     const business = validateScreen(def, 'business', answers, {}, TODAY);
     expect(business.map((e) => e.field)).toEqual(['legal_name']);
-    expect(validateScreen(def, 'pages', answers, {}, TODAY).map((e) => e.field)).toEqual(['page_count']);
+    expect(validateScreen(def, 'pages', answers, {}, TODAY).map((e) => e.field)).toEqual(['catalogue']);
     // a hidden required field (regions_served when nationwide) is not an error
     answers.legal_name = a('X GmbH');
     answers.service_scope = a('national');
@@ -210,7 +216,6 @@ describe('computeFlags', () => {
   it('raises scope_flag when the listed pages exceed the booked band, with the numbers', () => {
     const answers = {
       ...completeAnswers(),
-      page_count: a(11),
       page_list: a(Array.from({ length: 11 }, (_, i) => `Seite ${i + 1}`).join('\n')),
     };
     const scope = computeFlags(def, answers).find((f) => f.code === 'scope_flag');

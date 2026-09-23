@@ -42,7 +42,18 @@ function displayBase(field: OnbField, answer: Answer | undefined, locale: Locale
     return mine.length ? mine.map((f) => f.file_name).join(', ') : '';
   }
   if (!answer) return '';
-  if (answer.dk) return locale === 'de' ? 'Weiß ich nicht' : "Don't know";
+  if (answer.dk) {
+    const base = locale === 'de' ? 'Weiß ich nicht' : "Don't know";
+    // Knowing WHEN they will know is what we plan around, so it travels with the answer.
+    if (!answer.dk_date) return base;
+    return locale === 'de' ? `${base} (weiß Bescheid ab ${answer.dk_date})` : `${base} (will know by ${answer.dk_date})`;
+  }
+  // An explicit "we don't have one" is an answer; an empty field is not. The CMS wrote the
+  // wording for the tick, so read it back rather than inventing one.
+  if (answer.none) {
+    const ticked = locale === 'de' ? field.config.none_label_de : field.config.none_label_en;
+    return ticked || (locale === 'de' ? 'Haben wir nicht' : 'We do not have one');
+  }
   const v = answer.v;
   if (v == null) return '';
 
@@ -110,6 +121,10 @@ export interface ExportedAnswer {
   /** Human-readable rendering in both languages. */
   display: { de: string; en: string };
   dont_know: boolean;
+  /** When they said they would know, if they gave a date with "I don't know". */
+  known_by: string | null;
+  /** They ticked "we don't have one" rather than leaving the field empty. */
+  none: boolean;
   source: 'client' | 'followup' | 'edit' | 'lead';
   /** Follow-up "question → answer" lines attached to this field, if any. */
   note: string | null;
@@ -170,6 +185,8 @@ export function exportRecord(
         en: displayValue(field, answer, 'en', files),
       },
       dont_know: !!answer?.dk,
+      known_by: answer?.dk_date ?? null,
+      none: !!answer?.none,
       source: answer?.src ?? 'client',
       note: answer?.note ?? null,
     };

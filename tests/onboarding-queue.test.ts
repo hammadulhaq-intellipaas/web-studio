@@ -67,7 +67,6 @@ describe('rule questions', () => {
     const answers = {
       ...completeAnswers(),
       legal_pages: a('unsure'),
-      page_count: a(11),
       page_list: a(Array.from({ length: 11 }, (_, i) => `Seite ${i + 1}`).join('\n')),
       launch_date: a('2026-11-01'),
       content_ready_date: a('2026-10-25'),
@@ -103,15 +102,17 @@ describe('merging with model questions', () => {
     expect(q.filter((x) => x.target?.field === 'references')).toHaveLength(1);
     // an answered free-text field gets the model's answer appended; an empty one is set
     expect(q.find((x) => x.target?.field === 'usps')).toMatchObject({ source: 'llm', mode: 'append' });
-    const empty = queueFor(completeAnswers(), { llm: [llm[0]] });
+    const unanswered = { ...completeAnswers() };
+    delete unanswered.usps;
+    const empty = queueFor(unanswered, { llm: [llm[0]] });
     expect(empty[0]).toMatchObject({ target: { field: 'usps' }, mode: 'set' });
   });
 
   it('orders questions by screen and field, cuts to the budget', () => {
     const q = queueFor({ ...completeAnswers(), legal_pages: a('unsure') }, { llm, budget: 2 });
     expect(q).toHaveLength(2);
-    // design (references) → pages (usps) → access_legal (legal_pages)
-    expect(q.map((x) => x.target?.field)).toEqual(['references', 'usps']);
+    // design (usps, then references) → access_legal (legal_pages)
+    expect(q.map((x) => x.target?.field)).toEqual(['usps', 'references']);
   });
 
   it('never asks a target that is already in the history', () => {

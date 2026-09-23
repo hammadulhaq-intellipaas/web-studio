@@ -108,20 +108,39 @@ Admin users are provisioned manually (no public sign-up) — Supabase dashboard 
 ## Client onboarding form (`/onboardingform`)
 
 The post-deposit intake that replaces the Google Form (spec: *web-studio-onboarding-form-spec*,
-16 Sep 2026). `/onboardingform/new` mints a form and redirects to `/onboardingform/<id>` — an
-unguessable 21-char id that is also the resume link (`/en/…` for English). Nine question screens
-with conditional reveals, then a review node: deterministic gap check → optional model pass →
-guided follow-ups (max 2 rounds / 12 questions, all skippable) → AI-written brief in nine fixed
-sections (inline edit, one-section rewrite) → terms + confirmation → PDF and JSON emailed to the
-client and the team.
+16 Sep 2026; rewritten 23 Sep 2026). `/onboardingform/new` mints a form and redirects to
+`/onboardingform/<id>` — an unguessable 21-char id that is also the resume link (`/en/…` for
+English). Nine question screens with conditional reveals, then step 10, the review node:
+deterministic gap check → optional model pass → guided follow-ups (max 2 rounds / 12 questions,
+all skippable) → **the read-back** → terms + confirmation → PDF and JSON emailed to the client
+and the team.
+
+The read-back is two blocks: every answer grouped by screen with a link back to it, then a plain
+paragraph of what we understood. That paragraph is **templated, not model-written** — an
+`onb_texts` row with `{business_one_liner}`-style tokens that `src/lib/onboarding/understood.ts`
+fills from the client's own answers, so the client never has to read or approve prose a model
+produced. They answer yes / mostly / no, and anything but yes requires a correction, stored as
+`understood_ok` / `understood_corrections`. The AI brief still runs at this point, because the
+team works from it; the client is simply not shown it.
+
+Long free-text fields carry two helpers: **"Help me say this better"** (`ai_assist`) sends that
+one answer for a single guardrailed rewrite the client can take or leave
+(`POST /api/onboarding/<id>/assist`), and a **page counter** (`count_band`) that counts the listed
+pages against the band the client booked. *I don't know* asks when they will know instead of just
+recording the gap, and fields with a `none_label` get an explicit "we don't have one" tick so an
+empty answer and a deliberate none read differently.
 
 **Everything content-shaped is data** in the `onb_*` tables (screens, fields incl. `show_when`
-conditions, follow-up triggers, flag rules, brief sections, long-form texts, the four AI prompts,
+conditions, follow-up triggers, flag rules, brief sections, long-form texts, the five AI prompts,
 worked examples) plus `onb_*` app settings (model id, caps, minimum build time, estimated minutes,
-terms version, links). Initial content lives in `supabase/seed/onboarding/*.ts`;
-`node scripts/gen-onboarding-seed.mts` regenerates the seed migration
-(`on conflict do nothing`, so CMS edits are never overwritten). Only UI chrome (buttons,
-validation messages) is in `messages/*.json`.
+terms version, links). Initial content lives in `supabase/seed/onboarding/*.ts`. Only UI chrome
+(buttons, validation messages) is in `messages/*.json`.
+
+| Command | What it does |
+|---|---|
+| `node scripts/gen-onboarding-seed.mts` | Regenerates the first-install seed migration (`on conflict do nothing`, so CMS edits are never overwritten). Refuses to overwrite a migration that has already been applied. |
+| `node scripts/gen-onboarding-seed.mts --upsert <name>.sql` | Emits the same content as an **upsert** migration — how a rewritten definition reaches rows that are already live. This overwrites CMS edits on purpose. Retired fields are set `active = false`, never deleted, so old answers keep their labels. |
+| `node scripts/apply-onboarding-seed.mts [--apply]` | Same content, applied straight through the service-role key (dry run without `--apply`). For a machine that has the key but no database password. |
 
 Hard rules are enforced in code, not only in the prompt: the brief is schema-validated, checked
 for prices/durations and for facts that don't occur in the answers (retry once, then a plain

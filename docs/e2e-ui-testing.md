@@ -184,12 +184,15 @@ model answers (needs `OPENAI_API_KEY`). The route is behind Basic auth (`ONBOARD
 | L2 | *Briefing starten* | Redirect to `/onboardingform/<21-char id>`, Screen 1 with the 10-dot stepper (phones: "Schritt 1 von 10"). *Weiter* while empty → red field errors. |
 | L3 | Answer *Änderungen an meiner bestehenden Website* → back to *Eine neue Website* → back again | URL field appears, disappears, reappears **with the typed value** ("Wir haben Ihre frühere Antwort wiederhergestellt"). |
 | L4 | Walk screens 2–9 (see `e2e/onboarding-form.spec.ts` for a full set of answers); on Screen 5 put two actions into *Am wichtigsten* | *Weiter* blocked with "Genau 1 × …"; fixing it continues. Sliders show captions; *Weiß ich nicht* pills mark a field as unsure. |
-| L5 | Paste "Passwort: xyz" into *Konten* | Value saved as `Passwort: [entfernt / redacted]` with an amber notice; the team sees flag `credentials_redacted`. |
+| L5 | Paste "Passwort: xyz" into *Zugänge* | Value saved as `Passwort: [entfernt / redacted]` with an amber notice; the team sees flag `credentials_redacted`. |
+| L5a | Tick *Weiß ich nicht* on any field | The control is replaced by "Wann wissen Sie es?" with a date input; the date is stored on the answer (`dk_date`) and the team sees it in the open-items section. |
+| L5b | On Screen 5, list more pages than the booked band | The counter under the field turns amber and names the band; *Weiter* still works (it is a note, not a block). |
+| L5c | *Besser formulieren* under a long-text field | One rewrite comes back as a suggestion with *Übernehmen* / *Verwerfen*; declining leaves the original untouched; the field is never rewritten without the click. |
 | L6 | Close the tab, open the same URL in a private window | Same step, same answers. Header toggle *EN* → `/en/onboardingform/<id>` with English CMS copy. |
-| L7 | *Antworten prüfen* → follow-ups | One question at a time with quick replies / text / *Überspringen*; the legal-pages "Wir haben keine" reply chains into the price offer; 11 pages against a 5–8 band → acknowledge-only scope note (no price shown). |
-| L8 | *Weiter zum Briefing* | Nine numbered sections; *Bearbeiten* saves inline (badge *bearbeitet*); *Neu schreiben lassen* changes only that section; section 9 lists open items. |
-| L9 | *Weiter zur Bestätigung* → tick all → name → confirm | Terms show "3 bis 6 Wochen" / "24 Stunden"; done screen with PDF download; client + team emails (Resend rejects `example.com` recipients — use a real address). Record locked afterwards. |
-| L10 | Admin → **Onboarding** → the form | Flags, follow-up history, answers (don't-know / follow-up marked), brief versions, AI log, PDF/JSON downloads. **Catalog → Onboarding form → Fields**: edit a label → reload the public form → new label. |
+| L7 | *Antworten prüfen* → follow-ups | One question at a time with quick replies / text / *Überspringen*; the legal-pages "Wir haben keine" reply chains into the price offer; more pages than the band → acknowledge-only scope note (no price shown). |
+| L8 | *Weiter* → the read-back | Block 1: every answer grouped by screen, each with *Ändern* back to that screen. Block 2: a paragraph of what we understood, in the client's own words (no model prose). *Weiter zur Bestätigung* is blocked until they pick yes/mostly/no, and *mostly*/*no* require a correction. |
+| L9 | *Weiter zur Bestätigung* → tick all → name → confirm | Terms show "3 Wochen" / "10 Tagen" / "5 Tagen"; done screen with PDF download; client + team emails (Resend rejects `example.com` recipients — use a real address). Record locked afterwards. |
+| L10 | Admin → **Onboarding** → the form | Flags, follow-up history, answers (don't-know / follow-up marked), the read-back verdict and corrections, brief versions, AI log, PDF/JSON downloads. **Catalog → Onboarding form → Fields**: edit a label → reload the public form → new label. |
 
 ---
 

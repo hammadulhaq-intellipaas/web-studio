@@ -10,18 +10,26 @@ describe('displayValue', () => {
   it('renders options, captions, rankings and repeaters as readable text', () => {
     const answers = completeAnswers();
     expect(displayValue(field('booked_package'), answers.booked_package, 'en')).toBe('Gold');
-    expect(displayValue(field('booked_page_band'), answers.booked_page_band, 'de')).toBe('5–8 Seiten');
+    expect(displayValue(field('booked_page_band'), answers.booked_page_band, 'de')).toBe('5 bis 8 Seiten');
     expect(displayValue(field('tone_scale'), answers.tone_scale, 'en')).toBe('Friendly but professional (3/5)');
     expect(displayValue(field('integrations'), answers.integrations, 'de')).toBe('Google Maps, Online-Terminbuchung');
-    expect(displayValue(field('visitor_actions'), answers.visitor_actions, 'en')).toBe(
-      'Most important: Book an appointment\nVery important: Call you\nSomewhat important: Send an enquiry, Visit you in person\nNot important: Buy something, Sign up for something',
-    );
+    expect(displayValue(field('visitor_action'), answers.visitor_action, 'en')).toBe('Book an appointment');
     expect(displayValue(field('notification_routing'), answers.notification_routing, 'en')).toBe(
-      'When this arrives …: Enquiry · … goes to: praxis@physio-nordend.de',
+      'Type of message: Allgemeine Anfrage · Send it to: praxis@physio-nordend.de',
     );
     expect(displayValue(field('booked_package'), dk(), 'de')).toBe('Weiß ich nicht');
-    expect(displayValue(field('premises_photos'), undefined, 'de', [
-      { field_key: 'premises_photos', file_name: 'a.jpg', size_bytes: 1, mime_type: 'image/jpeg' },
+    // "I don't know" plus the date they expect to know is what the team plans around.
+    expect(displayValue(field('booked_package'), { v: null, dk: true, dk_date: '2027-01-10' }, 'de')).toBe(
+      'Weiß ich nicht (weiß Bescheid ab 2027-01-10)',
+    );
+    expect(displayValue(field('booked_package'), { v: null, dk: true, dk_date: '2027-01-10' }, 'en')).toBe(
+      "Don't know (will know by 2027-01-10)",
+    );
+    // An explicit "nothing comes to mind" reads back as the CMS wrote it, not as a blank.
+    expect(displayValue(field('avoid'), { v: null, none: true }, 'de')).toBe('Mir fällt nichts ein');
+    expect(displayValue(field('avoid'), { v: null, none: true }, 'en')).toBe('Nothing comes to mind');
+    expect(displayValue(field('reference_screenshots'), undefined, 'de', [
+      { field_key: 'reference_screenshots', file_name: 'a.jpg', size_bytes: 1, mime_type: 'image/jpeg' },
     ])).toBe('a.jpg');
     expect(displayValue(field('legal_name'), undefined, 'de')).toBe('');
   });
@@ -61,11 +69,11 @@ describe('exportRecord', () => {
 
   it('marks don\'t-know and follow-up provenance', () => {
     const record = makeRecord({
-      answers: { ...completeAnswers(), booked_package: dk(), crm_name: a('HubSpot', { src: 'followup' }), integrations: a(['crm']) },
+      answers: { ...completeAnswers(), booked_package: dk(), crm_provider: a('HubSpot', { src: 'followup' }), integrations: a(['crm']) },
     });
     const out = exportRecord(def, record, null, []);
     expect(out.answers.booked_package).toMatchObject({ dont_know: true, value: null });
-    expect(out.answers.crm_name.source).toBe('followup');
+    expect(out.answers.crm_provider.source).toBe('followup');
     expect(out.quote.package).toBeNull();
   });
 

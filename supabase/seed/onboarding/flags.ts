@@ -5,7 +5,7 @@ import type { OnbFlagRule } from '../../../src/lib/onboarding/types.ts';
  * and `credentials_redacted` are computed in code, not here — they need arithmetic.
  * Flags are shown to the team only; the client never sees a price.
  */
-const rows: Omit<OnbFlagRule, 'sort' | 'active'>[] = [
+const rows: (Omit<OnbFlagRule, 'sort' | 'active'> & { active?: boolean })[] = [
   {
     id: 'flag_member_area',
     code: 'needs_quote',
@@ -21,6 +21,7 @@ const rows: Omit<OnbFlagRule, 'sort' | 'active'>[] = [
     detail: 'social_embed',
     severity: 'sales',
     conditions: [{ key: 'social_display', values: ['embedded'] }],
+    active: false, // the form no longer asks how social should be shown
     note_de: 'Social-Feed eingebettet – kostenpflichtiges Extra.',
     note_en: 'Embedded social feed — paid extra.',
   },
@@ -30,6 +31,7 @@ const rows: Omit<OnbFlagRule, 'sort' | 'active'>[] = [
     detail: 'logo_redraw',
     severity: 'sales',
     conditions: [{ key: 'logo_vector', values: ['no'] }],
+    active: false, // the form no longer asks for the logo format
     note_de: 'Logo liegt nicht als Vektor vor – Nachzeichnen anbieten.',
     note_en: 'Logo not available as vector — offer a redraw.',
   },
@@ -71,4 +73,4 @@ const rows: Omit<OnbFlagRule, 'sort' | 'active'>[] = [
   },
 ];
 
-export const flagRules: OnbFlagRule[] = rows.map((r, i) => ({ ...r, sort: (i + 1) * 10, active: true }));
+export const flagRules: OnbFlagRule[] = rows.map((r, i) => ({ active: true, ...r, sort: (i + 1) * 10 }));

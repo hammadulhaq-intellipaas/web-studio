@@ -16,6 +16,7 @@ import {
   MAX_ANSWERS_BYTES,
   SYSTEM_FLAGS,
 } from '@/lib/onboarding/limits';
+import { ANY_VALUE } from '@/lib/onboarding/logic';
 import type { OnbField } from '@/lib/onboarding/types';
 
 /**
@@ -56,7 +57,9 @@ describe('fields', () => {
     for (const f of fields) {
       expect(f.id, f.id).toMatch(/^[a-z][a-z0-9_]{1,39}$/);
       expect(screenIds.has(f.screen_id), `${f.id} → ${f.screen_id}`).toBe(true);
-      expect(screens.find((s) => s.id === f.screen_id)?.kind).toBe('questions');
+      // Fields on the review screen are the closing verdict, asked by the review flow itself.
+      const kind = screens.find((s) => s.id === f.screen_id)?.kind;
+      expect(kind === 'questions' || f.screen_id === 'review', `${f.id} on ${f.screen_id}`).toBe(true);
     }
   });
 
@@ -135,6 +138,10 @@ describe('fields', () => {
         const dep = fieldById.get(clause.key);
         expect(dep, `${f.id} depends on unknown ${clause.key}`).toBeDefined();
         expect(fieldIndex.get(clause.key)!, `${f.id} must come after ${clause.key}`).toBeLessThan(fieldIndex.get(f.id)!);
+        if (clause.values.includes(ANY_VALUE)) {
+          expect(clause.values, `${f.id}: __set cannot be combined`).toEqual([ANY_VALUE]);
+          continue;
+        }
         expect(CHOICE_TYPES.has(dep!.type), `${f.id}: ${clause.key} is not a choice field`).toBe(true);
         const allowed = optionValues(dep!);
         for (const v of clause.values) {
@@ -225,7 +232,7 @@ describe('follow-ups', () => {
 describe('flag rules', () => {
   it('use existing choice fields and valid values', () => {
     expect(new Set(flagRules.map((r) => r.id)).size).toBe(flagRules.length);
-    for (const rule of flagRules) {
+    for (const rule of flagRules.filter((r) => r.active)) {
       expect(rule.conditions.length, rule.id).toBeGreaterThan(0);
       for (const clause of rule.conditions) {
         const dep = fieldById.get(clause.key);
@@ -276,8 +283,8 @@ describe('texts, prompts, examples', () => {
     }
   });
 
-  it('the four prompts exist and the system prompt carries the hard rules', () => {
-    expect(prompts.map((p) => p.id).sort()).toEqual(['brief', 'completeness', 'rewrite', 'system']);
+  it('the five prompts exist and the system prompt carries the hard rules', () => {
+    expect(prompts.map((p) => p.id).sort()).toEqual(['assist', 'brief', 'completeness', 'rewrite', 'system']);
     const system = prompts.find((p) => p.id === 'system')!.content;
     expect(system).toMatch(/never invent/i);
     expect(system).toMatch(/price/i);

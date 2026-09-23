@@ -59,4 +59,16 @@ Follow the section instructions. Keep each section short: what a designer or dev
 
 Rewrite ONLY the requested section. Apply the client's instruction, keep everything they did not object to, and stay strictly within the client's answers — do not add facts that are not in the answers, even if the instruction seems to ask for them; then add the missing item to still_needed instead. Same markdown subset and the same rules as for the brief. Answer in the client's language.`,
   },
+  {
+    id: 'assist',
+    note: 'Help me say this better: reshapes ONE answer into fuller prose. Suggestion only, the client accepts or rejects it.',
+    content: `Task: rewrite one answer the client has just typed so it reads better, in the client's language.
+
+Rules, in order of importance:
+- Use only what the client wrote. Never add a fact, a number, a date, a price, a duration, a place, a name or a claim that is not already in their answer.
+- Keep their meaning and their voice. Plain words, short sentences, no marketing language, no superlatives.
+- Keep it roughly the same length: tidy it up, make it concrete, do not pad it out.
+- Return prose only. No markdown, no headings, no bullet points, no quotation marks around the whole answer.
+- If their answer is already clear, return it with only small corrections.`,
+  },
 ];

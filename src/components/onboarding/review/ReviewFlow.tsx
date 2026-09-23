@@ -7,13 +7,13 @@ import type { Locale } from '@/lib/types';
 import { validateAll } from '@/lib/onboarding/logic';
 import { textFor } from '@/lib/onboarding/texts';
 import { loc } from '@/lib/onboarding/types';
-import type { OnboardingBrief, OnboardingDefinition, OnboardingFormRecord } from '@/lib/onboarding/types';
+import type { Answer, OnboardingBrief, OnboardingDefinition, OnboardingFormRecord } from '@/lib/onboarding/types';
 import { BLUE, BODY, BORDER, gradButton, INK, MUTED } from '@/components/funnel/ui';
 import type { PublicFile } from '../fields/UploadInput';
 import { DANGER } from '../fields/styles';
 import { FollowupExchange } from './FollowupExchange';
-import { BriefEditor } from '../brief/BriefEditor';
 import { ConfirmScreen } from './ConfirmScreen';
+import { UnderstoodStep } from './UnderstoodStep';
 import { DoneScreen } from './DoneScreen';
 
 export interface ReviewFlowProps {
@@ -26,6 +26,7 @@ export interface ReviewFlowProps {
   locale: Locale;
   onBackToForm: () => void;
   onJumpToScreen: (screenId: string) => void;
+  onChange: (key: string, answer: Answer | null) => void;
   flush: () => Promise<void>;
 }
 
@@ -40,34 +41,36 @@ export function ReviewFlow(props: ReviewFlowProps) {
   if (record.status === 'review') return <ReviewStage {...props} />;
   if (record.status === 'brief') return <BriefStage {...props} />;
   return (
-    <DoneScreen
-      definition={props.definition}
-      record={record}
-      setRecord={props.setRecord}
-      brief={props.brief}
-      setBrief={props.setBrief}
-      locale={props.locale}
-    />
+    <DoneScreen definition={props.definition} record={record} setRecord={props.setRecord} locale={props.locale} />
   );
 }
 
-/** The brief, then (client-side sub-step) the confirmation. */
+/**
+ * Step 10: the client checks their answers and reads back what we understood, then
+ * confirms. The written brief is still produced at this point (`BriefLoader`) because the
+ * team works from it, but the client is never asked to read a document a model wrote.
+ */
 function BriefStage(props: ReviewFlowProps) {
-  const { definition, record, setRecord, brief, setBrief, locale } = props;
+  const { definition, record, setRecord, brief, files, locale, onJumpToScreen, onChange, flush } = props;
   const [confirming, setConfirming] = useState(false);
   if (!brief) return <BriefLoader {...props} />;
   if (confirming) {
     return <ConfirmScreen definition={definition} record={record} setRecord={setRecord} locale={locale} onBack={() => setConfirming(false)} />;
   }
   return (
-    <BriefEditor
+    <UnderstoodStep
       definition={definition}
       record={record}
-      setRecord={setRecord}
-      brief={brief}
-      setBrief={setBrief}
+      files={files}
       locale={locale}
-      onConfirm={() => setConfirming(true)}
+      onJumpToScreen={onJumpToScreen}
+      onChange={onChange}
+      // The verdict is still sitting in the autosave queue. The confirm screen writes with
+      // the revision it was handed, so that save has to land before we move on.
+      onConfirm={async () => {
+        await flush();
+        setConfirming(true);
+      }}
     />
   );
 }

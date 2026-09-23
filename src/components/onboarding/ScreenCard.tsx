@@ -92,6 +92,7 @@ export function ScreenCard({
               <FieldRenderer
                 field={field}
                 answer={answers[field.id]}
+                answers={answers}
                 errors={errors.filter((e) => e.field === field.id)}
                 required={requiredNow(field)}
                 locale={locale}

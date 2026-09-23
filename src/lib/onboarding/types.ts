@@ -114,6 +114,13 @@ export interface FieldConfig {
   accept?: string[];
   max_files?: number;
   max_mb?: number;
+  /** Free-text fields: an explicit "nothing to add" tick, so silence is never ambiguous. */
+  none_label_de?: string;
+  none_label_en?: string;
+  /** Offer "Help me say this better": one model pass over this answer, accept or reject. */
+  ai_assist?: boolean;
+  /** Count the lines of this field against the page band held by the named field. */
+  count_band?: string;
   // notice: which onb_texts key to render
   text_key?: string;
   tone?: 'info' | 'warn';
@@ -234,7 +241,7 @@ export interface OnbText {
   content_markdown: string;
 }
 
-export type PromptId = 'system' | 'completeness' | 'brief' | 'rewrite';
+export type PromptId = 'system' | 'completeness' | 'brief' | 'rewrite' | 'assist';
 
 export interface OnbPrompt {
   id: PromptId;
@@ -299,6 +306,10 @@ export type AnswerValue = string | number | string[] | Record<string, string> | 
 export interface Answer {
   v: AnswerValue | null;
   dk?: true;
+  /** Best-guess date the client expects to know, asked right after "I don't know". */
+  dk_date?: string;
+  /** The field's "nothing comes to mind" / "we don't have one" tick; counts as answered. */
+  none?: true;
   /** `lead`: prefilled from the quote the form was created from. */
   src?: 'followup' | 'edit' | 'lead';
   /** Free text for a checkboxes "other" tick. */

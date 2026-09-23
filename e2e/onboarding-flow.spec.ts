@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { testEmail } from './fixtures';
 import { createFilledForm, getRecord } from './helpers/onboarding';
 
-// Review → follow-ups → brief → confirm → done, with the AI layer in fixture mode
+// Review → follow-ups → read-back → confirm → done, with the AI layer in fixture mode
 // (ONBOARDING_AI_FIXTURE=1 on the server): deterministic, no key, no cost.
 
 const EMAIL = testEmail('onb-flow');
@@ -68,7 +68,7 @@ test.describe('onboarding review flow', () => {
     expect(record.review?.history).toHaveLength(6);
   });
 
-  test('a clean form has no follow-ups and goes straight to the brief hand-off', async ({ page, request }) => {
+  test('a clean form has no follow-ups and goes straight to the read-back', async ({ page, request }) => {
     const id = await createFilledForm(request, EMAIL);
     await page.goto(`/onboardingform/${id}`);
     await page.click('[data-testid=onb-start-review]');
@@ -76,42 +76,40 @@ test.describe('onboarding review flow', () => {
     await expect(page.locator('[data-testid=onb-to-brief]')).toBeVisible();
   });
 
-  test('the brief has the nine sections, edits inline, rewrites one section only', async ({ page, request }) => {
+  test('the read-back shows their answers and our understanding, and takes a correction', async ({ page, request }) => {
     const id = await createFilledForm(request, EMAIL, { booked_package: { v: null, dk: true } });
     await page.goto(`/onboardingform/${id}`);
     await page.click('[data-testid=onb-start-review]');
     await page.click('[data-testid=onb-reply-gold]'); // the one follow-up
     await page.click('[data-testid=onb-to-brief]');
 
-    await expect(page.locator('[data-screen=onb-brief]')).toBeVisible({ timeout: 30_000 });
-    await expect(page.locator('[data-testid^=onb-brief-section-]')).toHaveCount(9);
-    await expect(page.locator('[data-testid=onb-brief-content-who]')).toContainText('Physio Nordend');
-    await expect(page.locator('[data-testid=onb-brief-content-look]')).toContainText('Freundlich, aber professionell');
-    // section 9 is composed by code: nothing is missing after the follow-up was answered
-    await expect(page.locator('[data-testid=onb-brief-content-still_needed]')).toContainText('Nichts');
-    // the system section has no edit / rewrite controls
-    await expect(page.locator('[data-testid=onb-brief-edit-btn-still_needed]')).toHaveCount(0);
+    // Block 1: every answer, grouped by section, with a way back to the screen it came from
+    await expect(page.locator('[data-testid=onb-answer-check]')).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator('[data-testid=onb-answer-check]')).toContainText('Physio Nordend');
+    await expect(page.locator('[data-testid=onb-edit-business]')).toBeVisible();
 
-    // inline edit of one section
-    const before = await page.locator('[data-testid=onb-brief-content-dates]').innerText();
-    await page.click('[data-testid=onb-brief-edit-btn-who]');
-    await page.fill('[data-testid=onb-brief-edit-who]', 'Physio Nordend ist eine Praxis in Frankfurt. **Eigene Fassung.**');
-    await page.click('[data-testid=onb-brief-save-who]');
-    await expect(page.locator('[data-testid=onb-brief-content-who]')).toContainText('Eigene Fassung');
-    await expect(page.locator('[data-testid=onb-brief-section-who]')).toContainText('bearbeitet');
-    await expect(page.locator('[data-testid=onb-brief-content-dates]')).toHaveText(before);
+    // Block 2: the read-back, assembled from their own words
+    const understood = page.locator('[data-testid=onb-understood]');
+    await expect(understood).toContainText('Rückenschmerzen');
+    await expect(understood).toContainText('einen termin buchen');
+    await expect(understood).toContainText('freundlich, aber professionell');
 
-    // rewrite one section — only that section changes
-    await page.click('[data-testid=onb-brief-rewrite-btn-dates]');
-    await page.fill('[data-testid=onb-brief-instruction-dates]', 'Bitte den Starttermin zuerst nennen.');
-    await page.click('[data-testid=onb-brief-rewrite-send-dates]');
-    await expect(page.locator('[data-testid=onb-brief-content-dates]')).toContainText('Ergänzt nach Ihrer Anmerkung', { timeout: 30_000 });
-    await expect(page.locator('[data-testid=onb-brief-content-who]')).toContainText('Eigene Fassung');
+    // A correction is required as soon as they say it is not right
+    await page.click('[data-testid=onb-to-confirm]');
+    await expect(page.locator('[data-testid=onb-understood-error]')).toBeVisible();
+    await page.click('[data-testid=onb-understood-mostly]');
+    await page.click('[data-testid=onb-to-confirm]');
+    await expect(page.locator('[data-testid=onb-understood-error]')).toBeVisible();
+    await page.fill('[data-testid=onb-corrections]', 'Wir sind überhaupt nicht förmlich, unsere Patienten duzen uns.');
+    await page.click('[data-testid=onb-to-confirm]');
+    await expect(page.locator('[data-screen=onb-confirm]')).toBeVisible();
 
+    // The written brief still exists for the team, with its nine sections
     const { record } = await getRecord(request, id);
     expect(record.status).toBe('brief');
-    expect(record.brief_version).toBe(3); // llm → client_edit → rewrite
-    await expect(page.locator('[data-testid=onb-to-confirm]')).toBeVisible();
+    expect(record.brief_version).toBe(1);
+    expect(record.answers.understood_ok?.v).toBe('mostly');
+    expect(record.answers.understood_corrections?.v).toContain('förmlich');
   });
 
   test('confirming needs every check and a name, then delivers the PDF and locks the form', async ({ page, request }) => {
@@ -119,14 +117,15 @@ test.describe('onboarding review flow', () => {
     await page.goto(`/onboardingform/${id}`);
     await page.click('[data-testid=onb-start-review]');
     await page.click('[data-testid=onb-to-brief]');
-    await expect(page.locator('[data-screen=onb-brief]')).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator('[data-testid=onb-answer-check]')).toBeVisible({ timeout: 30_000 });
+    await page.click('[data-testid=onb-understood-yes]');
     await page.click('[data-testid=onb-to-confirm]');
 
     await expect(page.locator('[data-screen=onb-confirm]')).toBeVisible();
-    // the corrected terms from the 16 Sep call
-    await expect(page.locator('[data-testid=onb-terms]')).toContainText('3 bis 6 Wochen');
-    await expect(page.locator('[data-testid=onb-terms]')).toContainText('24 Stunden');
-    await expect(page.locator('[data-testid=onb-terms]')).not.toContainText('Kalendertage');
+    // the timeline the 23 Sep 2026 spec sets out
+    await expect(page.locator('[data-testid=onb-terms]')).toContainText('10 Tagen');
+    await expect(page.locator('[data-testid=onb-terms]')).toContainText('3 Wochen');
+    await expect(page.locator('[data-testid=onb-terms]')).toContainText('5 Tagen');
 
     await page.click('[data-testid=onb-confirm-submit]');
     await expect(page.locator('[data-testid=onb-confirm-error]')).toBeVisible(); // checks missing
@@ -157,7 +156,7 @@ test.describe('onboarding review flow', () => {
     expect(patch.status()).toBe(409);
     await page.reload();
     await expect(page.locator('[data-screen=onb-done]')).toBeVisible();
-    await expect(page.locator('[data-testid=onb-brief-edit-btn-who]')).toHaveCount(0); // read-only brief
+    await expect(page.locator('[data-testid=onb-to-confirm]')).toHaveCount(0); // locked after confirming
   });
 
   test('the review refuses an incomplete form', async ({ request }) => {

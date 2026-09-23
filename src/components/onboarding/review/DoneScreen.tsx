@@ -4,32 +4,28 @@ import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 
 import { useTranslations } from 'next-intl';
 import ReactMarkdown from 'react-markdown';
 import type { Locale } from '@/lib/types';
+import { understoodText } from '@/lib/onboarding/understood';
 import { textFor } from '@/lib/onboarding/texts';
-import type { OnboardingBrief, OnboardingDefinition, OnboardingFormRecord } from '@/lib/onboarding/types';
+import type { OnboardingDefinition, OnboardingFormRecord } from '@/lib/onboarding/types';
 import { BODY, BORDER, gradButton, MUTED } from '@/components/funnel/ui';
-import { BriefEditor } from '../brief/BriefEditor';
 
 const POLL_MS = 3000;
 const POLL_MAX = 20;
 
 /**
- * "Here's your brief": PDF download, the emailed-copy note, what happens next, and the
- * confirmed brief below it, read-only. The PDF link works immediately (rendered on demand)
- * while the page polls for the stored copy so the emails' status can be shown.
+ * "That's everything": PDF download, the emailed-copy note, what happens next, and the
+ * read-back they confirmed, repeated read-only. The PDF link works immediately (rendered on
+ * demand) while the page polls for the stored copy so the emails' status can be shown.
  */
 export function DoneScreen({
   definition,
   record,
   setRecord,
-  brief,
-  setBrief,
   locale,
 }: {
   definition: OnboardingDefinition;
   record: OnboardingFormRecord;
   setRecord: Dispatch<SetStateAction<OnboardingFormRecord>>;
-  brief: OnboardingBrief | null;
-  setBrief: Dispatch<SetStateAction<OnboardingBrief | null>>;
   locale: Locale;
 }) {
   const t = useTranslations('onboarding.done');
@@ -104,11 +100,10 @@ export function DoneScreen({
         </div>
       </div>
 
-      {brief && (
-        <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 26 }}>
-          <BriefEditor definition={definition} record={record} setRecord={setRecord} brief={brief} setBrief={setBrief} locale={locale} onConfirm={() => undefined} readOnly />
-        </div>
-      )}
+      {/* What they confirmed, in their own words. The written brief goes to the team. */}
+      <div data-testid="onb-done-understood" style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 26 }} className="onb-prose">
+        <ReactMarkdown>{understoodText(definition, record.answers, locale)}</ReactMarkdown>
+      </div>
     </section>
   );
 }

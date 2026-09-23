@@ -36,16 +36,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const ticked = new Set(parsed.data.checks);
   if (checks.some((_, i) => !ticked.has(i))) return NextResponse.json({ error: 'checks_incomplete' }, { status: 422 });
 
-  const saved = await saveWithRev(
-    id,
-    record.rev,
-    {
-      status: 'confirmed',
-      confirmed: { name: redactSecrets(parsed.data.name).text, at: new Date().toISOString(), terms_version: definition.settings.termsVersion },
-      current_step: 'review',
-    },
-    'brief',
-  );
+  const update = {
+    status: 'confirmed' as const,
+    confirmed: { name: redactSecrets(parsed.data.name).text, at: new Date().toISOString(), terms_version: definition.settings.termsVersion },
+    current_step: 'review',
+  };
+  let saved = await saveWithRev(id, record.rev, update, 'brief');
+  // The read-back writes the client's verdict through the normal autosave, so a save can
+  // land between the read above and this one. Losing that race is not a reason to refuse a
+  // confirmation: reload and try once more, with the status still guarding the transition.
+  if (!saved.ok && saved.error === 'stale' && saved.record?.status === 'brief') {
+    saved = await saveWithRev(id, saved.record.rev, update, 'brief');
+  }
   if (!saved.ok) return NextResponse.json({ error: saved.error, record: saved.record }, { status: 409 });
 
   after(async () => {

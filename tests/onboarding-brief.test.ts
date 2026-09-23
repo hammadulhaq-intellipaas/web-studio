@@ -40,7 +40,7 @@ describe('fallback and still-needed', () => {
   it('renders answers as label: value lines in the client language and names the gaps', () => {
     const record = makeRecord({ answers: { ...completeAnswers(), booked_package: dk(), tagline: a('') } });
     const sections = fallbackSections(def, record, [], llmSections);
-    expect(sections.who.content_markdown).toContain('**Vollständiger Firmenname');
+    expect(sections.who.content_markdown).toContain('**Wie lautet Ihr vollständiger Firmenname?');
     expect(sections.who.content_markdown).toContain('Physio Nordend Lena Hartmann e.K.');
     expect(sections.pages.still_needed).toContain('Welches Paket haben Sie gebucht?');
     expect(sections.look.content_markdown).toContain('Freundlich, aber professionell (3/5)');
@@ -76,7 +76,7 @@ describe('fallback and still-needed', () => {
     };
     const section = stillNeededSection(def, record, [], llm);
     expect(section.still_needed).toEqual(
-      expect.arrayContaining(['Welches Paket haben Sie gebucht?', expect.stringContaining('mehr Details'), 'Öffnungszeiten, Tag für Tag', 'Slogan']),
+      expect.arrayContaining(['Welches Paket haben Sie gebucht?', expect.stringContaining('mehr Details'), 'Wie sind Ihre Öffnungszeiten?', 'Slogan']),
     );
     expect(section.content_markdown.split('\n').every((l) => l.startsWith('- '))).toBe(true);
   });
@@ -129,7 +129,7 @@ describe('generateBrief', () => {
     const record = makeRecord();
     const prompt = buildBriefPrompt({ definition: def, secrets, record, files: [], sections: llmSections, gaps: [], violations: ['who: forbidden "3 Wochen"'] });
     expect(prompt).toContain('### who');
-    expect(prompt).toContain('legal_name · Vollständiger Firmenname');
+    expect(prompt).toContain('legal_name · Wie lautet Ihr vollständiger Firmenname?');
     expect(prompt).toContain('PREVIOUS ATTEMPT WAS REJECTED');
     expect(prompt).toContain('Write in German (de)');
   });

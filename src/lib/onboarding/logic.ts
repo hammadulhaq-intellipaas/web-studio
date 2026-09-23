@@ -52,6 +52,8 @@ function rowIsBlank(row: RepeaterRow): boolean {
 export function isEmpty(answer: Answer | undefined): boolean {
   if (!answer) return true;
   if (answer.dk) return false;
+  // "Nothing comes to mind" is an answer, not a blank.
+  if (answer.none) return false;
   const v = answer.v;
   if (v == null) return true;
   if (typeof v === 'string') return v.trim() === '';
@@ -91,6 +93,9 @@ function conditionValues(answer: Answer | undefined): string[] | null {
   return null;
 }
 
+/** Condition value that matches any answer, as `url: '__set'` does in the catalog rules. */
+export const ANY_VALUE = '__set';
+
 /**
  * Same shape as the catalog rules (`src/lib/pricing/rules.ts`) with two form-specific
  * twists: a clause on a HIDDEN field is false even when negated (a reveal can never be
@@ -103,7 +108,8 @@ export function matches(conditions: RuleCondition[], answers: Answers, hidden: R
     if (hidden.has(clause.key)) return false;
     const actual = conditionValues(answers[clause.key]);
     if (actual === null) return false;
-    const hit = actual.some((v) => clause.values.includes(v));
+    // `__set` matches any answer at all, for reveals that only need "they filled this in".
+    const hit = clause.values.includes(ANY_VALUE) || actual.some((v) => clause.values.includes(v));
     return clause.negate ? !hit : hit;
   });
 }
@@ -292,6 +298,11 @@ function validateRanking(field: OnbField, answer: Answer | undefined, required: 
   return errors;
 }
 
+/** A field offers the "we don't have one" tick when the CMS gave it a label for it. */
+export function hasNoneOption(field: OnbField): boolean {
+  return !!(field.config.none_label_de || field.config.none_label_en);
+}
+
 /**
  * Deterministic per-field validation. Returns error codes (translated by the UI), never
  * text. `locale` only matters for bucket labels carried in ranking error params.
@@ -301,6 +312,9 @@ export function validateField(field: OnbField, ctx: ValidationContext, locale: L
   const required = isRequiredNow(field, ctx);
   if (field.type === 'notice') return [];
   if (answer?.dk) return field.allow_dont_know ? [] : [{ field: field.id, code: 'invalid_option' }];
+  // "We don't have one" is a complete answer and carries no value of its own, so it has to
+  // short-circuit the type checks below — otherwise a required field can never be satisfied.
+  if (answer?.none) return hasNoneOption(field) ? [] : [{ field: field.id, code: 'invalid_option' }];
 
   if (field.type === 'upload') {
     return required && !(ctx.files[field.id] > 0) ? [{ field: field.id, code: 'required' }] : [];
@@ -409,6 +423,8 @@ export function computeGaps(definition: Pick<OnboardingDefinition, 'fields'>, an
       gaps.push({ field: field.id, kind: 'dont_know' });
       continue;
     }
+    // An explicit "nothing comes to mind" needs no follow-up.
+    if (answer?.none) continue;
     if (field.type === 'upload') {
       if (required && !(files[field.id] > 0)) gaps.push({ field: field.id, kind: 'no_files' });
       continue;

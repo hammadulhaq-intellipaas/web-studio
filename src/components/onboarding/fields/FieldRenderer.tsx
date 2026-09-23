@@ -4,9 +4,11 @@ import { useId } from 'react';
 import type { Locale } from '@/lib/types';
 import type { FieldError } from '@/lib/onboarding/logic';
 import { rowsOf, textOf } from '@/lib/onboarding/logic';
-import type { Answer, OnbField, OnboardingDefinition, RepeaterRow } from '@/lib/onboarding/types';
+import type { Answer, Answers, OnbField, OnboardingDefinition, RepeaterRow } from '@/lib/onboarding/types';
+import { AiAssist } from './AiAssist';
 import { CheckboxPills, RadioPills, SelectInput, TextAreaInput, TextInput } from './BasicInputs';
 import { FieldShell } from './FieldShell';
+import { PageCounter } from './PageCounter';
 import { Notice } from './Notice';
 import { RankingInput } from './RankingInput';
 import { initialRows, RepeaterInput } from './RepeaterInput';
@@ -16,6 +18,8 @@ import { UploadInput, type PublicFile } from './UploadInput';
 export interface FieldRendererProps {
   field: OnbField;
   answer: Answer | undefined;
+  /** Every answer on the form: the page counter compares this field against the booked band. */
+  answers: Answers;
   errors: FieldError[];
   required: boolean;
   locale: Locale;
@@ -29,14 +33,15 @@ export interface FieldRendererProps {
 
 /** Picks the control for a field type and adapts its value to the `Answer` envelope. */
 export function FieldRenderer(props: FieldRendererProps) {
-  const { field, answer, errors, required, locale, definition, formId, files, onChange, onFiles, disabled } = props;
+  const { field, answer, answers, errors, required, locale, definition, formId, files, onChange, onFiles, disabled } = props;
   const inputId = useId();
 
   if (field.type === 'notice') return <Notice field={field} texts={definition.texts} locale={locale} />;
 
   const invalid = errors.length > 0;
   const dk = !!answer?.dk;
-  const set = (v: Answer['v']) => onChange({ v });
+  // Keeping the envelope's extras (the "when will you know" date) across value edits.
+  const set = (v: Answer['v']) => onChange({ ...answer, v, dk: undefined, none: undefined });
 
   const control = (() => {
     switch (field.type) {
@@ -58,17 +63,25 @@ export function FieldRenderer(props: FieldRendererProps) {
           />
         );
       }
-      case 'textarea':
+      case 'textarea': {
+        const text = textOf(answer);
         return (
-          <TextAreaInput
-            field={field}
-            locale={locale}
-            invalid={invalid}
-            inputId={inputId}
-            value={textOf(answer)}
-            onChange={(v) => (v === '' ? onChange(null) : set(v))}
-          />
+          <>
+            <TextAreaInput
+              field={field}
+              locale={locale}
+              invalid={invalid}
+              inputId={inputId}
+              value={text}
+              onChange={(v) => (v === '' ? onChange(null) : set(v))}
+            />
+            {field.config.count_band && (
+              <PageCounter field={field} value={text} answers={answers} definition={definition} locale={locale} />
+            )}
+            {field.config.ai_assist && <AiAssist formId={formId} fieldKey={field.id} value={text} onUse={set} />}
+          </>
         );
+      }
       case 'radio':
         return <RadioPills field={field} locale={locale} invalid={invalid} value={typeof answer?.v === 'string' ? answer.v : null} onChange={set} />;
       case 'select':
@@ -116,6 +129,10 @@ export function FieldRenderer(props: FieldRendererProps) {
       errors={errors}
       dontKnow={dk}
       onDontKnow={(on) => onChange(on ? { v: null, dk: true } : null)}
+      dontKnowDate={answer?.dk_date}
+      onDontKnowDate={(date) => onChange({ v: null, dk: true, ...(date ? { dk_date: date } : {}) })}
+      none={!!answer?.none}
+      onNone={(on) => onChange(on ? { v: null, none: true } : null)}
       settings={definition.settings}
       inputId={inputId}
     >

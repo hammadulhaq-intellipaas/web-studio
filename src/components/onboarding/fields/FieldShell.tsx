@@ -6,7 +6,7 @@ import type { FieldError } from '@/lib/onboarding/logic';
 import type { OnbField, OnboardingSettings } from '@/lib/onboarding/types';
 import { loc } from '@/lib/onboarding/types';
 import { BLUE, BORDER, MUTED } from '@/components/funnel/ui';
-import { errorStyle, helpStyle, labelStyle, pillStyle } from './styles';
+import { errorStyle, helpStyle, inputStyle, labelStyle, pillStyle } from './styles';
 
 const SETTING_LINKS: Record<string, keyof OnboardingSettings> = {
   onb_examples_url: 'examplesUrl',
@@ -25,6 +25,10 @@ export function FieldShell({
   errors,
   dontKnow,
   onDontKnow,
+  dontKnowDate,
+  onDontKnowDate,
+  none,
+  onNone,
   settings,
   inputId,
   children,
@@ -35,6 +39,10 @@ export function FieldShell({
   errors: FieldError[];
   dontKnow: boolean;
   onDontKnow?: (on: boolean) => void;
+  dontKnowDate?: string;
+  onDontKnowDate?: (date: string) => void;
+  none?: boolean;
+  onNone?: (on: boolean) => void;
   settings: OnboardingSettings;
   inputId: string;
   children: React.ReactNode;
@@ -48,6 +56,7 @@ export function FieldShell({
   const linkHref = linkKey ? String(settings[linkKey] ?? '') : '';
   const linkLabel = locale === 'de' ? field.config.link_label_de : field.config.link_label_en;
   const topErrors = errors.filter((e) => !e.row_id);
+  const noneLabel = locale === 'de' ? field.config.none_label_de : field.config.none_label_en;
 
   return (
     <div data-field={field.id} data-invalid={topErrors.length ? 'true' : undefined} style={{ minWidth: 0 }}>
@@ -76,10 +85,6 @@ export function FieldShell({
         <div
           data-testid={`dk-active-${field.id}`}
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            flexWrap: 'wrap',
             background: '#F5F7FB',
             border: `1px dashed ${BORDER}`,
             borderRadius: 10,
@@ -88,17 +93,45 @@ export function FieldShell({
             color: '#4A5872',
           }}
         >
-          <span style={{ fontWeight: 600 }}>{t('dontKnowActive')}</span>
-          <button
-            type="button"
-            onClick={() => onDontKnow?.(false)}
-            style={{ fontFamily: 'inherit', cursor: 'pointer', background: 'none', border: 'none', padding: 0, color: BLUE, fontSize: 13, fontWeight: 700 }}
-          >
-            {t('dontKnowUndo')}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <span style={{ fontWeight: 600 }}>{t('dontKnowActive')}</span>
+            <button
+              type="button"
+              onClick={() => onDontKnow?.(false)}
+              style={{ fontFamily: 'inherit', cursor: 'pointer', background: 'none', border: 'none', padding: 0, color: BLUE, fontSize: 13, fontWeight: 700 }}
+            >
+              {t('dontKnowUndo')}
+            </button>
+          </div>
+          {/* Not knowing yet is fine; knowing WHEN they will know is what we plan around. */}
+          <label htmlFor={`${inputId}-dkdate`} style={{ display: 'block', fontWeight: 700, margin: '12px 0 4px' }}>
+            {t('dontKnowDate')}
+          </label>
+          <div style={{ fontSize: 12.5, color: MUTED, marginBottom: 6 }}>{t('dontKnowDateHelp')}</div>
+          <input
+            id={`${inputId}-dkdate`}
+            type="date"
+            data-testid={`dk-date-${field.id}`}
+            value={dontKnowDate ?? ''}
+            onChange={(ev) => onDontKnowDate?.(ev.target.value)}
+            style={inputStyle(false, { maxWidth: 220 })}
+          />
         </div>
       ) : (
         children
+      )}
+
+      {noneLabel && !dontKnow && (
+        <label style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 9, fontSize: 13.5, color: '#4A5872', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            data-testid={`none-${field.id}`}
+            checked={!!none}
+            onChange={(ev) => onNone?.(ev.target.checked)}
+            style={{ width: 16, height: 16, accentColor: BLUE, flex: 'none' }}
+          />
+          {noneLabel}
+        </label>
       )}
 
       {field.allow_dont_know && !dontKnow && (
