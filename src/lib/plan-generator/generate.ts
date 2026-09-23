@@ -1,7 +1,7 @@
 import 'server-only';
 import { generateObject } from 'ai';
-import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
+import { getLanguageModel } from '../ai/provider';
 import type { Lead, SuggestedPlanPhase } from '../types';
 import { buildLeadContext, buildPipeline } from './pipeline';
 
@@ -21,8 +21,8 @@ export async function generatePhases(
   lead: Lead,
   fileNames: string[],
 ): Promise<{ phases: SuggestedPlanPhase[]; model: string }> {
-  const modelId = process.env.OPENAI_PLAN_MODEL ?? 'gpt-4o';
-  const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const modelId = process.env.OPENAI_PLAN_MODEL ?? 'gpt-6-luna';
+  const model = getLanguageModel(modelId);
 
   const pipeline = buildPipeline(lead.config);
   const context = buildLeadContext(lead, fileNames);
@@ -41,7 +41,7 @@ export async function generatePhases(
     .join('\n\n');
 
   const { object } = await generateObject({
-    model: openai(modelId),
+    model,
     schema: planSchema,
     system: `You write execution-ready prompts for a web agency that builds customer websites with two tools:
 - **Claude Design** (claude.ai/design) — AI mockup/design tool that exports HTML handoff bundles.

@@ -45,7 +45,8 @@ npm run dev
 | `RESEND_TO_EMAIL` | Comma-separated team recipients for new-inquiry **and** confirmed-booking notifications. Falls back to the `team_email` app setting |
 | `CALENDLY_URL` | Booking embed URL (overridden by the `calendly_event_url` app setting) |
 | `CALENDLY_WEBHOOK_SIGNING_KEY` | HMAC verification of `/api/webhooks/calendly` |
-| `OPENAI_API_KEY` / `OPENAI_PLAN_MODEL` | Suggested-plan generator (default `gpt-4o`); the key is also used by the onboarding form's AI layer (its model id is the `onb_model` setting) |
+| `OPENAI_API_KEY` / `OPENAI_PLAN_MODEL` | Suggested-plan generator (default `gpt-6-luna`); the key is also used by the onboarding form's AI layer (its model id is the `onb_model` setting) |
+| `OPENROUTER_API_KEY` | Optional. When set, every model call goes to OpenRouter instead of OpenAI — no code change, but the model ids need their prefix (`openai/gpt-6-luna`) |
 | `ONBOARDING_BASIC_USER` / `ONBOARDING_BASIC_PASS` | HTTP Basic auth in front of `/onboardingform/**` and `/api/onboarding/**`. **Fails closed**: unset = locked for everyone. `ONBOARDING_BASIC_AUTH=off` opens the form publicly |
 | `TEAM_MODE` | `off` disables team mode on the public configurator (the proxy then no longer refreshes an admin's session on public paths). Default: on |
 

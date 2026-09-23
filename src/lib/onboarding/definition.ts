@@ -29,7 +29,7 @@ export function parseOnboardingSettings(settingsMap: Record<string, unknown>): O
   const str = (key: string, fallback: string) =>
     settingsMap[key] == null ? fallback : String(settingsMap[key]);
   return {
-    model: str('onb_model', 'gpt-4o'),
+    model: str('onb_model', 'gpt-6-luna'),
     maxFollowups: num('onb_max_followups', 12),
     maxRounds: num('onb_max_rounds', 2),
     maxRewrites: num('onb_max_rewrites', 9),

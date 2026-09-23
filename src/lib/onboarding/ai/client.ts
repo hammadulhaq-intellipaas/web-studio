@@ -1,8 +1,8 @@
 import 'server-only';
 import { generateObject, NoObjectGeneratedError, type LanguageModel } from 'ai';
-import { createOpenAI } from '@ai-sdk/openai';
 import type { z } from 'zod';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import { apiKeyPresent, getLanguageModel } from '@/lib/ai/provider';
 import { redactSecrets } from '../guardrails';
 import type { OnbPrompt, OnboardingSettings, PromptId } from '../types';
 
@@ -14,12 +14,11 @@ export function fixtureMode(): boolean {
 }
 
 export function modelConfigured(): boolean {
-  return fixtureMode() || !!process.env.OPENAI_API_KEY;
+  return fixtureMode() || apiKeyPresent();
 }
 
 export function getModel(settings: OnboardingSettings): LanguageModel {
-  const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  return openai(settings.model);
+  return getLanguageModel(settings.model);
 }
 
 export function promptText(prompts: OnbPrompt[], id: PromptId): string {
