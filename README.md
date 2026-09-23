@@ -115,7 +115,18 @@ deterministic gap check → optional model pass → guided follow-ups (max 2 rou
 all skippable) → **the read-back** → terms + confirmation → PDF and JSON emailed to the client
 and the team.
 
-The read-back is two blocks: every answer grouped by screen with a link back to it, then a plain
+The closing screen opens with **the completeness report**: what is still open, one line per
+field, each with a link straight back to it. It is assembled from both layers of the check —
+`computeGaps` in code decides whether a field is filled in (rules see every field, every reveal
+and every upload, and never miss one or invent one), and the completeness model only judges
+whether free text is specific enough to build from, arriving as `vague` items with the model's
+own question as the reason. It is advisory: required fields are already enforced screen by
+screen, so anything left is optional, an "I don't know" with the date they expect to know, or a
+judgement call worth raising before the first design. `POST /api/onboarding/<id>/report` builds
+it and caches it on the record against a hash of the *question* answers, so reopening the screen
+costs nothing and the read-back's own verdict never restages a model call.
+
+Below it, the read-back is two blocks: every answer grouped by screen with a link back to it, then a plain
 paragraph of what we understood. That paragraph is **templated, not model-written** — an
 `onb_texts` row with `{business_one_liner}`-style tokens that `src/lib/onboarding/understood.ts`
 fills from the client's own answers, so the client never has to read or approve prose a model

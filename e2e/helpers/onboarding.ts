@@ -1,7 +1,7 @@
 import type { APIRequestContext } from '@playwright/test';
 
 /** A complete, valid set of answers (mirrors tests/fixtures/onboarding.ts). */
-export function completeAnswers(email: string): Record<string, { v: unknown; dk?: true }> {
+export function completeAnswers(email: string): Record<string, { v: unknown; dk?: true; dk_date?: string; none?: true }> {
   const a = (v: unknown) => ({ v });
   return {
     contact_name: a('Lena Hartmann'),
@@ -68,7 +68,7 @@ export function completeAnswers(email: string): Record<string, { v: unknown; dk?
 export async function createFilledForm(
   request: APIRequestContext,
   email: string,
-  overrides: Record<string, { v: unknown; dk?: true } | null> = {},
+  overrides: Record<string, { v: unknown; dk?: true; dk_date?: string; none?: true } | null> = {},
   locale: 'de' | 'en' = 'de',
 ): Promise<string> {
   const res = await request.get(`${locale === 'de' ? '' : '/en'}/onboardingform/new`, { maxRedirects: 0 });
@@ -89,7 +89,7 @@ export async function getRecord(request: APIRequestContext, id: string) {
   return (await res.json()) as {
     record: Record<string, unknown> & {
       rev: number;
-      answers: Record<string, { v: unknown; dk?: true; src?: string }>;
+      answers: Record<string, { v: unknown; dk?: true; dk_date?: string; none?: true; src?: string }>;
       flags: { code: string; detail: string | null }[];
       status: string;
       brief_version: number | null;

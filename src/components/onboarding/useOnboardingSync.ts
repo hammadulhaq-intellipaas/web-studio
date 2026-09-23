@@ -141,9 +141,13 @@ export function useOnboardingSync(
         retryTimerRef.current = setTimeout(() => void flushRef.current(), RETRY_MS);
       } finally {
         inFlightRef.current = false;
+        // Awaited, not fired and forgotten: a 409 rebase or an edit that landed mid-flight
+        // queues a second pass, and a caller that awaits flush() before navigating (the
+        // read-back does, before confirming) has to know its changes actually reached the
+        // server. `retriedRef` keeps the 409 path to a single retry.
         if (againRef.current) {
           againRef.current = false;
-          void flushRef.current();
+          await flushRef.current();
         }
       }
     },

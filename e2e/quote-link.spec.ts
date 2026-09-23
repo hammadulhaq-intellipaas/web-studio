@@ -49,6 +49,9 @@ test.describe('public funnel — permanent quote link', () => {
     await restored.getByTestId('quote-send').click();
     await expect(restored.getByTestId('lead-heading')).toHaveText('Anfrage aktualisieren');
     await expect(restored.getByTestId('lead-consent-given')).toBeVisible();
+    // The optional intake belongs to a first enquiry only; the onboarding form collects all
+    // of it properly once a quote exists, so it is not repeated on the customer's own link.
+    await expect(restored.getByTestId('s2-section-unternehmen')).toHaveCount(0);
     await expect(restored.getByTestId('lead-email')).toHaveValue(email);
     await restored.getByTestId('lead-submit').click();
     await expect(restored.getByTestId('done-title')).toHaveText('Danke, wir haben Ihre Änderungen erhalten.');

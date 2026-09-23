@@ -597,7 +597,20 @@
       "understoodCorrectionsHelp": "Please tell us in your own words. We would rather read a paragraph now than redesign later.",
       "understoodCorrectionsPlaceholder": "We are not formal at all. Our customers are mostly families, not businesses.",
       "understoodRequired": "Please tell us what we have got wrong.",
-      "toConfirm": "Continue"
+      "toConfirm": "Continue",
+      "reportTitle": "What we still need",
+      "reportHelpChecked": "We went through your answers, and our assistant read your free text as well. These are still open. You can confirm anyway and we will come back to them.",
+      "reportHelpPlain": "We went through your answers. These are still open. You can confirm anyway and we will come back to them.",
+      "reportNone": "Nothing open. We have everything we need to start building.",
+      "reportFix": "Add it",
+      "reportEmpty": "Not answered yet",
+      "reportThin": "Very short. A sentence or two more would help us a lot.",
+      "reportNoFiles": "No file uploaded yet",
+      "reportDontKnow": "You did not know yet",
+      "reportDontKnowBy": "You did not know yet, expecting to by {date}",
+      "reportSkipped": "Follow-up skipped",
+      "reportVague": "Not specific enough to build from yet",
+      "reportCount": "{n, plural, one {# open point} other {# open points}}"
     },
     "brief": {
       "title": "Your brief",

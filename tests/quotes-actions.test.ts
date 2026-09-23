@@ -52,7 +52,7 @@ function seedLead(over: Record<string, unknown> = {}) {
     total_monthly: priced.totals.monthlyEffective,
     total_yearly: priced.totals.yearlyEffective,
     voucher_id: null,
-    stage2: { fields: { firmenname: 'Beyond Therapy GmbH' }, goal: 'termine', driveLink: '' },
+    stage2: { fields: { firmenname: 'Beyond Therapy GmbH', rechtsform: 'GmbH', ustid: 'CHE-123.456.789' }, goal: 'termine', driveLink: '' },
     status: 'contacted',
     session_id: null,
     source: 'customer',
@@ -195,7 +195,12 @@ describe('createOnboardingFormFromLead', () => {
     expect(answers.booked_page_band).toEqual({ v: '58', src: 'lead' });
     expect(answers.project_type).toEqual({ v: 'changes', src: 'lead' });
     expect(answers.existing_url).toEqual({ v: 'https://www.beyondtherapy.ch', src: 'lead' });
-    expect(answers.legal_name).toEqual({ v: 'Beyond Therapy GmbH', src: 'lead' });
+    // Intake answers to the same question come across...
+    expect(answers.legal_form).toEqual({ v: 'GmbH', src: 'lead' });
+    expect(answers.vat_id).toEqual({ v: 'CHE-123.456.789', src: 'lead' });
+    // ...but the trading name is not the registered name, and this one goes straight onto
+    // the legal notice, so it is left for the client to write.
+    expect(answers.legal_name).toBeUndefined();
     expect(redirects).toEqual([`/admin/onboarding/${form.id}`]);
     expect(fake.db.rows('lead_activity').some((a) => a.kind === 'onboarding')).toBe(true);
   });

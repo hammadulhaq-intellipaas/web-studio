@@ -39,6 +39,8 @@ test.describe.serial('admin — quotes pipeline', () => {
     await page.getByTestId('quote-send').click();
     await expect(page.getByTestId('lead-heading')).toHaveText('Angebot speichern');
     await expect(page.getByTestId('lead-consent')).toHaveCount(0);
+    await expect(page.getByTestId('s2-section-unternehmen')).toHaveCount(0); // not on a quote page
+
     await page.getByTestId('lead-submit').click();
     await expect(page.getByTestId('done-title')).toHaveText('Angebot gespeichert.');
     await page.getByTestId('done-back-to-admin').click();
@@ -60,6 +62,7 @@ test.describe.serial('admin — quotes pipeline', () => {
     // The row's actions are visible, not hidden behind a menu.
     await expect(page.getByTestId(`lead-open-${leadId}`)).toBeVisible();
     await expect(page.getByTestId(`lead-copy-${leadId}`)).toBeVisible();
+    await expect(page.getByTestId(`lead-onboarding-new-${leadId}`)).toBeVisible();
 
     // Removing cannot be undone from the CMS, so it asks first.
     page.once('dialog', (d) => d.accept());
@@ -118,6 +121,22 @@ test.describe.serial('admin — quotes pipeline', () => {
     await expect(page.getByTestId('lead-activity')).toContainText('Owner:');
   });
 
+  test('the leads list starts the onboarding form, then links to it', async ({ page, request }) => {
+    const email = testEmail('onbrow');
+    const leadId = await createLeadViaApi(request, email);
+    await page.goto(`/admin/leads?q=${encodeURIComponent(email)}`);
+
+    // No form yet: the row offers to start one.
+    await page.getByTestId(`lead-onboarding-new-${leadId}`).click();
+    await expect(page).toHaveURL(/\/admin\/onboarding\/[A-Za-z0-9]{21}$/);
+    const formId = page.url().split('/').pop()!;
+
+    // Back on the list the same row now links straight to it.
+    await page.goto(`/admin/leads?q=${encodeURIComponent(email)}`);
+    await expect(page.getByTestId(`lead-onboarding-new-${leadId}`)).toHaveCount(0);
+    await expect(page.getByTestId(`lead-onboarding-${leadId}`)).toHaveAttribute('href', `/admin/onboarding/${formId}`);
+  });
+
   test('Create onboarding form prefills the client form from the quote', async ({ page, request }) => {
     const email = testEmail('handoff');
     const leadId = await createLeadViaApi(request, email);
@@ -136,6 +155,13 @@ test.describe.serial('admin — quotes pipeline', () => {
     expect(answers.booked_package?.v).toBe('gold');
     expect(answers.booked_page_band?.v).toBe('14');
     expect(answers.project_type?.v).toBe('new');
+    // hasSite is 'none', so there is no existing site to carry over.
+    expect(answers.existing_url).toBeUndefined();
+    // The quote also answered langs/contact/shop, and none of them mean what the
+    // onboarding form's own questions mean, so they are deliberately left blank.
+    for (const key of ['languages', 'visitor_action', 'sells_to_consumers', 'integrations', 'public_phone', 'legal_name']) {
+      expect(answers[key], `${key} must not be inferred from the quote`).toBeUndefined();
+    }
 
     await page.goto(`/admin/leads/${leadId}`);
     await expect(page.getByTestId('lead-open-onboarding')).toBeVisible();

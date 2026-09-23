@@ -144,6 +144,18 @@ export type SaveOutcome =
   | { ok: false; status: 409; error: 'stale' | 'status'; record: OnboardingFormRecord | null };
 
 /**
+ * A write for data the server derives from the answers, such as the completeness report.
+ * It deliberately does NOT bump `rev`: the client's revision is its optimistic-concurrency
+ * token for its own edits, and invalidating it from the server would make every open tab
+ * lose a save it was in the middle of.
+ */
+export async function saveDerived(id: string, update: Partial<OnboardingFormRecord>): Promise<void> {
+  const supabase = createSupabaseAdminClient();
+  const { error } = await supabase.from('onboarding_forms').update(update).eq('id', id);
+  if (error) throw new Error(`Failed to save derived onboarding data: ${error.message}`);
+}
+
+/**
  * Optimistic write: bumps `rev` only if the row still carries the client's `base_rev`.
  * Zero rows updated means another tab won; the caller re-applies its pending changes on
  * top of the returned current row and retries once.

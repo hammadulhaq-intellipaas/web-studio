@@ -17,6 +17,7 @@ import { normalizeSessionState, selectionFromLeadConfig, selectionFromState, sta
 import { insertVersion } from '@/lib/quotes/versions';
 import { getOnboardingDefinition } from '@/lib/onboarding/definition';
 import { applyPatch, createForm, loadForm, saveWithRev } from '@/lib/onboarding/records';
+import { prefillFromLead } from '@/lib/onboarding/prefill';
 import type { Answers as OnboardingAnswers } from '@/lib/onboarding/types';
 
 export type ActionResult = { ok: true; message?: string; url?: string } | { ok: false; error: string };
@@ -384,11 +385,9 @@ export async function createDraftQuote(input: DraftQuoteInput): Promise<ActionRe
 
 /* ------------------------------------------------------------------ onboarding hand-off */
 
-const PACKAGE_IDS = new Set(['silver', 'gold', 'platinum']);
-
 /**
- * Starts the client onboarding form for a won lead with what the quote already knows:
- * contact, booked package and page band, project type, existing URL, legal name. Runs
+ * Starts the client onboarding form for a lead with what the quote already knows. What is
+ * safe to carry over, and what deliberately is not, lives in `prefillFromLead`. Runs
  * through `applyPatch` so redaction, hidden-field clearing and flags apply as usual.
  */
 export async function createOnboardingFormFromLead(leadId: string): Promise<ActionResult> {
@@ -402,21 +401,8 @@ export async function createOnboardingFormFromLead(leadId: string): Promise<Acti
     const [record, definition] = await Promise.all([loadForm(formId), getOnboardingDefinition()]);
     if (!record) throw new Error('Form not found after creation');
 
-    const a = (v: string | number | null | undefined) => (v == null || v === '' ? null : { v, src: 'lead' as const });
-    const answers = lead.config?.answers ?? {};
-    const hasSite = answers.hasSite;
-    const changes: Record<string, { v: string | number; src: 'lead' } | null> = {
-      contact_name: a(`${lead.vorname} ${lead.nachname}`.trim()),
-      contact_company: a(lead.firma),
-      contact_email: a(lead.email),
-      booked_package: PACKAGE_IDS.has(lead.config?.bundle) ? a(lead.config.bundle) : null,
-      booked_page_band: a(answers.pages ?? null),
-      project_type: a(hasSite ? (hasSite === 'website' ? 'changes' : 'new') : null),
-      existing_url: hasSite === 'website' ? a(lead.source_url) : null,
-      legal_name: a(lead.stage2?.fields?.firmenname ?? null),
-    };
-    const clean = Object.fromEntries(Object.entries(changes).filter(([, v]) => v !== null)) as Record<string, { v: string | number; src: 'lead' }>;
-    const patch = applyPatch(definition, record, { changes: clean as unknown as Record<string, OnboardingAnswers[string]> });
+    const changes = prefillFromLead(lead);
+    const patch = applyPatch(definition, record, { changes: changes as Record<string, OnboardingAnswers[string]> });
     if (!patch.ok) throw new Error(patch.error);
     const saved = await saveWithRev(formId, record.rev, { ...patch.update, lead_id: leadId });
     if (!saved.ok) throw new Error('Could not prefill the form');

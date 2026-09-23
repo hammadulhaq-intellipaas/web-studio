@@ -389,6 +389,28 @@ export interface ReviewState {
   gaps: Gap[];
   /** Model questions from the last pass, kept so the pending tail can be rebuilt. */
   llm_questions: LlmQuestion[];
+  /** What the client is shown is still open. Lives here so it needs no new column. */
+  report?: CompletenessReport | null;
+}
+
+/** A single open point shown to the client on the closing screen. */
+export interface ReportItem {
+  field: string;
+  /** Filled in by `buildReport`; the raw item carries only the field. */
+  screen?: string;
+  label?: LocalizedCaption;
+  kind: GapKind | 'vague';
+  /** The date they said they would know, or the question that is still open. */
+  detail?: string | null;
+}
+
+export interface CompletenessReport {
+  items: ReportItem[];
+  /** The answers this report was built from; a later edit makes it stale. */
+  answers_hash: string;
+  /** False when the model pass was skipped (no key, cap reached, or nothing to judge). */
+  model_checked: boolean;
+  at: string;
 }
 
 export type GapKind = 'empty' | 'thin' | 'dont_know' | 'no_files' | 'skipped';

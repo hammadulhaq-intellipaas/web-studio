@@ -597,7 +597,20 @@
       "understoodCorrectionsHelp": "Bitte in Ihren eigenen Worten. Wir lesen jetzt lieber einen Absatz, als später neu zu gestalten.",
       "understoodCorrectionsPlaceholder": "Wir sind überhaupt nicht förmlich. Unsere Kunden sind meist Familien, keine Unternehmen.",
       "understoodRequired": "Bitte sagen Sie uns, was wir falsch verstanden haben.",
-      "toConfirm": "Weiter"
+      "toConfirm": "Weiter",
+      "reportTitle": "Was uns noch fehlt",
+      "reportHelpChecked": "Wir haben Ihre Angaben durchgegangen, zusätzlich hat unser Assistent Ihre Freitexte gelesen. Das hier ist offen. Sie können trotzdem bestätigen, wir kommen dann darauf zurück.",
+      "reportHelpPlain": "Wir haben Ihre Angaben durchgegangen. Das hier ist offen. Sie können trotzdem bestätigen, wir kommen dann darauf zurück.",
+      "reportNone": "Nichts offen. Alles, was wir zum Bauen brauchen, liegt uns vor.",
+      "reportFix": "Ergänzen",
+      "reportEmpty": "Noch nicht beantwortet",
+      "reportThin": "Sehr kurz. Ein, zwei Sätze mehr helfen uns sehr.",
+      "reportNoFiles": "Noch keine Datei hochgeladen",
+      "reportDontKnow": "Sie wussten es noch nicht",
+      "reportDontKnowBy": "Sie wussten es noch nicht, Bescheid ab {date}",
+      "reportSkipped": "Nachfrage übersprungen",
+      "reportVague": "Für den Bau noch nicht konkret genug",
+      "reportCount": "{n, plural, one {# offener Punkt} other {# offene Punkte}}"
     },
     "brief": {
       "title": "Ihr Briefing",

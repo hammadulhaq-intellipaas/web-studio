@@ -21,6 +21,9 @@ export interface LeadsTableRow {
   /** Last event, already phrased ("Customer edited", "Note by …"). */
   activityLabel: string | null;
   activityAt: string | null;
+  /** Null until an onboarding form has been started from this lead. */
+  onboardingFormId: string | null;
+  onboardingStatus: string | null;
 }
 
 export function toTableRow(l: LeadListRow, link: string | null): LeadsTableRow {
@@ -41,6 +44,8 @@ export function toTableRow(l: LeadListRow, link: string | null): LeadsTableRow {
     customerLink: link,
     activityLabel: activity?.label ?? null,
     activityAt: activity?.at ?? null,
+    onboardingFormId: l.onboarding_form_id ?? null,
+    onboardingStatus: l.onboarding_status ?? null,
   };
 }
 

@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { archiveLeads } from '@/app/admin/leads/actions';
+import { archiveLeads, createOnboardingFormFromLead } from '@/app/admin/leads/actions';
 import { eur, relativeTime, STATUS_COLORS } from '@/lib/admin/format';
 import type { LeadsTableRow } from '@/lib/quotes/list-rows';
 import { StatusSelect } from '@/components/admin/StatusSelect';
@@ -37,6 +37,14 @@ export function LeadsTable({ rows, ready }: { rows: LeadsTableRow[]; ready: bool
       return next;
     });
   const toggleAll = () => setSelected(allSelected ? new Set() : new Set(rows.map((r) => r.id)));
+
+  // The action creates the form and redirects to it, so a failure is the only thing to report.
+  const startOnboarding = (leadId: string) =>
+    start(async () => {
+      setMessage(null);
+      const result = await createOnboardingFormFromLead(leadId);
+      if (result && !result.ok) setMessage(result.error);
+    });
 
   const remove = (targets: string[], what: string) => {
     if (!window.confirm(`Remove ${what} from the CMS? This cannot be undone here — the data stays in the database.`)) return;
@@ -86,7 +94,7 @@ export function LeadsTable({ rows, ready }: { rows: LeadsTableRow[]; ready: bool
       )}
 
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-        <table className="w-full min-w-[1040px] text-left text-sm">
+        <table className="w-full min-w-[1180px] text-left text-sm">
           <thead>
             <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
               <th className="w-10 px-4 py-3">
@@ -204,6 +212,27 @@ export function LeadsTable({ rows, ready }: { rows: LeadsTableRow[]; ready: bool
                           }`}
                         >
                           {copied === r.id ? 'Copied ✓' : 'Copy link'}
+                        </button>
+                      )}
+                      {r.onboardingFormId ? (
+                        <Link
+                          href={`/admin/onboarding/${r.onboardingFormId}`}
+                          data-testid={`lead-onboarding-${r.id}`}
+                          title={`Onboarding form · ${r.onboardingStatus ?? 'in progress'}`}
+                          className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-bold text-slate-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
+                        >
+                          Onboarding
+                        </Link>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={pending}
+                          onClick={() => startOnboarding(r.id)}
+                          data-testid={`lead-onboarding-new-${r.id}`}
+                          title="Start the onboarding form, prefilled with what this quote already knows"
+                          className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-bold text-slate-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 disabled:opacity-50"
+                        >
+                          Onboarding +
                         </button>
                       )}
                       {ready && (

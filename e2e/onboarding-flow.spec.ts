@@ -83,6 +83,12 @@ test.describe('onboarding review flow', () => {
     await page.click('[data-testid=onb-reply-gold]'); // the one follow-up
     await page.click('[data-testid=onb-to-brief]');
 
+    // Block 0: the completeness report. This form left booked_package as "I don't know"
+    // and answered the follow-up with gold, so the gap is closed and nothing is listed.
+    const report = page.locator('[data-testid=onb-report]');
+    await expect(report).toBeVisible({ timeout: 30_000 });
+    await expect(report).toHaveAttribute('data-state', 'clear', { timeout: 30_000 });
+
     // Block 1: every answer, grouped by section, with a way back to the screen it came from
     await expect(page.locator('[data-testid=onb-answer-check]')).toBeVisible({ timeout: 30_000 });
     await expect(page.locator('[data-testid=onb-answer-check]')).toContainText('Physio Nordend');
@@ -110,6 +116,35 @@ test.describe('onboarding review flow', () => {
     expect(record.brief_version).toBe(1);
     expect(record.answers.understood_ok?.v).toBe('mostly');
     expect(record.answers.understood_corrections?.v).toContain('förmlich');
+  });
+
+  test('the report lists what is still open, links back to it, and never blocks confirming', async ({ page, request }) => {
+    // Skipping the follow-up leaves the gap open, so the report has something to say.
+    const id = await createFilledForm(request, EMAIL, { booked_package: { v: null, dk: true, dk_date: '2027-01-10' } });
+    await page.goto(`/onboardingform/${id}`);
+    await page.click('[data-testid=onb-start-review]');
+    await page.click('[data-testid=onb-followup-skip]');
+    await page.click('[data-testid=onb-to-brief]');
+
+    const report = page.locator('[data-testid=onb-report]');
+    await expect(report).toBeVisible({ timeout: 30_000 });
+    await expect(report).toHaveAttribute('data-state', 'open', { timeout: 30_000 });
+    const item = page.locator('[data-testid=onb-report-item-booked_package]');
+    await expect(item).toBeVisible();
+    // The date they gave is carried through, not just "don't know".
+    await expect(item).toContainText('2027-01-10');
+
+    // "Add it" goes back to the screen the field lives on.
+    await page.click('[data-testid=onb-report-fix-booked_package]');
+    await expect(page.locator('[data-screen=onb-project]')).toBeVisible();
+    await expect(page.locator('[data-field=booked_package]')).toBeVisible();
+
+    // Advisory only: back to the review and straight on to confirming, gap still open.
+    await page.click('[data-testid=step-review]');
+    await expect(page.locator('[data-testid=onb-understood]')).toBeVisible({ timeout: 30_000 });
+    await page.click('[data-testid=onb-understood-yes]');
+    await page.click('[data-testid=onb-to-confirm]');
+    await expect(page.locator('[data-screen=onb-confirm]')).toBeVisible();
   });
 
   test('confirming needs every check and a name, then delivers the PDF and locks the form', async ({ page, request }) => {

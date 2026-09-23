@@ -19,6 +19,9 @@ export interface LeadListRow extends Lead {
   session_updated_at: string | null;
   session_last_actor: string | null;
   last_activity: LeadActivity | null;
+  /** The onboarding form started from this lead, if there is one. */
+  onboarding_form_id: string | null;
+  onboarding_status: string | null;
 }
 
 export interface LeadListResult {
@@ -64,6 +67,8 @@ export async function loadLeadList(filter: LeadListFilter, q: string | undefined
       session_updated_at: funnel_sessions?.updated_at ?? null,
       session_last_actor: funnel_sessions?.last_actor ?? null,
       last_activity: null,
+      onboarding_form_id: null,
+      onboarding_status: null,
     };
   });
 
@@ -77,6 +82,25 @@ export async function loadLeadList(filter: LeadListFilter, q: string | undefined
   let rows = visible;
   if (filter === 'open') rows = rows.filter((l) => OPEN.includes(l.status));
   else if (filter !== 'all') rows = rows.filter((l) => l.status === filter);
+
+  if (rows.length) {
+    // One lookup for the page, so the Onboarding action on every row knows whether it
+    // opens an existing form or starts one.
+    const { data: forms } = await admin
+      .from('onboarding_forms')
+      .select('id, lead_id, status, created_at')
+      .in('lead_id', rows.map((r) => r.id))
+      .order('created_at', { ascending: false });
+    const byLead = new Map<string, { id: string; status: string }>();
+    for (const f of (forms ?? []) as { id: string; lead_id: string; status: string }[]) {
+      if (!byLead.has(f.lead_id)) byLead.set(f.lead_id, { id: f.id, status: f.status });
+    }
+    rows = rows.map((r) => ({
+      ...r,
+      onboarding_form_id: byLead.get(r.id)?.id ?? null,
+      onboarding_status: byLead.get(r.id)?.status ?? null,
+    }));
+  }
 
   if (ready && rows.length) {
     const latest = await latestActivityFor(rows.map((r) => r.id));

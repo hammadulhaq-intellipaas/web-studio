@@ -1,16 +1,17 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import ReactMarkdown from 'react-markdown';
 import type { Locale } from '@/lib/types';
 import { displayValue } from '@/lib/onboarding/export';
 import { visibility } from '@/lib/onboarding/logic';
 import { understoodText } from '@/lib/onboarding/understood';
-import { loc, type Answer, type OnboardingDefinition, type OnboardingFormRecord } from '@/lib/onboarding/types';
+import { loc, type Answer, type CompletenessReport, type OnboardingDefinition, type OnboardingFormRecord } from '@/lib/onboarding/types';
 import { BLUE, BODY, BORDER, gradButton, INK, MUTED } from '@/components/funnel/ui';
 import { DANGER, inputStyle, pillStyle } from '../fields/styles';
 import type { PublicFile } from '../fields/UploadInput';
+import { ReportCard } from './ReportCard';
 
 const card = { background: '#ffffff', border: `1px solid ${BORDER}`, borderRadius: 16, padding: '22px 24px' } as const;
 
@@ -39,6 +40,26 @@ export function UnderstoodStep({
   const t = useTranslations('onboarding.review');
   const [error, setError] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [report, setReport] = useState<CompletenessReport | null>(record.review?.report ?? null);
+  const [reportLoading, setReportLoading] = useState(false);
+  const askedFor = useRef<string | null>(null);
+
+  // Fetched once per visit to this screen, not per revision: the read-back writes answers
+  // of its own and must not trigger a rebuild. Going back to a screen unmounts this step,
+  // so returning re-asks and picks up any edit. A failure is silent — the report tells the
+  // client what is still open, it does not gate anything.
+  useEffect(() => {
+    if (askedFor.current === record.id) return;
+    askedFor.current = record.id;
+    setReportLoading(true);
+    void fetch(`/api/onboarding/${record.id}/report`, { method: 'POST' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((body: { report?: CompletenessReport } | null) => {
+        if (body?.report) setReport(body.report);
+      })
+      .catch(() => undefined)
+      .finally(() => setReportLoading(false));
+  }, [record.id, record.rev]);
 
   const verdict = typeof record.answers.understood_ok?.v === 'string' ? record.answers.understood_ok.v : null;
   const corrections = typeof record.answers.understood_corrections?.v === 'string' ? record.answers.understood_corrections.v : '';
@@ -76,6 +97,8 @@ export function UnderstoodStep({
 
   return (
     <section data-screen="onb-understood" style={{ paddingBottom: 72, display: 'grid', gap: 22 }}>
+      <ReportCard report={report} loading={reportLoading} locale={locale} onJumpToScreen={onJumpToScreen} />
+
       <div style={card} data-testid="onb-answer-check">
         <h2 style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.5, margin: '0 0 4px' }}>{t('answersTitle')}</h2>
         <p style={{ fontSize: 14, color: BODY, margin: '0 0 18px' }}>{t('answersHelp')}</p>

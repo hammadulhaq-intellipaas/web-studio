@@ -305,7 +305,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
 
           <Section title="Onboarding" testId="lead-onboarding">
             {onboardingForms.length === 0 ? (
-              <p className="text-sm text-slate-500">No onboarding form yet. “Create onboarding form” prefills contact, package and page band from this quote.</p>
+              <p className="text-sm text-slate-500">No onboarding form yet. “Create onboarding form” carries over everything this quote already asked, marked as coming from the quote so the client checks it.</p>
             ) : (
               <ul className="space-y-1 text-sm">
                 {onboardingForms.map((f) => (
