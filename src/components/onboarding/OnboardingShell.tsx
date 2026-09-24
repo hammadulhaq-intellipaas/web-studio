@@ -15,7 +15,7 @@ import {
 import { loc } from '@/lib/onboarding/types';
 import type { Answer, Answers, OnbField, OnboardingBrief, OnboardingDefinition, OnboardingFormRecord } from '@/lib/onboarding/types';
 import { useOnboardingStash } from '@/stores/onboarding';
-import { BORDER, MUTED } from '@/components/funnel/ui';
+import { BORDER, gradButton, MUTED } from '@/components/funnel/ui';
 import { OnboardingFrame } from './OnboardingFrame';
 import { OnboardingHeader } from './OnboardingHeader';
 import { ScreenCard } from './ScreenCard';
@@ -188,6 +188,12 @@ export function OnboardingShell({
 
   const back = () => goTo(Math.max(0, stepIndex - 1));
 
+  /** One click: get the pending answers to the server, then send the link. */
+  const saveAndEmailLink = async () => {
+    await flush();
+    setSaveLinkOpen(true);
+  };
+
   /* ---------------------------------------------------------------- render */
 
   const progress = steps.length > 1 ? Math.round((stepIndex / (steps.length - 1)) * 100) : 0;
@@ -203,21 +209,21 @@ export function OnboardingShell({
           <button
             type="button"
             data-testid="onb-savelink"
-            onClick={() => setSaveLinkOpen(true)}
-            className="hov-blue-border hov-blue-text onb-desktop-only"
+            onClick={() => void saveAndEmailLink()}
+            className="hov-lift1 onb-desktop-only"
             style={{
-              fontFamily: 'inherit',
-              cursor: 'pointer',
-              background: '#ffffff',
-              border: `1px solid ${BORDER}`,
+              ...gradButton,
               borderRadius: 999,
-              padding: '6px 12px',
-              fontSize: 12,
+              padding: '9px 16px',
+              fontSize: 12.5,
               fontWeight: 700,
-              color: MUTED,
               whiteSpace: 'nowrap',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 7,
             }}
           >
+            <span aria-hidden="true">✉</span>
             {t('saveLink')}
           </button>
         ) : null
@@ -288,7 +294,7 @@ export function OnboardingShell({
             isLast={stepIndex === reviewIndex - 1}
             saveStatus={status}
             banner={banner}
-            onSaveLink={() => setSaveLinkOpen(true)}
+            onSaveLink={() => void saveAndEmailLink()}
           />
         ) : null}
       </div>

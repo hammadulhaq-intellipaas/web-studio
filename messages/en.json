@@ -498,8 +498,8 @@
       "next": "Continue",
       "toReview": "Review answers",
       "saveLink": "Save and come back later",
-      "saveLinkTitle": "Come back later",
-      "saveLinkBody": "We'll email your personal link to {email}. It brings you straight back to this point at any time.",
+      "saveLinkTitle": "Saved",
+      "saveLinkBody": "Your answers are saved. We're emailing your personal link to {email}. It brings you straight back to this point at any time.",
       "saveLinkNoEmail": "Enter your email address in the first step first — then we can send you the link.",
       "saveLinkSend": "Send the link",
       "saveLinkSent": "Link sent. You can close this window now.",
@@ -530,7 +530,9 @@
       "examplePrompt": "Not sure where to start? Please tap an example.",
       "countWithin": "{n} pages. Your quote covers {band}.",
       "countUnder": "{n} pages. Your quote covers up to {max}, so there is room if you want more.",
-      "countOver": "{n} pages. Your quote covers {band}. Please keep going and we will come back to you about the extra {over}."
+      "countOver": "{n} pages. Your quote covers {band}. Please keep going and we will come back to you about the extra {over}.",
+      "saveLinkSending": "Sending your link …",
+      "saveLinkRetry": "Send again"
     },
     "errors": {
       "required": "We need this one before you can continue.",

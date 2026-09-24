@@ -1,13 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { BORDER, BODY, gradButton, INK, MUTED } from '@/components/funnel/ui';
 import { DANGER } from './fields/styles';
 
 /**
- * "Save and come back later": the link itself is the resume mechanism, so this emails it
- * to the contact address from Screen 1 and offers a copy button as a fallback.
+ * "Save and come back later": one click saves and sends. The link itself is the resume
+ * mechanism, so this emails it to the contact address from Screen 1 as soon as it opens,
+ * and offers a copy button as a fallback if the mail does not arrive.
  */
 export function SaveLinkDialog({
   formId,
@@ -21,6 +22,7 @@ export function SaveLinkDialog({
   const t = useTranslations('onboarding.shell');
   const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [copied, setCopied] = useState(false);
+  const sentOnce = useRef(false);
 
   useEffect(() => {
     const onKey = (ev: KeyboardEvent) => ev.key === 'Escape' && onClose();
@@ -37,6 +39,15 @@ export function SaveLinkDialog({
       setState('error');
     }
   };
+
+  // The button is "save and come back later", not "open a dialog and then send": the click
+  // already said what they want. The server throttles resends, so opening twice is cheap.
+  useEffect(() => {
+    if (!email || sentOnce.current) return;
+    sentOnce.current = true;
+    void send();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [email]);
 
   const copy = async () => {
     try {
@@ -67,24 +78,30 @@ export function SaveLinkDialog({
         <p style={{ fontSize: 14.5, color: BODY, lineHeight: 1.55, margin: '0 0 18px' }}>
           {email ? t('saveLinkBody', { email }) : t('saveLinkNoEmail')}
         </p>
+        {state === 'sending' && (
+          <div data-testid="onb-savelink-sending" style={{ fontSize: 13.5, fontWeight: 600, color: MUTED, marginBottom: 14 }}>
+            {t('saveLinkSending')}
+          </div>
+        )}
         {state === 'sent' && (
           <div data-testid="onb-savelink-sent" style={{ fontSize: 13.5, fontWeight: 700, color: '#1E6E44', background: '#EAF5EE', border: '1px solid #BFE0CC', borderRadius: 10, padding: '10px 13px', marginBottom: 14 }}>
             ✓ {t('saveLinkSent')}
           </div>
         )}
         {state === 'error' && (
-          <div style={{ fontSize: 13, fontWeight: 600, color: DANGER, marginBottom: 14 }}>{t('saveLinkError')}</div>
+          <div data-testid="onb-savelink-error" role="alert" style={{ fontSize: 13, fontWeight: 600, color: DANGER, marginBottom: 14 }}>
+            {t('saveLinkError')}
+          </div>
         )}
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-          {email && state !== 'sent' && (
+          {email && (state === 'error' || state === 'idle') && (
             <button
               type="button"
               data-testid="onb-savelink-send"
               onClick={() => void send()}
-              disabled={state === 'sending'}
-              style={{ ...gradButton, borderRadius: 11, padding: '12px 20px', fontSize: 14, fontWeight: 700, opacity: state === 'sending' ? 0.7 : 1 }}
+              style={{ ...gradButton, borderRadius: 11, padding: '12px 20px', fontSize: 14, fontWeight: 700 }}
             >
-              {t('saveLinkSend')}
+              {t(state === 'error' ? 'saveLinkRetry' : 'saveLinkSend')}
             </button>
           )}
           <button

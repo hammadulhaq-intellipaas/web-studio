@@ -200,13 +200,20 @@ test.describe('onboarding form', () => {
     await expect(page.locator('[data-testid=onb-step-label]')).toBeHidden();
   });
 
-  test('the save-link dialog offers to email the link to the Screen 1 address', async ({ page }) => {
+  test('"save and come back later" sends the link in one click, no second button to find', async ({ page }) => {
     await start(page);
-    await page.click('[data-testid=onb-savelink]');
-    await expect(page.locator('[data-testid=onb-savelink-dialog]')).toContainText(EMAIL);
-    await expect(page.locator('[data-testid=onb-savelink-send]')).toBeVisible();
+    await page.click('[data-testid=onb-savelink]', { timeout: 20_000 });
+    const dialog = page.locator('[data-testid=onb-savelink-dialog]');
+    await expect(dialog).toContainText(EMAIL);
+    // The click already said what they want, so it sends on its own with no "now press
+    // send". Resend refuses example.com, so what we can assert here is that the attempt
+    // ran to a conclusion by itself — delivery is covered by the real-address run.
+    const sent = page.locator('[data-testid=onb-savelink-sent]');
+    const failed = page.locator('[data-testid=onb-savelink-error]');
+    await expect(sent.or(failed)).toBeVisible({ timeout: 30_000 });
+    // The copy fallback stays either way, for when the mail does not arrive.
     await expect(page.locator('[data-testid=onb-savelink-copy]')).toBeVisible();
     await page.keyboard.press('Escape');
-    await expect(page.locator('[data-testid=onb-savelink-dialog]')).toHaveCount(0);
+    await expect(dialog).toHaveCount(0);
   });
 });

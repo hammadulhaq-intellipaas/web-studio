@@ -498,11 +498,11 @@
       "next": "Weiter",
       "toReview": "Antworten prüfen",
       "saveLink": "Speichern und später weitermachen",
-      "saveLinkTitle": "Später weitermachen",
-      "saveLinkBody": "Wir schicken Ihnen Ihren persönlichen Link an {email}. Damit machen Sie jederzeit genau hier weiter.",
+      "saveLinkTitle": "Gespeichert",
+      "saveLinkBody": "Ihre Antworten sind gespeichert. Wir schicken Ihnen Ihren persönlichen Link an {email}. Damit machen Sie jederzeit genau hier weiter.",
       "saveLinkNoEmail": "Tragen Sie zuerst Ihre E-Mail-Adresse im ersten Schritt ein – dann können wir Ihnen den Link schicken.",
       "saveLinkSend": "Link schicken",
-      "saveLinkSent": "Link verschickt. Sie können dieses Fenster jetzt schließen.",
+      "saveLinkSent": "Link gesendet. Sie können dieses Fenster jetzt schließen.",
       "saveLinkError": "Der Link konnte nicht verschickt werden. Kopieren Sie stattdessen die Adresse dieser Seite.",
       "copyLink": "Link kopieren",
       "copied": "Kopiert",
@@ -530,7 +530,9 @@
       "examplePrompt": "Sie wissen nicht, wo Sie anfangen sollen? Bitte tippen Sie auf ein Beispiel.",
       "countWithin": "{n} Seiten. Ihr Angebot umfasst {band}.",
       "countUnder": "{n} Seiten. Ihr Angebot umfasst bis zu {max} – es ist also Platz, wenn Sie mehr möchten.",
-      "countOver": "{n} Seiten. Ihr Angebot umfasst {band}. Bitte machen Sie weiter, wir melden uns wegen der {over} zusätzlichen Seiten."
+      "countOver": "{n} Seiten. Ihr Angebot umfasst {band}. Bitte machen Sie weiter, wir melden uns wegen der {over} zusätzlichen Seiten.",
+      "saveLinkSending": "Link wird gesendet …",
+      "saveLinkRetry": "Erneut senden"
     },
     "errors": {
       "required": "Das brauchen wir noch, bevor es weitergeht.",
