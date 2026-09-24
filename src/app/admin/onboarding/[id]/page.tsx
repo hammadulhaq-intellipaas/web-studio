@@ -32,7 +32,7 @@ function KV({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex gap-2 py-0.5 text-sm">
       <span className="w-44 flex-none text-slate-500">{label}</span>
-      <span className="min-w-0 whitespace-pre-wrap font-medium">{value}</span>
+      <span className="min-w-0 break-words whitespace-pre-wrap font-medium">{value}</span>
     </div>
   );
 }
@@ -125,7 +125,21 @@ export default async function OnboardingDetailPage({ params }: { params: Promise
             <KV label="Contact" value={record.name} />
             <KV label="Email" value={record.email} />
             <KV label="Form id" value={<code className="text-xs">{record.id}</code>} />
-            <KV label="Client link" value={<a href={formLink(id, record.locale)} className="text-blue-700 hover:underline" target="_blank" rel="noreferrer">{formLink(id, record.locale)}</a>} />
+            <KV
+              label="Client link"
+              value={
+                // One line with the full address on hover; the toolbar has the copy button.
+                <a
+                  href={formLink(id, record.locale)}
+                  title={formLink(id, record.locale)}
+                  className="block truncate text-blue-700 hover:underline"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {formLink(id, record.locale)}
+                </a>
+              }
+            />
             <KV label="Current step" value={record.current_step} />
             <KV label="Model calls" value={String(record.ai_calls)} />
             <KV label="Created" value={<LocalTime iso={record.created_at} />} />

@@ -12,14 +12,17 @@ const schema = z.object({ text: z.string().min(1).max(3000) });
  * v2 migration). The CMS row wins as soon as it is there.
  */
 const DEFAULT_PROMPT = [
-  "Task: rewrite one answer the client has just typed so it reads better, in the client's language.",
+  'Task: rewrite one answer the client has just typed so it reads the way they would say it to a customer standing in front of them, in the client\'s own language.',
   '',
   'Rules, in order of importance:',
-  '- Use only what the client wrote. Never add a fact, a number, a date, a price, a duration, a place, a name or a claim that is not already in their answer.',
-  '- Keep their meaning and their voice. Plain words, short sentences, no marketing language, no superlatives.',
-  '- Keep it roughly the same length: tidy it up, make it concrete, do not pad it out.',
-  '- Return prose only. No markdown, no headings, no bullet points, no quotation marks around the whole answer.',
-  '- If their answer is already clear, return it with only small corrections.',
+  '- Never add a fact. No number, date, price, duration, place, name, service or claim that is not already in their answer.',
+  '- Drop filler rather than rewording it. Phrases like "and you know this and that", "and so on", "etc.", "all sorts of things", "and more" carry no information. Leave them out. Do not turn them into a phrase that reads like content. A shorter honest sentence beats a longer empty one.',
+  '- Drop claims they cannot stand behind. "the best in the area", "unbeatable", "number one" are opinions, not facts about the business. Keep what they actually do.',
+  '- Keep every concrete thing they did say, and keep their words wherever their words already work.',
+  '- Plain language, short sentences, no marketing tone, no superlatives.',
+  '- Do not address the client, do not ask them a question, do not explain what you changed.',
+  '- Return the rewritten answer only: prose, no markdown, no surrounding quotation marks.',
+  '- If the answer is already clear, return it with only small corrections.',
 ].join('\n');
 
 export interface AssistResult {
