@@ -603,7 +603,6 @@
       "reportTitle": "Was uns noch fehlt",
       "reportHelpChecked": "Wir haben Ihre Angaben durchgegangen, zusätzlich hat unser Assistent Ihre Freitexte gelesen. Das hier ist offen. Sie können trotzdem bestätigen, wir kommen dann darauf zurück.",
       "reportHelpPlain": "Wir haben Ihre Angaben durchgegangen. Das hier ist offen. Sie können trotzdem bestätigen, wir kommen dann darauf zurück.",
-      "reportNone": "Nichts offen. Alles, was wir zum Bauen brauchen, liegt uns vor.",
       "reportFix": "Ergänzen",
       "reportEmpty": "Noch nicht beantwortet",
       "reportThin": "Sehr kurz. Ein, zwei Sätze mehr helfen uns sehr.",
@@ -612,7 +611,13 @@
       "reportDontKnowBy": "Sie wussten es noch nicht, Bescheid ab {date}",
       "reportSkipped": "Nachfrage übersprungen",
       "reportVague": "Für den Bau noch nicht konkret genug",
-      "reportCount": "{n, plural, one {# offener Punkt} other {# offene Punkte}}"
+      "reportCount": "{n, plural, one {# offener Punkt} other {# offene Punkte}}",
+      "reportAssistant": "Ihr Assistent",
+      "reportNoReply": "Automatische Prüfung. Hier können Sie nicht antworten – ergänzen Sie einfach die Punkte oben.",
+      "reportThinking": "Ich sehe mir Ihre Antworten an …",
+      "reportClearTitle": "Nichts offen",
+      "reportClearChecked": "Wir haben Ihre Angaben durchgegangen, zusätzlich hat unser Assistent Ihre Freitexte gelesen. Alles, was wir zum Bauen brauchen, liegt uns vor.",
+      "reportClearPlain": "Wir haben Ihre Angaben durchgegangen. Alles, was wir zum Bauen brauchen, liegt uns vor."
     },
     "brief": {
       "title": "Ihr Briefing",

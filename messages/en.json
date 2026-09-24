@@ -603,7 +603,6 @@
       "reportTitle": "What we still need",
       "reportHelpChecked": "We went through your answers, and our assistant read your free text as well. These are still open. You can confirm anyway and we will come back to them.",
       "reportHelpPlain": "We went through your answers. These are still open. You can confirm anyway and we will come back to them.",
-      "reportNone": "Nothing open. We have everything we need to start building.",
       "reportFix": "Add it",
       "reportEmpty": "Not answered yet",
       "reportThin": "Very short. A sentence or two more would help us a lot.",
@@ -612,7 +611,13 @@
       "reportDontKnowBy": "You did not know yet, expecting to by {date}",
       "reportSkipped": "Follow-up skipped",
       "reportVague": "Not specific enough to build from yet",
-      "reportCount": "{n, plural, one {# open point} other {# open points}}"
+      "reportCount": "{n, plural, one {# open point} other {# open points}}",
+      "reportAssistant": "Your assistant",
+      "reportNoReply": "This is an automatic check. You cannot reply here — just fill in the points above.",
+      "reportThinking": "Reading through your answers …",
+      "reportClearTitle": "Nothing open",
+      "reportClearChecked": "We went through your answers, and our assistant read your free text as well. We have everything we need to start building.",
+      "reportClearPlain": "We went through your answers. We have everything we need to start building."
     },
     "brief": {
       "title": "Your brief",

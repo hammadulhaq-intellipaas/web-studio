@@ -11,6 +11,12 @@ body {
 }
 
 /* Funnel (public site) — ported from the design export */
+/* The assistant's typing dots on the onboarding closing screen. */
+@keyframes onbBlink {
+  0%, 80%, 100% { opacity: .25; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-2px); }
+}
+
 @keyframes ipFade {
   from {
     opacity: 0;
