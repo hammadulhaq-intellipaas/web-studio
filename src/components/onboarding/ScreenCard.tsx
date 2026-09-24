@@ -11,7 +11,8 @@ import type { PublicFile } from './fields/UploadInput';
 import type { SaveStatus } from './useOnboardingSync';
 import { DANGER } from './fields/styles';
 
-const HALF_WIDTH = new Set(['text', 'email', 'tel', 'number', 'date', 'select', 'url']);
+/** Short answers get a capped input, but their label and help still run the full width. */
+export const NARROW_INPUT = new Set(['text', 'email', 'tel', 'number', 'date', 'select', 'url']);
 
 export function SaveStatusLine({ status }: { status: SaveStatus }) {
   const t = useTranslations('onboarding.shell');
@@ -25,8 +26,8 @@ export function SaveStatusLine({ status }: { status: SaveStatus }) {
 }
 
 /**
- * One screen of the form: title, CMS intro, the visible fields (short ones side by side
- * on desktop), Back / Next. Next is blocked by the shell until validation passes; the
+ * One screen of the form: title, CMS intro, the visible fields (one per row, so a label
+ * and its help text always have the full width to run across), Back / Next. Next is blocked by the shell until validation passes; the
  * errors it hands down are rendered inline.
  */
 export function ScreenCard({
@@ -82,12 +83,12 @@ export function ScreenCard({
       {banner}
 
       <div style={{ background: '#ffffff', border: `1px solid ${BORDER}`, borderRadius: 18, padding: '26px 26px 28px' }}>
-        <div className="onb-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '22px 18px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 22 }}>
           {fields.map((field) => (
             <div
               key={field.id}
               className="onb-reveal"
-              style={{ gridColumn: HALF_WIDTH.has(field.type) ? 'auto' : '1 / -1', minWidth: 0 }}
+              style={{ minWidth: 0 }}
             >
               <FieldRenderer
                 field={field}

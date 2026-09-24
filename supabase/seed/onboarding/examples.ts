@@ -40,7 +40,7 @@ export const examples: OnbExample[] = [
       languages: 'single',
       integrations: ['booking', 'maps', 'reviews'],
       booking_provider: 'Doctolib',
-      booking_account: 'Lena Hartmann',
+      integrations_contact: 'Lena Hartmann',
       gbp_link: 'https://g.page/physio-nordend',
       legal_pages: 'reuse',
       legal_reviewer: 'Lena Hartmann',
@@ -79,7 +79,7 @@ export const examples: OnbExample[] = [
         content_markdown:
           'Gewünschter Start: 2026-11-02 (nicht fest). Texte und Fotos liegen bis 2026-10-05 vor. Der Bau hängt an den Praxisfotos und dem Zugang zum Doctolib-Konto (Lena Hartmann).',
         still_needed: [],
-        sources: ['launch_date', 'launch_date_fixed', 'content_ready_date', 'booking_account_holder'],
+        sources: ['launch_date', 'launch_date_fixed', 'content_ready_date', 'integrations_contact'],
       },
     },
   },

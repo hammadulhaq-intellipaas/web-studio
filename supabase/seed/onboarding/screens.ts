@@ -37,17 +37,17 @@ const rows: Omit<OnbScreen, 'sort' | 'active'>[] = [
     short_de: 'Postfächer',
     short_en: 'Inboxes',
     intro_de:
-      'In diesem Abschnitt geht es um Ihre Postfächer und Benachrichtigungen. Bitte sagen Sie uns, über welche Adressen Sie erreichbar sind und wer erfahren soll, wenn eine Nachricht eingeht. Das ist nicht immer dasselbe.',
+      'In diesem Abschnitt geht es um Ihre Postfächer und Benachrichtigungen. Bitte sagen Sie uns, über welche Adressen Sie erreichbar sind und wer erfahren soll, wenn eine Nachricht eingeht.',
     intro_en:
-      'This section is about your inboxes and notifications. Please tell us which addresses people can use to reach you and who should hear about it when a message arrives. They are not always the same.',
+      'This section is about your inboxes and notifications. Please tell us which addresses people can use to reach you and who should hear about it when a message arrives.',
   },
   {
     id: 'design',
     kind: 'questions',
     title_de: 'Wie Ihre Seite aussehen und klingen soll',
     title_en: 'How your site should look and sound',
-    short_de: 'Auftritt',
-    short_en: 'Look & sound',
+    short_de: 'Design',
+    short_en: 'Design',
     intro_de:
       'In diesem Abschnitt geht es darum, wie Ihre Website aussehen und klingen soll. Bitte werden Sie so konkret wie möglich, denn alles auf diesem Bildschirm fließt direkt in Ihren ersten Entwurf.',
     intro_en:

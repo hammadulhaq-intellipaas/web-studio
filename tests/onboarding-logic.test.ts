@@ -77,13 +77,14 @@ describe('clearHidden', () => {
       ...completeAnswers(),
       integrations: a(['crm']),
       crm_provider: a('HubSpot'),
-      crm_account: a('Lena'),
+      crm_url: a('https://app.hubspot.com/x'),
     };
     const { answers: cleared, removed } = clearHidden(def.fields, { ...answers, integrations: a(['none']) });
     expect(cleared.crm_provider).toBeUndefined();
-    expect(cleared.crm_account).toBeUndefined();
+    expect(cleared.crm_url).toBeUndefined();
+    // "none" also hides the shared contact question and every other block.
     expect(Object.keys(removed).sort()).toEqual(
-      ['crm_provider', 'crm_account', 'gbp_link', 'booking_provider', 'booking_url', 'booking_account'].sort(),
+      ['crm_provider', 'crm_url', 'gbp_link', 'booking_provider', 'booking_url', 'integrations_contact'].sort(),
     );
   });
 

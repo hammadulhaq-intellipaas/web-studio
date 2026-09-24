@@ -47,7 +47,7 @@ export function TextInput({
         onChange(raw);
       }}
       aria-invalid={invalid || undefined}
-      style={inputStyle(invalid)}
+      style={inputStyle(invalid, { maxWidth: 480 })}
     />
   );
 }
@@ -176,7 +176,7 @@ export function SelectInput({
       value={value ?? ''}
       onChange={(ev) => onChange(ev.target.value)}
       aria-invalid={invalid || undefined}
-      style={inputStyle(invalid)}
+      style={inputStyle(invalid, { maxWidth: 480 })}
     >
       <option value="" disabled>
         {t('selectPlaceholder')}

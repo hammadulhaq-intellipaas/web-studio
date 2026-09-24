@@ -63,12 +63,13 @@ export function FieldShell({
       {label && (
         <label htmlFor={inputId} style={labelStyle}>
           {label}
+          {/* A non-breaking space keeps the marker on the last word's line. */}
           {required ? (
             <span style={{ color: '#D6493E' }} aria-label={t('required')}>
-              {' '}*
+              {' *'}
             </span>
           ) : (
-            <span style={{ color: MUTED, fontWeight: 500 }}> · {t('optional')}</span>
+            <span style={{ color: MUTED, fontWeight: 500, whiteSpace: 'nowrap' }}>{' · '}{t('optional')}</span>
           )}
         </label>
       )}

@@ -53,8 +53,8 @@ const noneTick = (de: string, en: string) => ({ none_label_de: de, none_label_en
 const project: OnbField[] = [
   field('contact_name', 'project', 'text', 'Wie heißen Sie?', 'What is your name?', {
     required: true,
-    placeholder_de: 'Anna Meier',
-    placeholder_en: 'Anna Meier',
+    placeholder_de: 'Name',
+    placeholder_en: 'Name',
   }),
   field('contact_company', 'project', 'text', 'Wie heißt Ihr Unternehmen?', 'What is your company called?', {
     required: true,
@@ -159,8 +159,8 @@ const business: OnbField[] = [
       required: true,
       help_de: 'Die benannte Person nach § 18 Abs. 2 MStV, meist die Inhaberin oder der Geschäftsführer.',
       help_en: 'The named person under § 18 Abs. 2 MStV, usually the owner or managing director.',
-      placeholder_de: 'Anna Meier',
-      placeholder_en: 'Anna Meier',
+      placeholder_de: 'Name',
+      placeholder_en: 'Name',
     },
   ),
   field('public_phone', 'business', 'tel', 'Welche Telefonnummer sollen wir auf der Seite zeigen?', 'What phone number should we show on the site?', {
@@ -307,13 +307,13 @@ const inboxes: OnbField[] = [
     required: true,
     help_de: 'Bitte ein Name: die Person, deren Ja bedeutet, dass wir live gehen können.',
     help_en: 'One name, please: the person whose yes means we can go live.',
-    placeholder_de: 'Anna Meier',
-    placeholder_en: 'Anna Meier',
+    placeholder_de: 'Name',
+    placeholder_en: 'Name',
   }),
   field('content_sender', 'inboxes', 'text', 'Wer schickt uns Ihre Texte und Fotos?', 'Who will send us your text and photos?', {
     required: true,
-    placeholder_de: 'Anna Meier',
-    placeholder_en: 'Anna Meier',
+    placeholder_de: 'Name',
+    placeholder_en: 'Name',
   }),
 ];
 
@@ -338,7 +338,7 @@ const design: OnbField[] = [
     placeholder_en: 'Homeowners over 50 planning one big renovation, usually their last one.',
     config: { rows: 3, min_chars: 25, ai_assist: true },
   }),
-  field('usps', 'design', 'textarea', 'Warum wählen Kunden Sie und nicht die nächste Firma?', 'Why do customers choose you rather than the next firm?', {
+  field('usps', 'design', 'textarea', 'Warum wählen Kunden Sie und nicht Ihre Mitbewerber?', 'Why do customers choose you over your competitors?', {
     required: true,
     ai_check: true,
     help_de: 'Bitte konkret.',
@@ -372,10 +372,8 @@ const design: OnbField[] = [
   field('factual_claims', 'design', 'textarea', 'Wie lauten die Angaben und wer hat sie bestätigt?', 'What are the details and who has confirmed them?', {
     required: true,
     show_when: whenNot('proof_to_show', 'nothing'),
-    help_de: 'Alles Sachliche auf Ihrer Seite ist eine öffentliche Aussage Ihres Unternehmens, deshalb veröffentlichen wir nur, was Sie bestätigt haben.',
-    help_en: 'Anything factual on your site is a public statement by your company, so we only publish what you have confirmed.',
-    placeholder_de: 'Jahre am Markt: gegründet 1994, bestätigt von Anna\nZertifikate: Meisterbetrieb seit 2003, bestätigt von Anna',
-    placeholder_en: 'Years in business: founded 1994, confirmed by Anna\nCertifications: Meisterbetrieb since 2003, confirmed by Anna',
+    help_de: 'Bitte nennen Sie die Belege oder die Person, die sie für Ihre Website liefern kann.',
+    help_en: 'Please provide the supporting details or the name of the person who can provide them for your website.',
     config: { rows: 4 },
   }),
   field('tone_scale', 'design', 'slider', 'Wie soll sich Ihre Seite anfühlen?', 'How should your site feel?', {
@@ -612,10 +610,10 @@ const pages: OnbField[] = [
       config: { rows: 3 },
     },
   ),
-  field('visitor_action', 'pages', 'radio', 'Was soll ein Besucher tun?', 'What should a visitor do?', {
+  field('visitor_action', 'pages', 'radio', 'Was sollen Besucher auf Ihrer Website vor allem tun?', 'What is the main action you want visitors to take on your website?', {
     required: true,
-    help_de: 'Bitte wählen Sie die wichtigste Sache, denn wir gestalten die ganze Seite darum herum.',
-    help_en: 'Please pick the main one, because we design the whole site around it.',
+    help_de: 'Bitte wählen Sie ein Hauptziel. Danach richten wir Aufbau, Inhalte und Handlungsaufrufe der Website aus.',
+    help_en: 'Please select one main goal. We will use this to shape the website’s layout, content, and calls to action.',
     options: [
       opt('call', 'Sie anrufen', 'Call you'),
       opt('enquiry', 'Eine Anfrage schicken', 'Send an enquiry'),
@@ -654,8 +652,8 @@ const pages: OnbField[] = [
     show_when: whenNot('languages', 'de'),
     help_de: 'Bitte ein Name.',
     help_en: 'One name, please.',
-    placeholder_de: 'Anna Meier',
-    placeholder_en: 'Anna Meier',
+    placeholder_de: 'Name',
+    placeholder_en: 'Name',
   }),
   field('notice_proofreading', 'pages', 'notice', '', '', {
     show_when: when('translation_by', 'studio'),
@@ -666,82 +664,147 @@ const pages: OnbField[] = [
 /* ------------------------------------------------------------------ Step 6 · integrations */
 
 /** Provider / link / account holder, asked once per ticked system. */
-function integrationBlock(key: string, labelDe: string, labelEn: string, providerPlaceholder: string, urlPlaceholder: string): OnbField[] {
+/**
+ * One connected service: which provider, and the link. Each service words these in its own
+ * terms rather than sharing a composed prefix, and no block asks who holds the account —
+ * we ask once, at the end of the step, who to contact when a link cannot be given.
+ */
+function integrationBlock(
+  key: string,
+  copy: {
+    providerDe: string;
+    providerEn: string;
+    providerExample: string;
+    urlDe: string;
+    urlEn: string;
+    urlPlaceholder: string;
+    /** A CRM or a chat tool can be connected before the client digs out a link. */
+    urlRequired?: boolean;
+  },
+): OnbField[] {
   return [
-    field(`${key}_provider`, 'integrations', 'text', `${labelDe}: Welchen Anbieter nutzen Sie?`, `${labelEn}: which provider do you use?`, {
+    field(`${key}_provider`, 'integrations', 'text', copy.providerDe, copy.providerEn, {
       required: true,
       show_when: when('integrations', key),
-      placeholder_de: providerPlaceholder,
-      placeholder_en: providerPlaceholder,
+      placeholder_de: copy.providerExample,
+      placeholder_en: copy.providerExample,
     }),
-    field(`${key}_url`, 'integrations', 'url', `${labelDe}: Wie lautet der Link?`, `${labelEn}: what is the link?`, {
-      required: true,
+    field(`${key}_url`, 'integrations', 'url', copy.urlDe, copy.urlEn, {
+      required: copy.urlRequired ?? true,
       show_when: when('integrations', key),
-      placeholder_de: urlPlaceholder,
-      placeholder_en: urlPlaceholder,
-    }),
-    field(`${key}_account`, 'integrations', 'text', `${labelDe}: Wer hat das Konto?`, `${labelEn}: who holds the account?`, {
-      required: true,
-      show_when: when('integrations', key),
-      placeholder_de: 'Anna Meier',
-      placeholder_en: 'Anna Meier',
+      placeholder_de: copy.urlPlaceholder,
+      placeholder_en: copy.urlPlaceholder,
     }),
   ];
 }
 
 const integrations: OnbField[] = [
-  field('integrations', 'integrations', 'checkboxes', 'Womit soll Ihre Seite verbunden sein?', 'Which systems should your site connect to?', {
+  field('integrations', 'integrations', 'checkboxes', 'Welche Tools oder Dienste soll Ihre Website anbinden?', 'Which tools or services should your website connect to?', {
     required: true,
-    help_de: 'Bitte alles auswählen, was zutrifft, dann fragen wir die Details ab.',
-    help_en: 'Please select everything that applies and we will ask you for the details.',
+    help_de: 'Bitte alles auswählen, was zutrifft. Zu jedem gewählten Dienst fragen wir anschließend die passenden Angaben ab.',
+    help_en: 'Select all that apply. We will ask for the relevant details for each service you choose.',
     options: [
       opt('maps', 'Google Maps', 'Google Maps'),
       opt('reviews', 'Google-Bewertungen', 'Google Reviews'),
-      opt('booking', 'Online-Terminbuchung', 'Online booking'),
-      opt('payments', 'Zahlungen', 'Payments'),
-      opt('newsletter', 'Newsletter oder E-Mail-Marketing', 'Newsletter or email marketing'),
-      opt('crm', 'CRM', 'CRM'),
-      opt('chat', 'Chat oder Chatbot', 'Chat or chatbot'),
-      opt('other', 'Etwas anderes', 'Something else'),
-      opt('none', 'Keine Verbindungen nötig', 'No connections needed'),
+      opt('booking', 'Online-Terminbuchung', 'Online booking system'),
+      opt('payments', 'Online-Zahlungen', 'Online payments'),
+      opt('newsletter', 'E-Mail-Marketing oder Newsletter', 'Email marketing / newsletter'),
+      opt('crm', 'CRM oder Kundendatenbank', 'CRM / customer database'),
+      opt('chat', 'Live-Chat oder Chatbot', 'Live chat / chatbot'),
+      opt('other', 'Ein anderer Dienst', 'Other service'),
+      opt('none', 'Keine Anbindung nötig', 'No integrations needed'),
     ],
     config: { min_checked: 1, exclusive: ['none'] },
   }),
-  ...integrationBlock('booking', 'Terminbuchung', 'Online booking', 'Calendly', 'https://calendly.com/mueller-sanitaer'),
-  ...integrationBlock('payments', 'Zahlungen', 'Payments', 'Stripe', 'https://dashboard.stripe.com/…'),
+  ...integrationBlock('booking', {
+    providerDe: 'Welches Buchungssystem nutzen Sie?',
+    providerEn: 'Which booking provider do you use?',
+    providerExample: 'Calendly',
+    urlDe: 'Bitte teilen Sie den Link zu Ihrer Buchungsseite.',
+    urlEn: 'Please share the link to your booking page.',
+    urlPlaceholder: 'https://calendly.com/mueller-sanitaer',
+  }),
+  ...integrationBlock('payments', {
+    providerDe: 'Welchen Zahlungsanbieter nutzen Sie?',
+    providerEn: 'Which payment provider do you use?',
+    providerExample: 'Stripe, PayPal, Square',
+    urlDe: 'Bitte teilen Sie Ihren Zahlungs-, Checkout- oder Kontolink.',
+    urlEn: 'Please share your payment, checkout, or account link.',
+    urlPlaceholder: 'https://dashboard.stripe.com/…',
+  }),
   field('payment_live', 'integrations', 'radio', 'Ist das Zahlungskonto schon aktiv?', 'Is the payment account already active?', {
     required: true,
     show_when: when('integrations', 'payments'),
     options: YES_NO_UNSURE,
   }),
-  ...integrationBlock('newsletter', 'Newsletter', 'Newsletter', 'Brevo', 'https://app.brevo.com/…'),
+  ...integrationBlock('newsletter', {
+    providerDe: 'Welchen E-Mail-Marketing-Anbieter nutzen Sie?',
+    providerEn: 'Which email marketing provider do you use?',
+    providerExample: 'Mailchimp, Brevo, Klaviyo',
+    urlDe: 'Bitte teilen Sie den Link zu Ihrem Anmeldeformular, Ihrer Newsletter-Seite oder Ihrem Konto.',
+    urlEn: 'Please share the link to your signup form, newsletter page, or account.',
+    urlPlaceholder: 'https://app.brevo.com/…',
+  }),
   field('newsletter_list_exists', 'integrations', 'radio', 'Gibt es schon eine Empfängerliste?', 'Does a subscriber list already exist?', {
     required: true,
     show_when: when('integrations', 'newsletter'),
     options: YES_NO,
   }),
-  ...integrationBlock('crm', 'CRM', 'CRM', 'HubSpot', 'https://app.hubspot.com/…'),
+  ...integrationBlock('crm', {
+    providerDe: 'Welches CRM oder welche Kundendatenbank nutzen Sie?',
+    providerEn: 'Which CRM or customer database do you use?',
+    providerExample: 'HubSpot, Salesforce, Pipedrive',
+    urlDe: 'Bitte teilen Sie den passenden Konto-, Login- oder Hilfecenter-Link.',
+    urlEn: 'Please share the relevant account, login, or help-centre link.',
+    urlPlaceholder: 'https://app.hubspot.com/…',
+    urlRequired: false,
+  }),
   field('crm_what_syncs', 'integrations', 'textarea', 'Was soll mit dem CRM synchronisiert werden?', 'What should sync with the CRM?', {
     required: true,
     show_when: when('integrations', 'crm'),
-    placeholder_de: 'Jede Anfrage wird ein Kontakt, Terminwünsche erzeugen eine Aufgabe.',
+    placeholder_de: 'Jede Anfrage wird ein Kontakt und Buchungsanfragen erzeugen eine Aufgabe.',
     placeholder_en: 'Every enquiry becomes a contact and booking requests create a task.',
     config: { rows: 3 },
   }),
-  ...integrationBlock('chat', 'Chat', 'Chat', 'Crisp', 'https://app.crisp.chat/…'),
-  field('other_integration', 'integrations', 'textarea', 'Was ist es und was soll es tun?', 'What is it and what should it do?', {
+  ...integrationBlock('chat', {
+    providerDe: 'Welchen Live-Chat- oder Chatbot-Anbieter nutzen Sie?',
+    providerEn: 'Which live-chat or chatbot provider do you use?',
+    providerExample: 'Tidio, Intercom, HubSpot Chat',
+    urlDe: 'Bitte teilen Sie den passenden Konto-, Login- oder Hilfecenter-Link.',
+    urlEn: 'Please share the relevant account, login, or help-centre link.',
+    urlPlaceholder: 'https://app.crisp.chat/…',
+    urlRequired: false,
+  }),
+  field('other_integration', 'integrations', 'textarea', 'Welchen weiteren Dienst soll Ihre Website anbinden?', 'What other service would you like to connect to your website?', {
     required: true,
     show_when: when('integrations', 'other'),
     placeholder_de: 'Unser Warenwirtschaftssystem, damit der Shop zeigt, was wirklich verfügbar ist',
     placeholder_en: 'Our stock system, so the shop shows what is actually available',
     config: { rows: 3 },
   }),
-  ...integrationBlock('other', 'Weiteres System', 'The other system', 'Anbieter', 'https://…'),
+  field('other_url', 'integrations', 'url', 'Bitte teilen Sie den passenden Link.', 'Please share the relevant link.', {
+    show_when: when('integrations', 'other'),
+    placeholder_de: 'https://…',
+    placeholder_en: 'https://…',
+  }),
+  field('integrations_none_confirm', 'integrations', 'radio', 'Bitte bestätigen Sie, dass Sie derzeit keine Anbindung brauchen.', 'Please confirm that you do not currently need any website integrations.', {
+    required: true,
+    show_when: when('integrations', 'none'),
+    options: [
+      opt('confirmed', 'Bestätigt', 'Confirmed'),
+      opt('unsure', 'Nicht sicher – bitte beraten Sie uns', 'Not sure — please advise'),
+    ],
+  }),
+  field('integrations_contact', 'integrations', 'text', 'Wenn Sie keinen Link liefern können: Wen können wir nach den Angaben fragen?', 'If you cannot provide a link, who can we contact for the details?', {
+    show_when: whenNot('integrations', 'none'),
+    placeholder_de: 'Name',
+    placeholder_en: 'Name',
+  }),
   field('notice_no_passwords', 'integrations', 'notice', '', '', {
     show_when: whenNot('integrations', 'none'),
-    config: { text_key: 'notice_no_passwords', tone: 'info' },
+    config: { text_key: 'notice_no_passwords', tone: 'warn' },
   }),
-  field('gbp_link', 'integrations', 'url', 'Wie lautet der Link zu Ihrem Google-Unternehmensprofil?', 'What is your Google Business Profile link?', {
+  field('gbp_link', 'integrations', 'url', 'Bitte teilen Sie den Link zu Ihrem Google-Unternehmensprofil oder Ihrer Google-Bewertungsseite.', 'Please share the link to your Google Business Profile or Google reviews page.', {
     required: true,
     show_when: when('integrations', 'maps', 'reviews'),
     help_de: 'Dieser eine Link gibt uns Ihren Standort auf der Karte und Ihre Bewertungen, wir brauchen ihn also nur einmal.',
@@ -807,8 +870,8 @@ const files: OnbField[] = [
     show_when: when('photo_portal_needed', 'yes'),
     help_de: 'Bitte fangen Sie jetzt damit an, denn Lieferantenzugänge dauern meist ein bis zwei Wochen.',
     help_en: 'Please start this now, because supplier logins usually take a week or two to arrange.',
-    placeholder_de: 'Grohe-Händlerportal. Anna kann den Zugang für Sie beantragen.',
-    placeholder_en: 'Grohe dealer portal. Anna can request access for you.',
+    placeholder_de: 'Grohe-Händlerportal. Name kann den Zugang für Sie beantragen.',
+    placeholder_en: 'Grohe dealer portal. Name can request access for you.',
     config: { rows: 3 },
   }),
 ];
@@ -849,8 +912,8 @@ const accessLegal: OnbField[] = [
           label_de: 'Wer hat den Zugang',
           label_en: 'Who holds the login',
           required: true,
-          placeholder_de: 'Anna Meier',
-          placeholder_en: 'Anna Meier',
+          placeholder_de: 'Name',
+          placeholder_en: 'Name',
         },
       ],
     },
@@ -866,8 +929,8 @@ const accessLegal: OnbField[] = [
   field('site_manager', 'access_legal', 'textarea', 'Wer betreut die Seite nach dem Start?', 'Who will look after the site after launch?', {
     help_de: 'Bitte eine Person pro Zeile, denn jede bekommt einen eigenen Zugang.',
     help_en: 'One per line, please, because each person gets their own login.',
-    placeholder_de: 'Anna Meier, Aktuelles und Team-Seiten',
-    placeholder_en: 'Anna Meier, news and team pages',
+    placeholder_de: 'Name, Aktuelles und Team-Seiten',
+    placeholder_en: 'Name, news and team pages',
     config: { rows: 3 },
   }),
   field(
@@ -896,8 +959,8 @@ const accessLegal: OnbField[] = [
     show_when: when('legal_pages', 'reuse'),
     help_de: 'Ein Name reicht.',
     help_en: 'One name is enough.',
-    placeholder_de: 'Anna Meier',
-    placeholder_en: 'Anna Meier',
+    placeholder_de: 'Name',
+    placeholder_en: 'Name',
   }),
   field('legal_extras', 'access_legal', 'checkboxes', 'Brauchen Sie auch AGB, eine Widerrufsbelehrung oder einen AVV?', 'Do you also need AGB, a cancellation policy or an AVV?', {
     options: [
@@ -993,6 +1056,15 @@ const review: OnbField[] = [
  * given to them survive in the records that carry them.
  */
 export const retiredFieldIds = [
+  // The 24 Sep corrections dropped "who holds the account?" from every integration
+  // block, and the "other service" block no longer asks for a provider separately.
+  'booking_account',
+  'payments_account',
+  'newsletter_account',
+  'crm_account',
+  'chat_account',
+  'other_account',
+  'other_provider',
   'crm_name',
   'payment_provider',
   'booking_account_holder',

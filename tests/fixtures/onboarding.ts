@@ -96,7 +96,7 @@ export function completeAnswers(): Answers {
     gbp_link: a('https://g.page/physio-nordend'),
     booking_provider: a('Doctolib'),
     booking_url: a('https://www.doctolib.de/physio-nordend'),
-    booking_account: a('Lena Hartmann'),
+    integrations_contact: a('Lena Hartmann'),
     assets_folder: a('https://drive.google.com/drive/folders/abc'),
     assets_sharing_confirmed: a(['yes']),
     photo_portal_needed: a('no'),
