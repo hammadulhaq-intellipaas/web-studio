@@ -43,9 +43,10 @@ test.describe('public funnel (de) — happy path', () => {
     await expect(page.getByTestId('lead-err-tel')).toBeVisible();
     await expect(page.getByTestId('lead-err-consent')).toBeVisible();
 
-    // The optional intake travels with this same form; submitting leads to booking, then done.
-    await page.getByTestId('s2-section-unternehmen').click();
-    await page.getByTestId('s2-firmenname').fill('E2E Gasthaus GmbH');
+    // The enquiry form asks for contact details only; everything the build needs is
+    // collected properly by the onboarding form once the quote is agreed.
+    await expect(page.getByText('More about your project')).toHaveCount(0);
+    await expect(page.locator('[data-testid^=s2-]')).toHaveCount(0);
 
     await fillLeadAndSubmit(page, testEmail('happy'));
     await passCalendlyPanel(page);

@@ -11,7 +11,6 @@ import { buildReceipt } from '@/lib/pricing/summary';
 import { Link } from '@/i18n/navigation';
 import { useFunnel, type LeadForm } from '@/stores/funnel';
 import { useAppLocale, useSelection, useSummaryLabels } from './hooks';
-import { IntakeSections } from './IntakeSections';
 import { PromoBox } from './PriceSidebar';
 import { backButton, BLUE, BODY, BORDER, GREEN, gradButton, INK, LockIcon, MUTED, MUTED2 } from './ui';
 
@@ -352,23 +351,6 @@ export function LeadStep({ catalog }: { catalog: Catalog }) {
                 }}
               />
             </div>
-            {/* Optional intake — collapsed; speeds up the build if filled in now. Only on a
-                first enquiry: once a quote exists the onboarding form collects all of this
-                properly, so repeating it on the customer's own link is just noise. */}
-            {!quote && (
-              <div style={{ gridColumn: '1 / -1' }}>
-                <div style={{ marginBottom: 10 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700 }}>
-                    {t('optionalIntakeTitle')}{' '}
-                    <span style={{ color: MUTED, fontWeight: 500 }}>{t('zielOptional')}</span>
-                  </div>
-                  <div style={{ fontSize: 12, color: MUTED, marginTop: 3, lineHeight: 1.45 }}>
-                    {t('optionalIntakeSub')}
-                  </div>
-                </div>
-                <IntakeSections />
-              </div>
-            )}
             {teamMode ? null : consentGiven ? (
               <div style={{ gridColumn: '1 / -1', fontSize: 12.5, color: MUTED }} data-testid="lead-consent-given">
                 ✓ {t('consentGiven', { date: consentDate })}

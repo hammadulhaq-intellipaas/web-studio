@@ -285,8 +285,6 @@
     "zielLabel": "What do you want to achieve?",
     "zielOptional": "(optional)",
     "zielPh": "e.g. Get more inquiries via Google",
-    "optionalIntakeTitle": "More about your project",
-    "optionalIntakeSub": "All optional — the more we know up front, the faster your website goes live.",
     "consent": "I consent to the processing of my data in accordance with the <link>privacy policy</link>.",
     "errEmail": "Please enter a valid email address.",
     "errTel": "Please enter your phone number — we will call you.",
