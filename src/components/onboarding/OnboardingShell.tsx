@@ -15,7 +15,7 @@ import {
 import { loc } from '@/lib/onboarding/types';
 import type { Answer, Answers, OnbField, OnboardingBrief, OnboardingDefinition, OnboardingFormRecord } from '@/lib/onboarding/types';
 import { useOnboardingStash } from '@/stores/onboarding';
-import { BORDER, gradButton, MUTED } from '@/components/funnel/ui';
+import { gradButton, MUTED } from '@/components/funnel/ui';
 import { OnboardingFrame } from './OnboardingFrame';
 import { OnboardingHeader } from './OnboardingHeader';
 import { ScreenCard } from './ScreenCard';
