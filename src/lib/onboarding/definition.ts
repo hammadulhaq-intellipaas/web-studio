@@ -32,7 +32,6 @@ export function parseOnboardingSettings(settingsMap: Record<string, unknown>): O
     model: str('onb_model', 'gpt-6-luna'),
     maxFollowups: num('onb_max_followups', 12),
     maxRounds: num('onb_max_rounds', 2),
-    maxRewrites: num('onb_max_rewrites', 9),
     maxAiCalls: num('onb_max_ai_calls', 20),
     buildWeeksMin: num('onb_build_weeks_min', 3),
     buildWeeksMax: num('onb_build_weeks_max', 6),

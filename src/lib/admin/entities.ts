@@ -411,7 +411,6 @@ export const SETTINGS: SettingDef[] = [
   { key: 'onb_model', label: 'Onboarding: AI model', type: 'text', description: 'Model id for the completeness pass, the brief writer and "help me say this better" (e.g. "gpt-6-luna", or "openai/gpt-6-luna" on OpenRouter).' },
   { key: 'onb_max_followups', label: 'Onboarding: max follow-up questions', type: 'number', description: 'Total follow-up questions per form across all rounds (spec: 12).' },
   { key: 'onb_max_rounds', label: 'Onboarding: max follow-up rounds', type: 'number', description: 'Gap-check rounds at review time (spec: 2).' },
-  { key: 'onb_max_rewrites', label: 'Onboarding: max section rewrites', type: 'number', description: 'How often a client may ask for a brief section to be rewritten.' },
   { key: 'onb_max_ai_calls', label: 'Onboarding: max model calls per form', type: 'number', description: 'Hard cost cap per form; further calls fall back to the plain rendering.' },
   { key: 'onb_build_weeks_min', label: 'Onboarding: build time min (weeks)', type: 'number', description: 'Used only to detect a content date too close to the launch date. Never shown to the client.' },
   { key: 'onb_build_weeks_max', label: 'Onboarding: build time max (weeks)', type: 'number', description: 'Informational counterpart of the minimum.' },

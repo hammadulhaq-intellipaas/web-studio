@@ -37,13 +37,3 @@ export async function loadBriefVersions(formId: string): Promise<OnboardingBrief
   if (error) throw new Error(`Failed to load briefs: ${error.message}`);
   return (data ?? []) as OnboardingBrief[];
 }
-
-export async function countRewrites(formId: string): Promise<number> {
-  const supabase = createSupabaseAdminClient();
-  const { count } = await supabase
-    .from('onboarding_briefs')
-    .select('id', { count: 'exact', head: true })
-    .eq('form_id', formId)
-    .eq('source', 'rewrite');
-  return count ?? 0;
-}

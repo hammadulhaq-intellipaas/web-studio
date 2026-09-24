@@ -262,7 +262,6 @@ export interface OnboardingSettings {
   model: string;
   maxFollowups: number;
   maxRounds: number;
-  maxRewrites: number;
   maxAiCalls: number;
   buildWeeksMin: number;
   buildWeeksMax: number;

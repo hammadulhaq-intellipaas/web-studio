@@ -2,7 +2,7 @@ import 'server-only';
 import { z } from 'zod';
 import type { Locale } from '@/lib/types';
 import { displayValue, type FileSummary } from '../export';
-import { buildCorpus, findForbidden, findUngrounded, normalizeText, type Corpus } from '../guardrails';
+import { buildCorpus, findForbidden, findUngrounded, type Corpus } from '../guardrails';
 import { computeGaps, fieldLabel, sliderLabel, visibility } from '../logic';
 import type {
   BriefSectionContent,
@@ -277,74 +277,4 @@ function fixtureSections(
     base[id] = { ...section, content_markdown: `${lead}\n\n${section.content_markdown}` };
   }
   return base;
-}
-
-/* ------------------------------------------------------------------ rewrite */
-
-export interface RewriteResult {
-  ok: boolean;
-  section: BriefSectionContent | null;
-  model: string | null;
-  violations: string[];
-}
-
-/** Rewrites ONE section after the client said what is wrong; same guardrails, no fallback (the client can edit instead). */
-export async function rewriteSection(input: {
-  definition: OnboardingDefinition;
-  secrets: OnboardingSecrets;
-  record: OnboardingFormRecord;
-  files: FileSummary[];
-  current: Record<string, BriefSectionContent>;
-  sectionId: string;
-  instruction: string;
-}): Promise<RewriteResult> {
-  const { definition, secrets, record, files, current, sectionId, instruction } = input;
-  const section = definition.briefSections.find((s) => s.id === sectionId && s.generated_by === 'llm');
-  if (!section) return { ok: false, section: null, model: null, violations: ['unknown section'] };
-  if (!modelConfigured() || !(await reserveAiCall(record.id, record.ai_calls, definition.settings))) {
-    return { ok: false, section: null, model: null, violations: ['model unavailable'] };
-  }
-
-  const fieldKeys = definition.fields.map((f) => f.id) as [string, ...string[]];
-  const schema = z.object({ section: sectionSchema(fieldKeys) });
-  // The client's own instruction may be echoed, so it counts as grounded.
-  const base = briefCorpus(definition, record, files);
-  const corpus: Corpus = { text: `${base.text} ${normalizeText(instruction)}`, digits: base.digits + instruction.replace(/\D/g, '') };
-  const locale = record.locale;
-  const prompt = [
-    promptText(secrets.prompts, 'rewrite'),
-    '',
-    `Write in ${localeName(locale)}.`,
-    clientHeader(record),
-    '',
-    `SECTION TO REWRITE: ${sectionSpec(section, definition, locale)}`,
-    `CLIENT'S INSTRUCTION: ${instruction}`,
-    '',
-    'CURRENT BRIEF (for context; rewrite only the section above):',
-    JSON.stringify(current),
-    '',
-    "THE CLIENT'S ANSWERS:",
-    renderAnswers(definition, record.answers, files, locale),
-  ].join('\n');
-
-  const result = await callModel({
-    formId: record.id,
-    job: 'rewrite',
-    attempt: 1,
-    settings: definition.settings,
-    system: promptText(secrets.prompts, 'system'),
-    prompt,
-    schema,
-    fixture: () => ({
-      section: {
-        content_markdown: `${current[sectionId]?.content_markdown ?? ''}\n\n${locale === 'de' ? 'Ergänzt nach Ihrer Anmerkung' : 'Amended after your note'}: ${instruction}`,
-        still_needed: current[sectionId]?.still_needed ?? [],
-        sources: current[sectionId]?.sources ?? [],
-      },
-    }),
-  });
-  if (!result.ok) return { ok: false, section: null, model: result.model, violations: [result.error] };
-  const violations = checkSections({ [sectionId]: result.object.section as BriefSectionContent }, corpus);
-  if (violations.length) return { ok: false, section: null, model: result.model, violations };
-  return { ok: true, section: result.object.section as BriefSectionContent, model: result.model, violations: [] };
 }

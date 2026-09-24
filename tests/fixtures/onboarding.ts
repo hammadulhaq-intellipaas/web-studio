@@ -19,7 +19,6 @@ export const SETTINGS: OnboardingSettings = {
   model: 'gpt-4o',
   maxFollowups: 12,
   maxRounds: 2,
-  maxRewrites: 9,
   maxAiCalls: 20,
   buildWeeksMin: 3,
   buildWeeksMax: 6,
