@@ -93,9 +93,10 @@ test.describe('onboarding form', () => {
     await page.fill('[data-testid=f-factual_claims]', 'Bewertungen: 4,9 auf Google, bestätigt von Lena');
     await page.click('[data-testid=opt-tone_scale-4]');
     await expect(page.locator('[data-testid=slider-caption-tone_scale]')).toContainText('Professionell und zurückhaltend');
-    // The scale stops between the numbers too: one arrow press is a tenth.
-    await page.locator('[data-testid=f-tone_scale] input[type=range]').press('ArrowRight');
-    await expect(page.locator('[data-testid=slider-caption-tone_scale]')).toContainText('4,1 / 5');
+    // The scale stops between its captions too: one arrow press is a tenth.
+    const tone = page.locator('[data-testid=f-tone_scale] input[type=range]');
+    for (let i = 0; i < 5; i++) await tone.press('ArrowRight');
+    await expect(page.locator('[data-testid=slider-caption-tone_scale]')).toContainText('Zwischen „Professionell und zurückhaltend“ und „Formell und seriös“');
     await page.fill('[data-testid=f-tone_note]', 'Seriös, aber nicht kühl.');
     await page.click('[data-testid=opt-personality_scale-2]');
     await page.fill('[data-testid=f-references-0-url]', 'https://www.beispiel-physio.de');

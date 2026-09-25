@@ -1,20 +1,21 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import type { Locale } from '@/lib/types';
 import type { OnbField } from '@/lib/onboarding/types';
 import { cap } from '@/lib/onboarding/types';
-import { sliderCaptionIndex } from '@/lib/onboarding/logic';
+import { SLIDER_STEP, sliderCaptionIndex } from '@/lib/onboarding/logic';
 import { BLUE, BORDER, BODY, INK, MUTED } from '@/components/funnel/ui';
 
 const THUMB = 22;
 
 /**
- * Scale with a live caption and example line (spec §02: "a bare 2 means nothing
- * downstream"). With `config.step` below 1 the client can stop between two captions
- * (2.3, 4.5); the caption shown is the nearest one. Hovering the track previews the value
- * under the pointer in a bubble, and dragging shows the value being set. Unanswered shows
- * the midpoint but stores nothing until the client moves it or taps a number.
+ * A scale whose stops are its captions ("Fun and playful" … "Formal and serious"), not
+ * numbers. The handle stops anywhere between two captions (spec §02: "a bare 2 means
+ * nothing downstream", so the client only ever sees words). Hovering the track previews
+ * the nearest caption in a bubble, and dragging shows it live. Unanswered shows the
+ * midpoint but stores nothing until the client moves it or taps a caption.
  */
 export function SliderInput({
   field,
@@ -29,23 +30,26 @@ export function SliderInput({
   onChange: (v: number) => void;
   inputId: string;
 }) {
+  const t = useTranslations('onboarding.fields');
   const min = field.config.min ?? 1;
   const max = field.config.max ?? 5;
-  const step = field.config.step ?? 1;
+  const step = field.config.step ?? SLIDER_STEP;
   const decimals = step < 1 ? Math.min(2, String(step).split('.')[1]?.length ?? 1) : 0;
   const snap = (n: number) => Number(Math.min(max, Math.max(min, Math.round((n - min) / step) * step + min)).toFixed(decimals));
-  const format = (n: number) => n.toLocaleString(locale === 'de' ? 'de-DE' : 'en-GB', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
   const pct = (n: number) => ((n - min) / (max - min)) * 100;
+  const captionAt = (i: number) => cap(field.config.captions?.[i], locale);
 
   const trackRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<number | null>(null);
   const [active, setActive] = useState(false);
 
   const shown = value ?? (min + max) / 2;
-  const ticks = Array.from({ length: max - min + 1 }, (_, i) => min + i);
-  const index = sliderCaptionIndex(field, shown);
-  const caption = cap(field.config.captions?.[index], locale);
-  const example = cap(field.config.examples?.[index], locale);
+  const stops = Array.from({ length: max - min + 1 }, (_, i) => min + i);
+  const nearest = sliderCaptionIndex(field, shown);
+  const onStop = Math.abs(shown - Math.round(shown)) < 0.05;
+  const lower = Math.floor(shown) - min;
+  const heading = onStop ? captionAt(nearest) : t('sliderBetween', { a: captionAt(lower), b: captionAt(lower + 1) });
+  const example = cap(field.config.examples?.[nearest], locale);
 
   // While dragging the bubble follows the value; otherwise it previews the pointer.
   const bubble = active && value != null ? value : hover;
@@ -57,11 +61,15 @@ export function SliderInput({
     return snap(min + ratio * (max - min));
   };
 
+  // The track is inset by half a column, so every caption column is centred on its point.
+  const inset = `calc(50% / ${stops.length})`;
+
   return (
     <div data-testid={`f-${field.id}`}>
       <style>{`
         .onb-slider { -webkit-appearance: none; appearance: none; background: transparent; }
-        .onb-slider:focus { outline: none; }
+        /* Beats the global ".funnel input:focus" ring; focus shows on the thumb instead. */
+        .funnel .onb-slider:focus { outline: none; }
         .onb-slider::-webkit-slider-runnable-track { height: ${THUMB}px; background: transparent; }
         .onb-slider::-moz-range-track { height: ${THUMB}px; background: transparent; }
         .onb-slider::-webkit-slider-thumb {
@@ -78,24 +86,16 @@ export function SliderInput({
         .onb-slider.unset::-moz-range-thumb { border-color: #B9C6DB; box-shadow: none; }
       `}</style>
 
-      {/* Track, fill, bubble and the real range input stacked on one line. */}
+      {/* Track, fill, stop marks, bubble and the real range input stacked on one line. */}
       <div
         ref={trackRef}
-        style={{ position: 'relative', height: THUMB, margin: `34px ${THUMB / 2}px 6px` }}
+        style={{ position: 'relative', height: THUMB, margin: `40px ${inset} 10px` }}
         onPointerMove={(ev) => setHover(fromPointer(ev.clientX))}
         onPointerLeave={() => setHover(null)}
       >
         <div
           aria-hidden
-          style={{
-            position: 'absolute',
-            left: -THUMB / 2,
-            right: -THUMB / 2,
-            top: THUMB / 2 - 4,
-            height: 8,
-            borderRadius: 999,
-            background: '#E6ECF5',
-          }}
+          style={{ position: 'absolute', left: -THUMB / 2, right: -THUMB / 2, top: THUMB / 2 - 4, height: 8, borderRadius: 999, background: '#E6ECF5' }}
         />
         {value != null && (
           <div
@@ -112,6 +112,23 @@ export function SliderInput({
             }}
           />
         )}
+        {stops.map((n) => (
+          <span
+            key={n}
+            aria-hidden
+            style={{
+              position: 'absolute',
+              left: `${pct(n)}%`,
+              top: THUMB / 2 - 3,
+              width: 6,
+              height: 6,
+              marginLeft: -3,
+              borderRadius: '50%',
+              background: value != null && value >= n ? '#ffffff' : '#C3CFE2',
+              pointerEvents: 'none',
+            }}
+          />
+        ))}
         {bubble != null && (
           <div
             aria-hidden
@@ -120,30 +137,19 @@ export function SliderInput({
               position: 'absolute',
               left: `${pct(bubble)}%`,
               bottom: THUMB + 8,
-              transform: 'translateX(-50%)',
+              transform: `translateX(-${pct(bubble)}%)`,
               background: INK,
               color: '#ffffff',
               fontSize: 12.5,
               fontWeight: 700,
-              padding: '4px 9px',
+              padding: '5px 10px',
               borderRadius: 8,
               whiteSpace: 'nowrap',
               pointerEvents: 'none',
               boxShadow: '0 4px 12px rgba(15, 23, 42, .18)',
             }}
           >
-            {format(bubble)}
-            <span
-              style={{
-                position: 'absolute',
-                left: '50%',
-                bottom: -4,
-                width: 8,
-                height: 8,
-                background: INK,
-                transform: 'translateX(-50%) rotate(45deg)',
-              }}
-            />
+            {captionAt(sliderCaptionIndex(field, bubble))}
           </div>
         )}
         <input
@@ -159,7 +165,7 @@ export function SliderInput({
           onPointerUp={() => setActive(false)}
           onFocus={() => setActive(true)}
           onBlur={() => setActive(false)}
-          aria-valuetext={`${format(shown)} · ${caption}`}
+          aria-valuetext={heading}
           style={{
             position: 'absolute',
             left: -THUMB / 2,
@@ -167,40 +173,44 @@ export function SliderInput({
             top: 0,
             height: THUMB,
             margin: 0,
+            padding: 0,
+            border: 'none',
+            boxShadow: 'none',
             cursor: 'pointer',
           }}
         />
       </div>
 
-      {/* Whole-number shortcuts, placed under their point on the track. */}
-      <div style={{ position: 'relative', height: 30, margin: `0 ${THUMB / 2}px` }}>
-        {ticks.map((n) => {
-          const on = value != null && Math.abs(value - n) < 1e-9;
+      {/* The captions are the scale: each sits under its point and jumps there when tapped. */}
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${stops.length}, 1fr)`, columnGap: 4 }}>
+        {stops.map((n) => {
+          const i = n - min;
+          const on = value != null && nearest === i;
           return (
             <button
               key={n}
               type="button"
               data-testid={`opt-${field.id}-${n}`}
               onClick={() => onChange(n)}
-              aria-label={cap(field.config.captions?.[n - min], locale)}
               style={{
-                position: 'absolute',
-                left: `${pct(n)}%`,
-                transform: 'translateX(-50%)',
                 fontFamily: 'inherit',
+                textAlign: 'center',
+                textWrap: 'balance',
+                // Long captions ("Professional and restrained") break at syllables on phones.
+                hyphens: 'auto',
+                WebkitHyphens: 'auto',
                 cursor: 'pointer',
-                width: 30,
-                height: 30,
-                borderRadius: '50%',
-                border: `1.5px solid ${on ? BLUE : BORDER}`,
-                background: on ? BLUE : '#ffffff',
-                color: on ? '#ffffff' : MUTED,
-                fontSize: 12.5,
-                fontWeight: 700,
-                transition: 'all .15s',
+                border: 'none',
+                background: 'transparent',
+                padding: '2px 0',
+                fontSize: 'clamp(10.5px, 2.9vw, 12px)',
+                lineHeight: 1.3,
+                fontWeight: on ? 700 : 600,
+                color: on ? BLUE : MUTED,
+                transition: 'color .15s',
               }}
             >
-              {n}
+              {captionAt(i)}
             </button>
           );
         })}
@@ -221,14 +231,7 @@ export function SliderInput({
           transition: 'all .15s',
         }}
       >
-        <span style={{ fontSize: 14, fontWeight: 700, color: INK }}>
-          {caption}
-          {value != null && (
-            <span style={{ fontWeight: 600, color: MUTED, marginLeft: 8 }}>
-              {format(value)} / {max}
-            </span>
-          )}
-        </span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: INK }}>{heading}</span>
         {example && <span style={{ fontSize: 12.5, color: BODY }}>{example}</span>}
       </div>
     </div>

@@ -384,7 +384,7 @@ export function validateField(field: OnbField, ctx: ValidationContext, locale: L
       const min = cfg.min ?? 1;
       const max = cfg.max ?? 5;
       // On the step grid (0.1 → 2.3 is fine, 2.35 is not), tolerant of float noise.
-      const steps = (n - min) / (cfg.step ?? 1);
+      const steps = (n - min) / (cfg.step ?? SLIDER_STEP);
       const onGrid = Math.abs(steps - Math.round(steps)) < 1e-6;
       return Number.isFinite(n) && onGrid && n >= min && n <= max ? [] : [{ field: field.id, code: 'invalid_option' }];
     }
@@ -616,6 +616,9 @@ export function optionLabel(field: OnbField, value: string, locale: Locale): str
   const option = field.options.find((o) => o.value === value);
   return option ? loc(option as unknown as Record<string, unknown>, 'label', locale) : value;
 }
+
+/** Sliders stop between their captions unless a field says otherwise. */
+export const SLIDER_STEP = 0.1;
 
 /** Caption nearest to the value: 2.3 reads as step 2, 2.5 and up as step 3. */
 export function sliderCaptionIndex(field: OnbField, value: number): number {

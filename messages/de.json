@@ -560,6 +560,7 @@
       "uploadDrag": "Dateien hierher ziehen oder",
       "uploadPick": "Dateien auswählen",
       "uploadHint": "Bis zu {max} Dateien, je max. {mb} MB",
+      "sliderBetween": "Zwischen „{a}“ und „{b}“",
       "uploadHintTotal": "Bis zu {max} Dateien, zusammen {mb} MB · noch {left} MB frei",
       "uploadDelete": "Datei entfernen",
       "uploadErr": {

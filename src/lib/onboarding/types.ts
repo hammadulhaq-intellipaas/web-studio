@@ -94,7 +94,7 @@ export interface FieldConfig {
   // date: 'today' or an ISO date
   min_date?: string;
   // slider
-  /** Fractional steps (e.g. 0.1) let the client stop between two captions; default 1. */
+  /** Grid the slider stops on; the default 0.1 lets the client stop between two captions. */
   step?: number;
   captions?: LocalizedCaption[];
   examples?: LocalizedCaption[];
