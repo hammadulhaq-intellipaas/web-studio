@@ -478,10 +478,6 @@
   "onboarding": {
     "landing": {
       "eyebrow": "Web Studio · Onboarding",
-      "badgeMinutes": "about {minutes} minutes",
-      "badgeAutosave": "Saves automatically · Save your progress and come back later",
-      "badgeNoLogin": "No sign-in",
-      "badgeLanguages": "German & English",
       "cta": "Start the brief",
       "whatYouGet": "What you get"
     },

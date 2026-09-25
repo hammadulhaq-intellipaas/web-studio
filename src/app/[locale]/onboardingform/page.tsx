@@ -7,8 +7,7 @@ import { getOnboardingDefinition } from '@/lib/onboarding/definition';
 import { fillPlaceholders, textFor } from '@/lib/onboarding/texts';
 import { OnboardingFrame } from '@/components/onboarding/OnboardingFrame';
 import { OnboardingHeader } from '@/components/onboarding/OnboardingHeader';
-import { CheckIcon } from '@/components/funnel/ui';
-import { BODY, BORDER, gradButton, INK } from '@/components/funnel/tokens';
+import { BODY, BORDER, gradButton } from '@/components/funnel/tokens';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,12 +27,6 @@ export default async function OnboardingLandingPage({ params }: { params: Promis
   const whatYouGet = textFor(definition.texts, 'landing_what_you_get', loc);
   const startHref = getPathname({ locale: loc, href: '/onboardingform/new' });
 
-  const badges = [
-    t('badgeMinutes', { minutes }),
-    t('badgeAutosave'),
-    t('badgeNoLogin'),
-    t('badgeLanguages'),
-  ];
 
   return (
     <OnboardingFrame header={<OnboardingHeader />}>
@@ -76,37 +69,6 @@ export default async function OnboardingLandingPage({ params }: { params: Promis
         </h1>
         <div className="onb-markdown" style={{ fontSize: 17, lineHeight: 1.6, color: BODY, maxWidth: 600, textWrap: 'pretty' }}>
           <ReactMarkdown>{fillPlaceholders(landing?.content_markdown ?? '', { minutes })}</ReactMarkdown>
-        </div>
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            justifyContent: 'center',
-            gap: 10,
-            margin: '26px 0 34px',
-            maxWidth: 660,
-          }}
-        >
-          {badges.map((label) => (
-            <span
-              key={label}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 7,
-                fontSize: 13,
-                fontWeight: 600,
-                color: INK,
-                background: '#ffffff',
-                border: `1px solid ${BORDER}`,
-                borderRadius: 999,
-                padding: '8px 14px',
-              }}
-            >
-              <CheckIcon />
-              {label}
-            </span>
-          ))}
         </div>
         <a
           href={startHref}
