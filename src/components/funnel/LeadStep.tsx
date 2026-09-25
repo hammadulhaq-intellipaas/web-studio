@@ -133,8 +133,13 @@ export function LeadStep({ catalog }: { catalog: Catalog }) {
   const submit = async () => {
     const l = store.lead;
     const errs: Partial<Record<keyof LeadForm, string>> = {};
+    if (!l.vorname.trim()) errs.vorname = t('errName');
+    if (!l.nachname.trim()) errs.nachname = t('errName');
+    if (!l.firma.trim()) errs.firma = t('errCompany');
     if (!EMAIL_RE.test(l.email)) errs.email = t('errEmail');
-    if (!teamMode && (!l.tel || l.tel.replace(/\D/g, '').length < 6)) errs.tel = t('errTel');
+    // The phone number is optional: we reach them by email, and asking for a number people
+    // do not want to give costs more enquiries than it gains.
+    if (!teamMode && l.tel.trim() && l.tel.replace(/\D/g, '').length < 6) errs.tel = t('errTel');
     if (!teamMode && !consentGiven && !l.consent) errs.consent = t('errConsent');
     if (Object.keys(errs).length) {
       store.setLeadErr(errs);
@@ -199,11 +204,11 @@ export function LeadStep({ catalog }: { catalog: Catalog }) {
     ph?: string;
     required: boolean;
   }[] = [
-    { key: 'vorname', span: 'auto', type: 'text', required: false },
-    { key: 'nachname', span: 'auto', type: 'text', required: false },
-    { key: 'firma', span: '1 / -1', type: 'text', required: false },
+    { key: 'vorname', span: 'auto', type: 'text', required: true },
+    { key: 'nachname', span: 'auto', type: 'text', required: true },
+    { key: 'firma', span: '1 / -1', type: 'text', required: true },
     { key: 'email', span: 'auto', type: 'email', ph: t('phEmail'), required: true },
-    { key: 'tel', span: 'auto', type: 'tel', ph: t('phTel'), required: !teamMode },
+    { key: 'tel', span: 'auto', type: 'tel', ph: t('phTel'), required: false },
   ];
 
   const consentDate = quote?.submittedAt

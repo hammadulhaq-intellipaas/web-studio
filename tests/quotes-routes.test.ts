@@ -125,12 +125,23 @@ describe('POST /api/leads — first submit', () => {
     expect(minted.last_actor).toBe('customer');
   });
 
-  it('requires consent and a phone number from customers', async () => {
+  it('requires consent, a name and a company from customers, but not a phone number', async () => {
     const noConsent = await submit(payload('c@example.com', { lead: { ...leadApiPayload('c@example.com').lead, consent: false } }));
     expect(noConsent.status).toBe(400);
-    const noTel = await submit(payload('c@example.com', { lead: { ...leadApiPayload('c@example.com').lead, tel: '' } }));
-    expect(noTel.status).toBe(400);
+    const noName = await submit(payload('c@example.com', { lead: { ...leadApiPayload('c@example.com').lead, vorname: '', nachname: '' } }));
+    expect(noName.status).toBe(400);
+    const noCompany = await submit(payload('c@example.com', { lead: { ...leadApiPayload('c@example.com').lead, firma: '  ' } }));
+    expect(noCompany.status).toBe(400);
+    // A number that is there but obviously wrong is still rejected.
+    const badTel = await submit(payload('c@example.com', { lead: { ...leadApiPayload('c@example.com').lead, tel: '12' } }));
+    expect(badTel.status).toBe(400);
     expect(fake.db.rows('leads')).toHaveLength(0);
+
+    // No number at all is fine: we reach them by email.
+    const noTel = await submit(payload('c@example.com', { lead: { ...leadApiPayload('c@example.com').lead, tel: '' } }));
+    expect(noTel.status).toBe(200);
+    expect(fake.db.rows('leads')).toHaveLength(1);
+    expect(fake.db.rows('leads')[0].telefon).toBeFalsy();
   });
 
   it('counts a voucher redemption once', async () => {

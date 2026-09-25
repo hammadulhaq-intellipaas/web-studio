@@ -77,11 +77,21 @@ export function renderCustomerEmail(ctx: EmailContext): { subject: string; html:
         })}</td><td align="right" style="color:#2E8B57;font-weight:700">−${saved}</td></tr>`
       : '';
 
+  // The call to action is a real button in the site's own blue, with the address printed
+  // underneath: plenty of mail clients strip backgrounds, and some strip links entirely.
   const linkBlock = ctx.customerLink
-    ? `<div style="margin:20px 0;padding:14px 16px;background:#F5F7FB;border:1px solid #E3E8F2;border-radius:12px">
-         <div style="font-weight:800;margin-bottom:4px">${m.linkLabel}</div>
-         <a href="${escapeHtml(ctx.customerLink)}" style="color:#1E5EFF;font-weight:700;word-break:break-all">${escapeHtml(ctx.customerLink)}</a>
-         <div style="color:#5B6B85;font-size:12.5px;margin-top:6px">${m.linkHint}</div>
+    ? `<div style="margin:22px 0;padding:18px 18px 16px;background:#F5F7FB;border:1px solid #E3E8F2;border-radius:12px">
+         <div style="font-weight:800;margin-bottom:10px">${m.linkLabel}</div>
+         <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:separate">
+           <tr><td align="center" bgcolor="#1E5EFF" style="border-radius:12px">
+             <a href="${escapeHtml(ctx.customerLink)}"
+                style="display:inline-block;padding:14px 30px;font-size:16px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:12px;background:#1E5EFF">
+               ${m.acceptCta}
+             </a>
+           </td></tr>
+         </table>
+         <div style="color:#5B6B85;font-size:12.5px;margin-top:12px">${m.linkHint}</div>
+         <div style="margin-top:8px"><a href="${escapeHtml(ctx.customerLink)}" style="color:#1E5EFF;font-size:12px;word-break:break-all">${escapeHtml(ctx.customerLink)}</a></div>
        </div>`
     : '';
 

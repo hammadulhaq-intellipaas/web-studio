@@ -12,15 +12,20 @@ test.describe('public funnel — lead capture', () => {
     await walkToConfigurator(page, GASTRO.persona);
     await page.getByTestId('to-lead').click();
 
-    // Empty submit → errors on email, tel, consent.
+    // Empty submit → errors on name, company, email and consent. The phone number is
+    // optional, so it must NOT complain about it.
     await page.getByTestId('lead-submit').click();
+    await expect(page.getByTestId('lead-err-vorname')).toBeVisible();
+    await expect(page.getByTestId('lead-err-firma')).toBeVisible();
     await expect(page.getByTestId('lead-err-email')).toBeVisible();
-    await expect(page.getByTestId('lead-err-tel')).toBeVisible();
     await expect(page.getByTestId('lead-err-consent')).toBeVisible();
+    await expect(page.getByTestId('lead-err-tel')).toHaveCount(0);
 
     // Invalid email is rejected even with the other fields valid.
+    await page.getByTestId('lead-vorname').fill(LEAD.vorname);
+    await page.getByTestId('lead-nachname').fill(LEAD.nachname);
+    await page.getByTestId('lead-firma').fill(LEAD.firma);
     await page.getByTestId('lead-email').fill('not-an-email');
-    await page.getByTestId('lead-tel').fill(LEAD.tel);
     await page.getByTestId('lead-consent').check();
     await page.getByTestId('lead-submit').click();
     await expect(page.getByTestId('lead-err-email')).toBeVisible();

@@ -289,12 +289,17 @@ export interface SuggestedPlanPhase {
  * · `contacted` · `agreed` = a quote version was marked as agreed · `won` / `lost` (closed:
  * the customer link stops saving). Archiving ("Remove") is a separate flag, not a status.
  */
-export type LeadStatus = 'draft' | 'new' | 'contacted' | 'agreed' | 'won' | 'lost';
-export const LEAD_STATUSES: LeadStatus[] = ['draft', 'new', 'contacted', 'agreed', 'won', 'lost'];
+/** `accepted` is the customer pressing the button; `agreed` is the team agreeing a price. */
+export type LeadStatus = 'draft' | 'new' | 'contacted' | 'accepted' | 'agreed' | 'won' | 'lost';
+export const LEAD_STATUSES: LeadStatus[] = ['draft', 'new', 'contacted', 'accepted', 'agreed', 'won', 'lost'];
 /** Statuses that still need work from the team. */
-export const OPEN_LEAD_STATUSES: LeadStatus[] = ['draft', 'new', 'contacted', 'agreed'];
-/** A closed lead's customer link is read-only for the customer (team mode still edits). */
-export const LOCKED_LEAD_STATUSES: LeadStatus[] = ['won', 'lost'];
+export const OPEN_LEAD_STATUSES: LeadStatus[] = ['draft', 'new', 'contacted', 'accepted', 'agreed'];
+/**
+ * The customer link is read-only for the customer (team mode still edits). Accepting locks
+ * it too: the scope they accepted is what the fixed price is based on, and the onboarding
+ * form has already been prefilled from it.
+ */
+export const LOCKED_LEAD_STATUSES: LeadStatus[] = ['accepted', 'won', 'lost'];
 
 export interface Lead {
   id: string;
@@ -326,6 +331,8 @@ export interface Lead {
   owner_email: string | null;
   archived_at: string | null;
   archived_by: string | null;
+  /** When the customer accepted their own quote, if they did. */
+  accepted_at?: string | null;
   /** Last submit by the customer (null for API-seeded rows). */
   submitted_at: string | null;
   agreed_version_id: string | null;
@@ -363,6 +370,7 @@ export type LeadActivityKind =
   | 'email'
   | 'link'
   | 'onboarding'
+  | 'accepted'
   | 'archive'
   | 'owner'
   | 'agreed'

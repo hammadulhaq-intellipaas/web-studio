@@ -115,8 +115,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'team_required' }, { status: 401 });
   }
   if (!team) {
-    const digits = lead.tel.replace(/\D/g, '').length;
-    if (digits < 6) return NextResponse.json({ error: 'invalid_body', details: { tel: 'required' } }, { status: 400 });
+    // Name and company identify the quote and are carried into the onboarding form, so
+    // they are required. The phone number is not: we reach them by email.
+    const missing: Record<string, string> = {};
+    if (!lead.vorname.trim()) missing.vorname = 'required';
+    if (!lead.nachname.trim()) missing.nachname = 'required';
+    if (!lead.firma.trim()) missing.firma = 'required';
+    if (lead.tel.trim() && lead.tel.replace(/\D/g, '').length < 6) missing.tel = 'invalid';
+    if (Object.keys(missing).length) {
+      return NextResponse.json({ error: 'invalid_body', details: missing }, { status: 400 });
+    }
   }
 
   // Never trust the client's voucher — revalidate and use the DB values.

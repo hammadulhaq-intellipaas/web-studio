@@ -40,8 +40,10 @@ test.describe('public funnel (de) — happy path', () => {
     await page.getByTestId('to-lead').click();
     await page.getByTestId('lead-submit').click();
     await expect(page.getByTestId('lead-err-email')).toBeVisible();
-    await expect(page.getByTestId('lead-err-tel')).toBeVisible();
+    await expect(page.getByTestId('lead-err-firma')).toBeVisible();
     await expect(page.getByTestId('lead-err-consent')).toBeVisible();
+    // The phone number is optional now, so an empty one is not an error.
+    await expect(page.getByTestId('lead-err-tel')).toHaveCount(0);
 
     // The enquiry form asks for contact details only; everything the build needs is
     // collected properly by the onboarding form once the quote is agreed.

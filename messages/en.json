@@ -307,7 +307,9 @@
     "teamTitle": "Save quote",
     "teamSub": "Team mode: this configuration is saved as a new version on the lead. No emails are sent to the customer.",
     "teamCta": "Save quote",
-    "teamSignIn": "Your admin session has expired. Please sign in to the admin again and reload this page."
+    "teamSignIn": "Your admin session has expired. Please sign in to the admin again and reload this page.",
+    "errName": "Please enter your name.",
+    "errCompany": "Please enter your company name."
   },
   "stage2": {
     "banner": "Done! We'll be in touch shortly.",
@@ -459,8 +461,9 @@
       "introUpdated": "thank you, we received your changes. Here is your updated configuration at a glance:",
       "subjectQuote": "Your quote from IntelliPaaS Web Studio",
       "introQuote": "as discussed, we have put together your website configuration. You can review and adjust it any time through your personal link:",
-      "linkLabel": "Your personal link",
-      "linkHint": "Open this link any time to review or adjust your configuration. Changes are saved automatically."
+      "linkLabel": "View your quote",
+      "linkHint": "The button opens your quote. You can still change it there, and accept it when you are happy.",
+      "acceptCta": "Accept the quote"
     },
     "team": {
       "subject": "New inquiry: {firma} ({bundle})",
@@ -670,5 +673,16 @@
     "linkDead": "This link is no longer valid. You can start a new configuration.",
     "teamSave": "Save quote",
     "teamSaveHint": "Saves this configuration as a new version on the lead. The customer is not notified."
+  },
+  "acceptQuote": {
+    "title": "Accept the quote",
+    "body": "If this looks right, accept it here. We will then start your brief so we can get building.",
+    "locksNote": "Accepting fixes this configuration. If you want to change something afterwards, just get in touch.",
+    "cta": "Accept the quote",
+    "sending": "One moment …",
+    "error": "That did not work. Please try again.",
+    "doneTitle": "Quote accepted",
+    "doneBody": "We've emailed you the link to your brief. You can also start right here.",
+    "startBrief": "Start the brief"
   }
 }

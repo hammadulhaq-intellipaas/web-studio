@@ -10,6 +10,7 @@ import { useFunnel } from '@/stores/funnel';
 import { useAppLocale, useSelection, useSummaryLabels } from './hooks';
 import { sessionShareUrl } from './useSessionSync';
 import { BLUE, BORDER, GREEN, INK, LockIcon, MUTED, MUTED2, gradButton } from './ui';
+import { AcceptQuote } from './AcceptQuote';
 
 export function PromoBox({ optional }: { optional?: boolean }) {
   const t = useTranslations('configurator');
@@ -505,6 +506,8 @@ export function PriceSidebar({ catalog }: { catalog: Catalog }) {
       )}
 
       <ShareBox />
+      {/* Only renders on a customer's own quote link; null everywhere else. */}
+      <AcceptQuote />
       </div>
 
       {/* Pinned to the bottom of the sidebar column so the CTA is always in view. */}

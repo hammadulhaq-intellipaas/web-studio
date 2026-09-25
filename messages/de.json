@@ -307,7 +307,9 @@
     "teamTitle": "Angebot speichern",
     "teamSub": "Team-Modus: Diese Konfiguration wird als neue Version am Lead gespeichert. Es werden keine E-Mails an den Kunden gesendet.",
     "teamCta": "Angebot speichern",
-    "teamSignIn": "Ihre Admin-Sitzung ist abgelaufen. Bitte melden Sie sich im Admin erneut an und laden Sie diese Seite neu."
+    "teamSignIn": "Ihre Admin-Sitzung ist abgelaufen. Bitte melden Sie sich im Admin erneut an und laden Sie diese Seite neu.",
+    "errName": "Bitte tragen Sie Ihren Namen ein.",
+    "errCompany": "Bitte tragen Sie Ihren Firmennamen ein."
   },
   "stage2": {
     "banner": "Geschafft! Wir melden uns in Kürze.",
@@ -459,8 +461,9 @@
       "introUpdated": "vielen Dank, wir haben Ihre Änderungen erhalten. Hier ist Ihre aktualisierte Konfiguration im Überblick:",
       "subjectQuote": "Ihr Angebot von IntelliPaaS Web Studio",
       "introQuote": "wie besprochen haben wir Ihre Website-Konfiguration für Sie zusammengestellt. Über Ihren persönlichen Link können Sie sie jederzeit ansehen und anpassen:",
-      "linkLabel": "Ihr persönlicher Link",
-      "linkHint": "Öffnen Sie diesen Link jederzeit, um Ihre Konfiguration anzusehen oder anzupassen. Änderungen werden automatisch gespeichert."
+      "linkLabel": "Ihr Angebot ansehen",
+      "linkHint": "Über den Button öffnen Sie Ihr Angebot. Dort können Sie es noch ändern und dann annehmen.",
+      "acceptCta": "Angebot annehmen"
     },
     "team": {
       "subject": "Neue Anfrage: {firma} ({bundle})",
@@ -670,5 +673,16 @@
     "linkDead": "Dieser Link ist nicht mehr gültig. Sie können eine neue Konfiguration starten.",
     "teamSave": "Angebot speichern",
     "teamSaveHint": "Speichert diese Konfiguration als neue Version am Lead. Der Kunde wird nicht benachrichtigt."
+  },
+  "acceptQuote": {
+    "title": "Angebot annehmen",
+    "body": "Wenn das so passt, nehmen Sie das Angebot hier an. Danach starten wir Ihr Briefing, damit wir mit dem Bau beginnen können.",
+    "locksNote": "Mit der Annahme wird die Konfiguration festgeschrieben. Möchten Sie danach noch etwas ändern, melden Sie sich einfach bei uns.",
+    "cta": "Angebot annehmen",
+    "sending": "Einen Moment …",
+    "error": "Das hat nicht geklappt. Bitte versuchen Sie es noch einmal.",
+    "doneTitle": "Angebot angenommen",
+    "doneBody": "Wir haben Ihnen den Link zu Ihrem Briefing per E-Mail geschickt. Sie können auch direkt hier starten.",
+    "startBrief": "Briefing starten"
   }
 }
