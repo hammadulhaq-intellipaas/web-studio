@@ -91,7 +91,6 @@ export function DateInput({
         data-value={value ?? ''}
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        aria-invalid={invalid || undefined}
         style={{
           ...inputStyle(invalid),
           cursor: 'pointer',
@@ -104,7 +103,7 @@ export function DateInput({
         }}
       >
         <span>{shown || t('placeholder')}</span>
-        <span aria-hidden style={{ fontSize: 15 }}>📅</span>
+        <CalendarIcon color={shown ? INK : MUTED} />
       </button>
 
       {/* Said once, up front, so the greyed-out days are not a mystery. */}
@@ -200,6 +199,16 @@ export function DateInput({
         </div>
       )}
     </div>
+  );
+}
+
+/** Same line weight as the funnel's own icons, so it sits with the rest of the form. */
+function CalendarIcon({ size = 16, color = MUTED }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden style={{ flex: 'none' }}>
+      <rect x="3" y="5" width="18" height="16" rx="2.5" stroke={color} strokeWidth="2" />
+      <path d="M3 10h18M8 3v4M16 3v4" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    </svg>
   );
 }
 

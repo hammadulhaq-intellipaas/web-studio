@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { renderCustomerEmail, type CustomerEmailVariant } from '@/lib/emails';
+import { renderCustomerEmail, type CustomerEmailVariant, type EmailContext } from '@/lib/emails';
 import { makeCatalog, makeSelection } from './fixtures/catalog';
 import { priceSelection } from '@/lib/quotes/price';
 import type { Locale } from '@/lib/types';
@@ -13,16 +13,19 @@ const catalog = makeCatalog();
 
 function render(variant: CustomerEmailVariant, locale: Locale = 'en') {
   const priced = priceSelection(catalog, makeSelection({ selectedAddons: { cookie: true } }), locale);
-  return renderCustomerEmail({
-    lead: { id: 'l1', vorname: 'Angelica', nachname: 'Sy', firma: 'Sy GmbH', email: 'a@example.com' },
+  const ctx: EmailContext = {
+    lead: { id: 'l1', vorname: 'Angelica', nachname: 'Sy', firma: 'Sy GmbH', email: 'a@example.com', telefon: null, ziel: null },
     locale,
     catalog,
+    bundleName: 'Gold',
+    personaLabel: null,
     receipt: priced.receipt,
     totals: priced.totals,
     voucher: null,
     variant,
     customerLink: 'https://web-studio.intellipaas.io/en?c=Gm96Mr81cJaD4keFQhucL',
-  } as Parameters<typeof renderCustomerEmail>[0]);
+  };
+  return renderCustomerEmail(ctx);
 }
 
 describe('the customer quote emails', () => {
