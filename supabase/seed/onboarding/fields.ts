@@ -58,15 +58,15 @@ const project: OnbField[] = [
   }),
   field('contact_company', 'project', 'text', 'Wie heißt Ihr Unternehmen?', 'What is your company called?', {
     required: true,
-    placeholder_de: 'Müller Sanitär GmbH',
-    placeholder_en: 'Müller Sanitär GmbH',
+    placeholder_de: 'Ihr Firmenname',
+    placeholder_en: 'Your company name',
   }),
   field('contact_email', 'project', 'email', 'Wie lautet Ihre E-Mail-Adresse?', 'What is your email address?', {
     required: true,
     help_de: 'Hierhin schicken wir Ihren Speicherlink und am Ende Ihr fertiges Briefing.',
     help_en: 'We will send your save link here and your finished brief at the end.',
-    placeholder_de: 'anna@mueller-sanitaer.de',
-    placeholder_en: 'anna@mueller-sanitaer.de',
+    placeholder_de: 'name@ihrefirma.de',
+    placeholder_en: 'name@yourcompany.com',
   }),
   field('booked_package', 'project', 'radio', 'Welches Paket haben Sie gebucht?', 'Which package did you book?', {
     required: true,
@@ -109,8 +109,8 @@ const project: OnbField[] = [
   field('existing_url', 'project', 'url', 'Wie lautet Ihre aktuelle Website-Adresse?', 'What is your current website address?', {
     required: true,
     show_when: when('project_type', 'changes'),
-    placeholder_de: 'https://www.mueller-sanitaer.de',
-    placeholder_en: 'https://www.mueller-sanitaer.de',
+    placeholder_de: 'https://www.ihrefirma.de',
+    placeholder_en: 'https://www.yourcompany.com',
   }),
 ];
 
@@ -121,23 +121,23 @@ const business: OnbField[] = [
     required: true,
     help_de: 'Genau so, wie er im Registereintrag oder auf Ihren Rechnungen steht, nicht so, wie er auf Ihrer aktuellen Website steht.',
     help_en: 'Exactly as it appears on your register entry or your invoices, not as it appears on your current website.',
-    placeholder_de: 'Müller Sanitär GmbH',
-    placeholder_en: 'Müller Sanitär GmbH',
+    placeholder_de: 'Ihr Firmenname',
+    placeholder_en: 'Your company name',
   }),
   field('legal_form', 'business', 'text', 'Welche Rechtsform hat Ihr Unternehmen?', 'What is your legal form?', {
     required: true,
     placeholder_de: 'GmbH',
-    placeholder_en: 'GmbH',
+    placeholder_en: 'GmbH, UG, sole trader…',
   }),
   field('address_street', 'business', 'text', 'Wie lautet Ihre Straße und Hausnummer?', 'What is your street and number?', {
     required: true,
-    placeholder_de: 'Hauptstraße 14',
-    placeholder_en: 'Hauptstraße 14',
+    placeholder_de: 'Straße und Hausnummer',
+    placeholder_en: 'Street and number',
   }),
   field('address_city', 'business', 'text', 'Wie lauten Postleitzahl und Ort?', 'What is your postcode and city?', {
     required: true,
-    placeholder_de: '80331 München',
-    placeholder_en: '80331 München',
+    placeholder_de: 'PLZ und Ort',
+    placeholder_en: 'Postcode and town',
   }),
   field('vat_id', 'business', 'text', 'Wie lautet Ihre USt-IdNr.?', 'What is your VAT ID?', {
     placeholder_de: 'DE123456789',
@@ -152,8 +152,8 @@ const business: OnbField[] = [
   field('register_entry', 'business', 'text', 'Wie lauten Registergericht und Registernummer?', 'What is your register court and number?', {
     help_de: 'Bitte frei lassen, wenn Sie keine haben.',
     help_en: 'Please leave it blank if you do not have one.',
-    placeholder_de: 'Amtsgericht München, HRB 12345',
-    placeholder_en: 'Amtsgericht München, HRB 12345',
+    placeholder_de: 'Amtsgericht Musterstadt, HRB 12345',
+    placeholder_en: 'Local court and number, e.g. HRB 12345',
     config: {
       tooltip_de:
         'Registergericht und Registernummer gehören ins Impressum. Außer bei einem Einzelunternehmen haben Sie das fast sicher.',
@@ -182,8 +182,8 @@ const business: OnbField[] = [
     },
   ),
   field('public_phone', 'business', 'tel', 'Welche Telefonnummer sollen wir auf der Seite zeigen?', 'What phone number should we show on the site?', {
-    placeholder_de: '+49 89 1234567',
-    placeholder_en: '+49 89 1234567',
+    placeholder_de: '+49 …',
+    placeholder_en: '+49 …',
     config: {
       tooltip_de:
         'Diese Nummer steht öffentlich auf Ihrer Website. Bitte geben Sie Ihre Mobilnummer nur an, wenn Sie sie dort zeigen wollen.',
@@ -195,8 +195,8 @@ const business: OnbField[] = [
     required: true,
     help_de: 'Das muss nicht die Adresse sein, mit der Sie dieses Formular ausfüllen.',
     help_en: 'This may not be the one you are using to fill in the form.',
-    placeholder_de: 'info@mueller-sanitaer.de',
-    placeholder_en: 'info@mueller-sanitaer.de',
+    placeholder_de: 'info@ihrefirma.de',
+    placeholder_en: 'info@yourcompany.com',
   }),
   field('opening_hours', 'business', 'textarea', 'Wie sind Ihre Öffnungszeiten?', 'What are your opening hours?', {
     required: true,
@@ -221,15 +221,15 @@ const business: OnbField[] = [
     show_when: when('service_scope', 'one_town', 'several'),
     help_de: 'Bitte genau, denn das steht später in Überschriften, Menüs, der Fußzeile und in dem Text, den Google anzeigt.',
     help_en: 'Please be precise, because this appears in headings, menus, footers and the text Google shows.',
-    placeholder_de: 'München und 50 km drumherum, inklusive Dachau und Fürstenfeldbruck',
-    placeholder_en: 'München and 50km around it, including Dachau and Fürstenfeldbruck',
+    placeholder_de: 'Ihre Stadt und 50 km drumherum, inklusive der Nachbarorte',
+    placeholder_en: 'Your town and 50km around it, including the neighbouring places',
     config: { rows: 3 },
   }),
   field('second_address_details', 'business', 'textarea', 'Besuchen Kunden noch weitere Adressen?', 'Do customers visit any other addresses?', {
     help_de: 'Bitte frei lassen, wenn es nur eine gibt.',
     help_en: 'Please leave it blank if there is only one.',
-    placeholder_de: 'Werkstatt, Industriestraße 8, 80999 München. Nur Abholung, kein Ausstellungsraum.',
-    placeholder_en: 'Werkstatt, Industriestraße 8, 80999 München. Collections only, no showroom.',
+    placeholder_de: 'Werkstatt, zweite Adresse. Nur Abholung, kein Ausstellungsraum.',
+    placeholder_en: 'Workshop, second address. Collections only, no showroom.',
     config: { rows: 3 },
   }),
   field(
@@ -266,14 +266,6 @@ const business: OnbField[] = [
 /* ------------------------------------------------------------------ Step 3 · inboxes */
 
 const inboxes: OnbField[] = [
-  field('site_emails', 'inboxes', 'textarea', 'Welche E-Mail-Adressen sollen auf Ihrer Seite stehen?', 'Which email addresses should appear on your site?', {
-    required: true,
-    help_de: 'Bitte nur Adressen, die auch wirklich jemand liest.',
-    help_en: 'Please list only addresses that someone actually reads.',
-    placeholder_de: 'info@mueller-sanitaer.de, allgemeine Anfragen\ntermine@mueller-sanitaer.de, Terminwünsche',
-    placeholder_en: 'info@mueller-sanitaer.de, general enquiries\ntermine@mueller-sanitaer.de, appointments',
-    config: { rows: 4 },
-  }),
   field(
     'routing_split',
     'inboxes',
@@ -291,14 +283,14 @@ const inboxes: OnbField[] = [
   field('routing_single', 'inboxes', 'email', 'An welche Adresse soll alles gehen?', 'Which address should everything go to?', {
     required: true,
     show_when: when('routing_split', 'no'),
-    placeholder_de: 'info@mueller-sanitaer.de',
-    placeholder_en: 'info@mueller-sanitaer.de',
+    placeholder_de: 'info@ihrefirma.de',
+    placeholder_en: 'info@yourcompany.com',
   }),
   field('notification_routing', 'inboxes', 'repeater', 'Wohin soll welche Art von Nachricht gehen?', 'Where should each type of message go?', {
     required: true,
     show_when: when('routing_split', 'yes'),
-    help_de: 'Wir haben die Adressen übernommen, die Sie uns genannt haben. Bitte ändern Sie alles, was woandershin soll.',
-    help_en: 'We have carried over the addresses you gave us, so please change any that should go somewhere different.',
+    help_de: 'Bitte eine Zeile pro Art von Nachricht, mit der Adresse, an die sie gehen soll.',
+    help_en: 'One row per type of message, with the address it should go to.',
     config: {
       min_rows: 1,
       max_rows: 8,
@@ -321,8 +313,8 @@ const inboxes: OnbField[] = [
           label_de: 'Geht an',
           label_en: 'Send it to',
           required: true,
-          placeholder_de: 'info@mueller-sanitaer.de',
-          placeholder_en: 'info@mueller-sanitaer.de',
+          placeholder_de: 'info@ihrefirma.de',
+          placeholder_en: 'info@yourcompany.com',
         },
       ],
     },
@@ -362,6 +354,22 @@ const design: OnbField[] = [
     placeholder_en: 'Homeowners over 50 planning one big renovation, usually their last one.',
     config: { rows: 3, min_chars: 25, ai_assist: true },
   }),
+  field('ideal_customer', 'design', 'textarea', 'Wer ist Ihr idealer Kunde?', 'Who is your ideal customer?', {
+    required: true,
+    ai_check: true,
+    help_de: 'Der Kunde, von dem Sie gern zehn mehr hätten: was er braucht und warum er gut zu Ihnen passt.',
+    help_en: 'The customer you would happily have ten more of: what they need and why they suit you.',
+    placeholder_de: 'Paare, die ihr Haus gerade gekauft haben und das Bad einmal richtig machen wollen, statt es zu flicken.',
+    placeholder_en: 'Couples who have just bought their house and want the bathroom done properly once, rather than patched.',
+    config: { rows: 3, min_chars: 25, ai_assist: true },
+  }),
+  field('excluded_audience', 'design', 'textarea', 'Wen soll Ihre Website auf keinen Fall ansprechen?', 'Who should your website definitely not attract?', {
+    help_de: 'Optional. Zum Beispiel Anfragen, die Sie nicht annehmen, oder Kunden, die nicht zu Ihnen passen.',
+    help_en: 'Optional. For example enquiries you do not take on, or customers who are not a good fit.',
+    placeholder_de: 'Schnäppchenjäger, die nur den günstigsten Preis vergleichen. Kleinreparaturen unter einer halben Stunde.',
+    placeholder_en: 'Bargain hunters who only compare the cheapest price. Small repairs under half an hour.',
+    config: { rows: 3 },
+  }),
   field('usps', 'design', 'textarea', 'Warum wählen Kunden Sie und nicht Ihre Mitbewerber?', 'Why do customers choose you over your competitors?', {
     required: true,
     ai_check: true,
@@ -373,8 +381,8 @@ const design: OnbField[] = [
   }),
   field('tagline', 'design', 'textarea', 'Haben Sie einen Slogan, der auf die Seite soll?', 'Do you have a slogan or tagline you want on your site?', {
     placeholder_de: 'Bäder, die halten.',
-    placeholder_en: 'Bäder, die halten.',
-    config: { rows: 2 },
+    placeholder_en: 'Bathrooms built to last.',
+    config: { rows: 2, ai_assist: true },
   }),
   field('proof_to_show', 'design', 'checkboxes', 'Welche Belege sollen wir auf Ihrer Seite zeigen?', 'What proof would you like us to show on your site?', {
     required: true,
@@ -389,7 +397,7 @@ const design: OnbField[] = [
       opt('guarantees', 'Garantien', 'Guarantees'),
       opt('work_photos', 'Fotos Ihrer Arbeit', 'Photos of your work'),
       opt('before_after', 'Vorher-nachher-Fotos', 'Before and after photos'),
-      opt('nothing', 'Nichts davon, wir hätten es lieber schlicht', 'Nothing, we would rather keep it plain'),
+      opt('nothing', 'Nichts davon, wir halten es lieber reduziert', 'None of these, we prefer to keep it minimal'),
     ],
     config: { min_checked: 1, exclusive: ['nothing'] },
   }),
@@ -407,6 +415,7 @@ const design: OnbField[] = [
     config: {
       min: 1,
       max: 5,
+      step: 0.1,
       captions: [
         { de: 'Verspielt und fröhlich', en: 'Fun and playful' },
         { de: 'Warm und ungezwungen', en: 'Warm and informal' },
@@ -423,6 +432,11 @@ const design: OnbField[] = [
       ],
     },
   }),
+  field('tone_note', 'design', 'textarea', 'Was meinen Sie damit genau?', 'What exactly do you mean by that?', {
+    help_de: 'Optional. Zum Beispiel ein Gefühl, eine Marke oder eine Website, an die Sie dabei gedacht haben.',
+    help_en: 'Optional. For example a feeling, a brand or a website you had in mind.',
+    config: { rows: 2 },
+  }),
   field('personality_scale', 'design', 'slider', 'Wie markant soll das Design sein?', 'How bold should the design be?', {
     required: true,
     help_de: 'Hier geht es darum, wie stark das Design selbst auffällt, nicht darum, wie förmlich es ist.',
@@ -430,21 +444,27 @@ const design: OnbField[] = [
     config: {
       min: 1,
       max: 5,
+      step: 0.1,
       captions: [
-        { de: 'Sehr schlicht', en: 'Very plain' },
+        { de: 'Klar und minimalistisch', en: 'Clean and minimal' },
         { de: 'Zurückhaltend', en: 'Understated' },
         { de: 'Ausgewogen', en: 'Balanced' },
         { de: 'Eigenständig', en: 'Distinctive' },
         { de: 'Markant', en: 'Bold' },
       ],
       examples: [
-        { de: 'Klare Struktur, fast keine Dekoration', en: 'Clean structure, almost no decoration' },
+        { de: 'Aufgeräumte Struktur, viel Weißraum', en: 'Well-organised structure, generous white space' },
         { de: 'Ruhige Farben, klassische Schrift', en: 'Calm colours, classic type' },
         { de: 'Ein paar Akzente, ohne laut zu werden', en: 'A few accents without shouting' },
         { de: 'Eigene Fotos, charaktervolle Schrift', en: 'Your own photography, characterful type' },
         { de: 'Große Gesten, starke Farben', en: 'Big gestures, strong colours' },
       ],
     },
+  }),
+  field('personality_note', 'design', 'textarea', 'Was meinen Sie damit genau?', 'What exactly do you mean by that?', {
+    help_de: 'Optional. Zum Beispiel ein Gefühl, eine Marke oder eine Website, an die Sie dabei gedacht haben.',
+    help_en: 'Optional. For example a feeling, a brand or a website you had in mind.',
+    config: { rows: 2 },
   }),
   field('references', 'design', 'repeater', 'Welche Websites gefallen Ihnen?', 'Which websites do you like?', {
     required: true,
@@ -466,8 +486,8 @@ const design: OnbField[] = [
           label_de: 'Link',
           label_en: 'Link',
           required: true,
-          placeholder_de: 'https://www.musterpraxis.de',
-          placeholder_en: 'https://www.musterpraxis.de',
+          placeholder_de: 'https://www.beispielseite.de',
+          placeholder_en: 'https://www.example-site.com',
         },
         {
           key: 'likes',
@@ -499,7 +519,7 @@ const design: OnbField[] = [
     {
       help_de: 'Eine Broschüre, ein Schaufenster, eine Zeitschriftenseite, wirklich alles.',
       help_en: 'A brochure, a shop front, a magazine page, anything at all.',
-      config: { max_files: 10, max_mb: 25 },
+      config: { max_files: 10, max_total_mb: 25 },
     },
   ),
   field('avoid', 'design', 'textarea', 'Gibt es etwas, das Sie auf Ihrer Website nicht wollen?', 'Is there anything you do not want on your website?', {
@@ -544,9 +564,9 @@ const design: OnbField[] = [
       opt('light', 'Hell und luftig', 'Light and airy'),
       opt('dark', 'Dunkel und hochwertig', 'Dark and premium'),
       opt('warm', 'Warm und erdig', 'Warm and earthy'),
-      opt('cool', 'Kühl und klinisch', 'Cool and clinical'),
+      opt('cool', 'Kühl und klar', 'Cool and crisp'),
       opt('bold', 'Kräftig und kontrastreich', 'Bold and high contrast'),
-      opt('muted', 'Gedeckt und ruhig', 'Muted and calm'),
+      opt('muted', 'Dezent und ruhig', 'Soft and calm'),
     ],
     config: { min_checked: 1, max_checked: 2 },
   }),
@@ -573,7 +593,7 @@ const design: OnbField[] = [
       opt('premises', 'Unsere Räume', 'Our premises'),
       opt('products', 'Unsere Produkte', 'Our products'),
       opt('customers', 'Menschen wie unsere Kunden', 'People like our customers'),
-      opt('none', 'Kaum Fotos, lieber Schrift und Grafik', 'Mostly no photos, type and graphics'),
+      opt('none', 'Kaum Fotos, lieber Schrift und Grafik', 'Few photos, led by type and graphics'),
     ],
     config: { min_checked: 1, exclusive: ['none'] },
   }),
@@ -582,7 +602,7 @@ const design: OnbField[] = [
     options: [
       opt('work_photo', 'Ein Foto unserer Arbeit', 'A photo of our work'),
       opt('team_photo', 'Ein Foto von uns', 'A photo of us'),
-      opt('statement', 'Einen klaren Satz, was wir tun', 'A plain statement of what we do'),
+      opt('statement', 'Einen klaren Satz, was wir tun', 'A clear statement of what we do'),
       opt('price', 'Einen Preis oder ein Angebot', 'A price or an offer'),
       opt('form', 'Ein Buchungs- oder Anfrageformular', 'A booking or enquiry form'),
       opt('video', 'Ein kurzes Video', 'A short video'),
@@ -609,7 +629,7 @@ const pages: OnbField[] = [
     help_de: 'Eine pro Zeile, genau so geschrieben, wie sie erscheinen sollen, denn daraus werden Überschriften und Seitennamen.',
     help_en: 'One per line, spelt exactly as they should appear, because these become section headings and page names.',
     placeholder_de: 'Badsanierung\nBarrierefreie Bäder\nHeizungsmodernisierung\nNotdienst',
-    placeholder_en: 'Badsanierung\nBarrierefreie Bäder\nHeizungsmodernisierung\nNotdienst',
+    placeholder_en: 'Bathroom renovation\nAccessible bathrooms\nHeating upgrades\nEmergency call-outs',
     config: { rows: 5, min_lines: 2, ai_assist: true },
   }),
   field('page_list', 'pages', 'textarea', 'Welche Seiten braucht Ihre Website?', 'What pages does your site need?', {
@@ -619,7 +639,7 @@ const pages: OnbField[] = [
     help_en:
       'One per line and please start a sub-page with a dash. Legal pages, the 404 page and the thank you page are always included and do not count towards your total.',
     placeholder_de: 'Home\nLeistungen\n- Badsanierung\n- Barrierefreie Bäder\nÜber uns\nKontakt',
-    placeholder_en: 'Home\nLeistungen\n- Badsanierung\n- Barrierefreie Bäder\nÜber uns\nKontakt',
+    placeholder_en: 'Home\nServices\n- Bathroom renovation\n- Accessible bathrooms\nAbout us\nContact',
     config: { rows: 7, min_lines: 3, count_band: 'booked_page_band' },
   }),
   field(
@@ -702,6 +722,8 @@ function integrationBlock(
     urlDe: string;
     urlEn: string;
     urlPlaceholder: string;
+    /** English placeholder, when the German one names a German address. */
+    urlPlaceholderEn?: string;
     /** A CRM or a chat tool can be connected before the client digs out a link. */
     urlRequired?: boolean;
   },
@@ -717,7 +739,7 @@ function integrationBlock(
       required: copy.urlRequired ?? true,
       show_when: when('integrations', key),
       placeholder_de: copy.urlPlaceholder,
-      placeholder_en: copy.urlPlaceholder,
+      placeholder_en: copy.urlPlaceholderEn ?? copy.urlPlaceholder,
     }),
   ];
 }
@@ -746,7 +768,8 @@ const integrations: OnbField[] = [
     providerExample: 'Calendly',
     urlDe: 'Bitte teilen Sie den Link zu Ihrer Buchungsseite.',
     urlEn: 'Please share the link to your booking page.',
-    urlPlaceholder: 'https://calendly.com/mueller-sanitaer',
+    urlPlaceholder: 'https://calendly.com/ihrefirma',
+    urlPlaceholderEn: 'https://calendly.com/yourcompany',
   }),
   ...integrationBlock('payments', {
     providerDe: 'Welchen Zahlungsanbieter nutzen Sie?',
@@ -833,14 +856,14 @@ const integrations: OnbField[] = [
     show_when: when('integrations', 'maps', 'reviews'),
     help_de: 'Dieser eine Link gibt uns Ihren Standort auf der Karte und Ihre Bewertungen, wir brauchen ihn also nur einmal.',
     help_en: 'This one link gives us your map location and your reviews, so we only need it once.',
-    placeholder_de: 'https://g.page/mueller-sanitaer',
-    placeholder_en: 'https://g.page/mueller-sanitaer',
+    placeholder_de: 'https://g.page/ihrefirma',
+    placeholder_en: 'https://g.page/yourcompany',
   }),
   field('social_profiles', 'integrations', 'textarea', 'Welche Social-Profile haben Sie?', 'What are your social profiles?', {
     help_de: 'Bitte eines pro Zeile.',
     help_en: 'One per line, please.',
-    placeholder_de: 'https://instagram.com/muellersanitaer\nhttps://facebook.com/muellersanitaer',
-    placeholder_en: 'https://instagram.com/muellersanitaer\nhttps://facebook.com/muellersanitaer',
+    placeholder_de: 'https://instagram.com/ihrefirma\nhttps://facebook.com/ihrefirma',
+    placeholder_en: 'https://instagram.com/yourcompany\nhttps://facebook.com/yourcompany',
     config: { rows: 3 },
   }),
   field('reviews', 'integrations', 'textarea', 'Haben Sie Bewertungen oder Referenzen, die wir nutzen dürfen?', 'Do you have reviews or testimonials we can use?', {
@@ -877,9 +900,9 @@ const files: OnbField[] = [
     config: { min_checked: 1 },
   }),
   field('assets_upload', 'files', 'upload', 'Möchten Sie Ihre Dateien lieber hier hochladen?', 'Would you rather upload your files here?', {
-    help_de: 'Bis zu zehn Dateien, je 25 MB. Bei mehr hält ein Ordnerlink alles an einem Ort.',
-    help_en: 'Up to ten files, 25 MB each. For more than that, a folder link keeps everything in one place.',
-    config: { max_files: 10, max_mb: 25 },
+    help_de: 'Bis zu zehn Dateien, zusammen höchstens 25 MB. Für größere Dateien nutzen Sie bitte den Ordnerlink oben.',
+    help_en: 'Up to ten files, 25 MB in total. For larger files, please use the folder link above.',
+    config: { max_files: 10, max_total_mb: 25 },
   }),
   field(
     'photo_portal_needed',
@@ -894,8 +917,8 @@ const files: OnbField[] = [
     show_when: when('photo_portal_needed', 'yes'),
     help_de: 'Bitte fangen Sie jetzt damit an, denn Lieferantenzugänge dauern meist ein bis zwei Wochen.',
     help_en: 'Please start this now, because supplier logins usually take a week or two to arrange.',
-    placeholder_de: 'Grohe-Händlerportal. Name kann den Zugang für Sie beantragen.',
-    placeholder_en: 'Grohe dealer portal. Name can request access for you.',
+    placeholder_de: 'Händlerportal Ihres Lieferanten. Wer kann den Zugang beantragen?',
+    placeholder_en: 'Your supplier\'s dealer portal. Who can request access?',
     config: { rows: 3 },
   }),
 ];
@@ -929,7 +952,7 @@ const accessLegal: OnbField[] = [
             opt('other', 'Etwas anderes', 'Anything else'),
           ],
         },
-        { key: 'provider', type: 'text', label_de: 'Anbieter', label_en: 'Provider', placeholder_de: 'IONOS', placeholder_en: 'IONOS' },
+        { key: 'provider', type: 'text', label_de: 'Anbieter', label_en: 'Provider', placeholder_de: 'Anbieter', placeholder_en: 'Provider' },
         {
           key: 'holder',
           type: 'text',
@@ -946,8 +969,8 @@ const accessLegal: OnbField[] = [
     required: true,
     help_de: 'Wenn die neue Seite unter einer anderen Adresse laufen soll, sagen Sie es uns bitte hier.',
     help_en: 'Please change it if the new site should use a different address.',
-    placeholder_de: 'www.mueller-sanitaer.de',
-    placeholder_en: 'www.mueller-sanitaer.de',
+    placeholder_de: 'www.ihrefirma.de',
+    placeholder_en: 'www.yourcompany.com',
     config: noneTick('Wir haben noch keine, bitte beraten Sie uns', 'We do not have one yet, please advise'),
   }),
   field('site_manager', 'access_legal', 'textarea', 'Wer betreut die Seite nach dem Start?', 'Who will look after the site after launch?', {
@@ -961,19 +984,32 @@ const accessLegal: OnbField[] = [
     'legal_pages',
     'access_legal',
     'radio',
-    'Was soll mit Ihren Rechtsseiten passieren, Impressum und Datenschutzerklärung?',
-    'What should happen with your legal pages, the Impressum and privacy policy?',
+    'Haben Sie bereits Rechtsseiten für Ihre Website?',
+    'Do you already have legal pages for your website?',
     {
       required: true,
-      help_de: 'Das Gesetz hat sich 2024 geändert, deshalb nennen die meisten älteren Impressumsseiten noch die alte Vorschrift.',
-      help_en: 'German law changed in 2024, so most older Impressum pages still cite the old statute.',
+      help_de:
+        'Dazu gehören zum Beispiel Impressum, Datenschutzerklärung, AGB, Widerrufsbelehrung oder andere rechtliche Hinweise.',
+      help_en:
+        'This may include an Impressum, privacy policy, terms and conditions, cancellation policy, or other legal notices.',
       options: [
-        opt('reuse', 'Bitte unsere aktuellen übernehmen', 'Please reuse our current ones'),
-        opt('none', 'Wir haben keine', 'We do not have any'),
-        opt('unsure', 'Wir sind nicht sicher', 'We are not sure'),
+        opt('reuse', 'Ja – bitte unsere vorhandenen Rechtsseiten nutzen', 'Yes — use our existing legal pages'),
+        opt('none', 'Nein – wir brauchen Hilfe dabei', 'No — we need help with these'),
+        opt('unsure', 'Ich bin nicht sicher', "I'm not sure"),
       ],
     },
   ),
+  field('legal_pages_links', 'access_legal', 'textarea', 'Bitte teilen Sie die Links zu Ihren vorhandenen Rechtsseiten.', 'Please share the links to your existing legal pages.', {
+    required: true,
+    show_when: when('legal_pages', 'reuse'),
+    placeholder_de: 'https://www.ihrefirma.de/impressum\nhttps://www.ihrefirma.de/datenschutz',
+    placeholder_en: 'https://www.yourcompany.com/legal-notice\nhttps://www.yourcompany.com/privacy',
+    config: { rows: 3 },
+  }),
+  field('legal_pages_advice', 'access_legal', 'textarea', 'Bitte teilen Sie vorhandene Links zu Rechtsseiten oder sagen Sie uns, wer dazu beraten kann.', 'Please share any existing legal-page links or tell us who can advise on this.', {
+    show_when: when('legal_pages', 'unsure'),
+    config: { rows: 3 },
+  }),
   field('notice_legal_placeholder', 'access_legal', 'notice', '', '', {
     show_when: when('legal_pages', 'none'),
     config: { text_key: 'notice_legal_placeholder', tone: 'info' },
@@ -995,10 +1031,21 @@ const accessLegal: OnbField[] = [
     ],
     config: { exclusive: ['none'] },
   }),
-  field('sells_to_consumers', 'access_legal', 'radio', 'Verkaufen Sie online an Verbraucher?', 'Do you sell to consumers online?', {
-    required: true,
-    options: YES_NO_UNSURE,
-  }),
+  field(
+    'sells_to_consumers',
+    'access_legal',
+    'radio',
+    'Können Kunden Produkte oder Leistungen direkt über die Website kaufen?',
+    'Will customers be able to buy products or services directly on the website?',
+    {
+      required: true,
+      help_de:
+        'Zum Beispiel über einen Onlineshop, einen Zahlungslink, eine Anzahlung bei der Buchung, eine Mitgliedschaft oder den Verkauf digitaler Produkte.',
+      help_en:
+        'For example, through an online shop, payment link, booking deposit, membership, or digital-product checkout.',
+      options: YES_NO_UNSURE,
+    },
+  ),
   field('notice_bfsg', 'access_legal', 'notice', '', '', {
     show_when: when('sells_to_consumers', 'yes', 'unsure'),
     config: { text_key: 'notice_bfsg', tone: 'warn' },
@@ -1013,8 +1060,8 @@ const accessLegal: OnbField[] = [
       show_when: when('project_type', 'changes'),
       help_de: 'Wenn Sie wissen, auf welche Seiten Google die Leute schickt, sagen Sie es uns, dann halten wir diese Adressen am Leben.',
       help_en: 'If you know which pages Google sends people to, please tell us and we will keep their addresses working.',
-      placeholder_de: '/badsanierung-muenchen bringt uns die meisten Anfragen',
-      placeholder_en: '/badsanierung-muenchen brings us most of our enquiries',
+      placeholder_de: 'Die Seite zu unserer wichtigsten Leistung bringt uns die meisten Anfragen',
+      placeholder_en: 'The page about our main service brings us most of our enquiries',
       config: { rows: 3 },
     },
   ),
@@ -1031,8 +1078,8 @@ const timing: OnbField[] = [
   field('launch_date_reason', 'timing', 'text', 'Woran hängt es?', 'What is it tied to?', {
     required: true,
     show_when: when('launch_date_fixed', 'yes'),
-    placeholder_de: 'Unser Stand auf der ISH im März',
-    placeholder_en: 'Our stand at the ISH trade fair in March',
+    placeholder_de: 'Unser Messestand im Frühjahr',
+    placeholder_en: 'Our trade-fair stand in the spring',
   }),
   field('content_ready_date', 'timing', 'date', 'Wann können Sie uns alle Texte und Fotos schicken?', 'When can you send us all your text and photos?', {
     required: true,
@@ -1061,7 +1108,7 @@ const review: OnbField[] = [
     options: [
       opt('yes', 'Ja, das sind wir', 'Yes, that is us'),
       opt('mostly', 'Im Wesentlichen, meine Korrekturen stehen unten', 'Mostly, see my corrections below'),
-      opt('no', 'Nein, das haben wir schlecht erklärt', 'No, we have explained it badly'),
+      opt('no', 'Nein, da muss einiges korrigiert werden', 'No, a few things need correcting'),
     ],
   }),
   field('understood_corrections', 'review', 'textarea', 'Was haben wir falsch verstanden?', 'What have we got wrong?', {
@@ -1080,6 +1127,8 @@ const review: OnbField[] = [
  * given to them survive in the records that carry them.
  */
 export const retiredFieldIds = [
+  // 25 Sep: the public addresses are already asked on the business step (public_email).
+  'site_emails',
   // The 24 Sep corrections dropped "who holds the account?" from every integration
   // block, and the "other service" block no longer asks for a provider separately.
   'booking_account',

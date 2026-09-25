@@ -94,6 +94,8 @@ export interface FieldConfig {
   // date: 'today' or an ISO date
   min_date?: string;
   // slider
+  /** Fractional steps (e.g. 0.1) let the client stop between two captions; default 1. */
+  step?: number;
   captions?: LocalizedCaption[];
   examples?: LocalizedCaption[];
   // ranking
@@ -113,7 +115,10 @@ export interface FieldConfig {
   // upload
   accept?: string[];
   max_files?: number;
+  /** Per-file cap. */
   max_mb?: number;
+  /** Cap on all of this field's files together; the per-file cap then defaults to it. */
+  max_total_mb?: number;
   /** Free-text fields: an explicit "nothing to add" tick, so silence is never ambiguous. */
   none_label_de?: string;
   none_label_en?: string;

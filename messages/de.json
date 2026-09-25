@@ -557,10 +557,12 @@
       "uploadDrag": "Dateien hierher ziehen oder",
       "uploadPick": "Dateien auswählen",
       "uploadHint": "Bis zu {max} Dateien, je max. {mb} MB",
+      "uploadHintTotal": "Bis zu {max} Dateien, zusammen {mb} MB · noch {left} MB frei",
       "uploadDelete": "Datei entfernen",
       "uploadErr": {
         "unsupported_type": "{name}: Dateityp wird nicht unterstützt.",
         "too_large": "{name}: Datei ist zu groß.",
+        "over_total": "Entschuldigung, „{name}“ ist etwas zu groß. Alle Dateien hier dürfen zusammen {mb} MB groß sein, und es sind noch {left} MB frei. Könnten Sie die Datei bitte verkleinern oder große Dateien über den Ordnerlink teilen?",
         "too_many": "{name}: Zu viele Dateien für dieses Feld.",
         "upload_failed": "{name}: Upload fehlgeschlagen. Bitte erneut versuchen."
       },

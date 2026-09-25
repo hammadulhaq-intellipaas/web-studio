@@ -383,7 +383,10 @@ export function validateField(field: OnbField, ctx: ValidationContext, locale: L
       const n = typeof v === 'number' ? v : Number(v);
       const min = cfg.min ?? 1;
       const max = cfg.max ?? 5;
-      return Number.isInteger(n) && n >= min && n <= max ? [] : [{ field: field.id, code: 'invalid_option' }];
+      // On the step grid (0.1 → 2.3 is fine, 2.35 is not), tolerant of float noise.
+      const steps = (n - min) / (cfg.step ?? 1);
+      const onGrid = Math.abs(steps - Math.round(steps)) < 1e-6;
+      return Number.isFinite(n) && onGrid && n >= min && n <= max ? [] : [{ field: field.id, code: 'invalid_option' }];
     }
     default:
       return [];
@@ -614,9 +617,15 @@ export function optionLabel(field: OnbField, value: string, locale: Locale): str
   return option ? loc(option as unknown as Record<string, unknown>, 'label', locale) : value;
 }
 
-export function sliderLabel(field: OnbField, value: number, locale: Locale): string {
+/** Caption nearest to the value: 2.3 reads as step 2, 2.5 and up as step 3. */
+export function sliderCaptionIndex(field: OnbField, value: number): number {
   const min = field.config.min ?? 1;
-  return cap(field.config.captions?.[value - min], locale);
+  const max = field.config.max ?? 5;
+  return Math.round(Math.min(max, Math.max(min, value))) - min;
+}
+
+export function sliderLabel(field: OnbField, value: number, locale: Locale): string {
+  return cap(field.config.captions?.[sliderCaptionIndex(field, value)], locale);
 }
 
 export function bucketLabel(field: OnbField, bucket: string, locale: Locale): string {

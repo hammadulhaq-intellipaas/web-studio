@@ -182,7 +182,7 @@ function ReadyCheck({ definition, record, files, locale, onJumpToScreen, flush, 
         {reviewScreen ? loc(reviewScreen as unknown as Record<string, unknown>, 'title', locale) : t('title')}
       </h2>
       {intro && (
-        <div className="onb-markdown" style={{ fontSize: 15.5, color: BODY, margin: '0 0 24px', maxWidth: 640, lineHeight: 1.55 }}>
+        <div className="onb-markdown" style={{ fontSize: 15.5, color: BODY, margin: '0 0 24px', lineHeight: 1.55 }}>
           <ReactMarkdown>{intro.content_markdown}</ReactMarkdown>
         </div>
       )}

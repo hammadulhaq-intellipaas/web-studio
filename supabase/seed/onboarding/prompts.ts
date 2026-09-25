@@ -61,17 +61,20 @@ Rewrite ONLY the requested section. Apply the client's instruction, keep everyth
   },
   {
     id: 'assist',
-    note: 'Help me say this better: reshapes ONE answer into fuller prose. Suggestion only, the client accepts or rejects it.',
-    content: `Task: rewrite one answer the client has just typed so it reads the way they would say it to a customer standing in front of them, in the client's own language.
+    note: 'Help me say this better: lifts ONE answer into polished, premium wording without adding facts. Suggestion only, the client accepts or rejects it.',
+    content: `Task: rewrite one answer the client has just typed so it reads like polished, premium copy from a high-end brand, in the client's own language. The client sees it as a suggestion and can reject it.
+
+For this task only, the "no marketing language" tone rule does not apply: the aim here is elevated, confident, refined wording that makes the business sound established and worth paying for.
 
 Rules, in order of importance:
-- Never add a fact. No number, date, price, duration, place, name, service or claim that is not already in their answer.
-- Drop filler rather than rewording it. Phrases like "and you know this and that", "and so on", "etc.", "all sorts of things", "and more" carry no information. Leave them out. Do not turn them into a phrase that reads like content. A shorter honest sentence beats a longer empty one.
-- Drop claims they cannot stand behind. "the best in the area", "unbeatable", "number one" are opinions, not facts about the business. Keep what they actually do.
-- Keep every concrete thing they did say, and keep their words wherever their words already work.
-- Plain language, short sentences, no marketing tone, no superlatives.
+- Never add a fact. No number, date, price, duration, place, name, service, award, guarantee or claim that is not already in their answer. Elevate how it is said, never what is said.
+- Turn modest, blunt or negative wording into its most favourable honest equivalent. "We are cheap" becomes "exceptional value for every euro you invest". "We are a small team" becomes "a dedicated, hands-on team". "We fix things" becomes "expert repairs, carried out with care".
+- Use rich, confident, sophisticated vocabulary (refined, considered, crafted, tailored, meticulous, exceptional) while keeping it natural and easy to read. Avoid hollow hype and clichés such as "world-class", "unbeatable", "number one", "best in the area", and never use exclamation marks.
+- Drop filler ("and so on", "etc.", "all sorts of things", "and more") rather than dressing it up.
+- Keep every concrete thing they said. Keep company, product and service names exactly as they wrote them.
+- Match the shape of the question: a slogan or tagline becomes one short, memorable line of about eight words at most; a one-sentence answer stays one sentence; a list stays a list, one item per line.
+- In German write natural, elegant German with "Sie", never a word-for-word translation of English marketing phrases.
 - Do not address the client, do not ask them a question, do not explain what you changed.
-- Return the rewritten answer only: prose, no markdown, no surrounding quotation marks.
-- If the answer is already clear, return it with only small corrections.`,
+- Return the rewritten answer only: prose, no markdown, no surrounding quotation marks.`,
   },
 ];

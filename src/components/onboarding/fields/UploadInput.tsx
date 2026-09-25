@@ -8,7 +8,7 @@ import { BLUE, BODY, MUTED2 } from '@/components/funnel/ui';
 
 export type PublicFile = FileSummary & { id: string };
 
-type Reason = 'unsupported_type' | 'too_large' | 'too_many' | 'upload_failed';
+type Reason = 'unsupported_type' | 'too_large' | 'over_total' | 'too_many' | 'upload_failed';
 
 const DEFAULT_ACCEPT = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif', 'heic', 'heif', 'svg', 'pdf', 'doc', 'docx', 'eps', 'ai', 'zip'];
 
@@ -34,11 +34,16 @@ export function UploadInput({
   const [errors, setErrors] = useState<string[]>([]);
   const accept = field.config.accept ?? DEFAULT_ACCEPT;
   const maxFiles = field.config.max_files ?? 10;
-  const maxMb = field.config.max_mb ?? 25;
+  const totalMb = field.config.max_total_mb ?? null;
+  const maxMb = field.config.max_mb ?? totalMb ?? 25;
   const mine = files.filter((f) => f.field_key === field.id);
   const full = mine.length >= maxFiles;
+  const MB = 1024 * 1024;
+  const usedBytes = mine.reduce((sum, f) => sum + (f.size_bytes ?? 0), 0);
+  const leftMb = (bytes: number) => (totalMb == null ? 0 : Math.max(0, Math.floor(((totalMb * MB - bytes) / MB) * 10) / 10));
 
-  const describe = (name: string, reason: Reason) => t(`uploadErr.${reason}`, { name });
+  const describe = (name: string, reason: Reason, left = leftMb(usedBytes)) =>
+    t(`uploadErr.${reason}`, { name, mb: totalMb ?? maxMb, left });
 
   const upload = async (list: FileList | null) => {
     if (!list || disabled) return;
@@ -46,9 +51,15 @@ export function UploadInput({
     if (!picked.length) return;
     const problems: string[] = [];
     const accepted: File[] = [];
+    // Checked here too, so an oversize file never leaves the browser.
+    let planned = usedBytes;
     for (const f of picked) {
-      if (f.size > maxMb * 1024 * 1024) problems.push(describe(f.name, 'too_large'));
-      else accepted.push(f);
+      if (totalMb != null && planned + f.size > totalMb * MB) problems.push(describe(f.name, 'over_total', leftMb(planned)));
+      else if (f.size > maxMb * MB) problems.push(describe(f.name, 'too_large'));
+      else {
+        accepted.push(f);
+        planned += f.size;
+      }
     }
     if (!accepted.length) return setErrors(problems);
 
@@ -130,7 +141,10 @@ export function UploadInput({
             />
           </label>
           <div style={{ fontSize: 11, color: MUTED2, marginTop: 8 }}>
-            {t('uploadHint', { max: maxFiles, mb: maxMb })} · {accept.join(', ')}
+            {totalMb != null
+              ? t('uploadHintTotal', { max: maxFiles, mb: totalMb, left: leftMb(usedBytes) })
+              : t('uploadHint', { max: maxFiles, mb: maxMb })}{' '}
+            · {accept.join(', ')}
           </div>
         </div>
       )}

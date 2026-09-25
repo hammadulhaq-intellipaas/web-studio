@@ -8,6 +8,7 @@ import {
   isRequiredNow,
   matches,
   mergePatch,
+  sliderLabel,
   validateAll,
   validateField,
   validateScreen,
@@ -198,6 +199,26 @@ describe('validateField', () => {
     expect(isRequiredNow(f, ctx({}, { assets_upload: 2 }))).toBe(false);
     expect(validateField(f, ctx({}, { assets_upload: 2 }))).toEqual([]);
     expect(validateField(field('reference_screenshots'), ctx({}))).toEqual([]);
+  });
+
+  it('lets the sliders stop between the numbers, on the tenth grid', () => {
+    const f = field('tone_scale');
+    const check = (v: number) => validateField(f, ctx({ ...completeAnswers(), tone_scale: a(v) }));
+    expect(check(2.3)).toEqual([]);
+    expect(check(4.5)).toEqual([]);
+    expect(check(5)).toEqual([]);
+    expect(check(2.35)).toEqual([{ field: 'tone_scale', code: 'invalid_option' }]);
+    expect(check(5.1)).toEqual([{ field: 'tone_scale', code: 'invalid_option' }]);
+  });
+});
+
+describe('sliderLabel', () => {
+  it('reads a fractional value as the nearest caption', () => {
+    const f = field('personality_scale');
+    expect(sliderLabel(f, 1, 'en')).toBe('Clean and minimal');
+    expect(sliderLabel(f, 2.3, 'en')).toBe('Understated');
+    expect(sliderLabel(f, 2.5, 'en')).toBe('Balanced');
+    expect(sliderLabel(f, 4.9, 'de')).toBe('Markant');
   });
 });
 

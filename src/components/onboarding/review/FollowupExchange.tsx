@@ -73,7 +73,7 @@ export function FollowupExchange({
   return (
     <section data-screen="onb-review" className="onb-reveal" style={{ paddingBottom: 72 }}>
       <h2 style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.8, margin: '0 0 8px' }}>{title}</h2>
-      <p style={{ fontSize: 15.5, color: BODY, margin: '0 0 24px', maxWidth: 640 }}>{t('title')}</p>
+      <p style={{ fontSize: 15.5, color: BODY, margin: '0 0 24px', maxWidth: 680 }}>{t('title')}</p>
 
       {/* Keyed by question id so the draft answer and error reset with every new question. */}
       <QuestionCard key={question.id} question={question} definition={definition} record={record} setRecord={setRecord} locale={locale} total={total} />

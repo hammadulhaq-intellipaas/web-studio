@@ -79,7 +79,9 @@ export function ScreenCard({
   return (
     <section data-screen={`onb-${screen.id}`} className="onb-reveal" style={{ paddingBottom: 72 }}>
       <h2 style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.8, margin: '0 0 8px', textWrap: 'balance' }}>{title}</h2>
-      {intro && <p style={{ fontSize: 15.5, color: BODY, margin: '0 0 24px', maxWidth: 640, lineHeight: 1.55 }}>{intro}</p>}
+      {/* No max-width: the intro should run the same width as the card under it, not
+          wrap early inside an invisible column. */}
+      {intro && <p style={{ fontSize: 15.5, color: BODY, margin: '0 0 24px', lineHeight: 1.55 }}>{intro}</p>}
       {banner}
 
       <div style={{ background: '#ffffff', border: `1px solid ${BORDER}`, borderRadius: 18, padding: '26px 26px 28px' }}>

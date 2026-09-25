@@ -11,7 +11,7 @@ const rows: Omit<OnbBriefSection, 'sort' | 'active'>[] = [
     title_de: 'Wer dieses Unternehmen ist – in eigenen Worten',
     title_en: 'Who this business is, in their own words',
     instructions:
-      'Describe the business from the answers only: legal name and form, where it works and which regions it serves, what it sells (catalogue), why customers choose it (usps), factual claims it wants shown, tagline if any. Keep the client\'s own wording for services.',
+      'Describe the business from the answers only: legal name and form, where it works and which regions it serves, what it sells (catalogue), who the site is for, the ideal customer and anyone it should not attract, why customers choose it (usps), factual claims it wants shown, tagline if any. Keep the client\'s own wording for services.',
     source_fields: [
       'contact_company',
       'legal_name',
@@ -22,6 +22,8 @@ const rows: Omit<OnbBriefSection, 'sort' | 'active'>[] = [
       'second_address_details',
       'business_one_liner',
       'target_audience',
+      'ideal_customer',
+      'excluded_audience',
       'usps',
       'tagline',
       'catalogue',
@@ -68,10 +70,12 @@ const rows: Omit<OnbBriefSection, 'sort' | 'active'>[] = [
     title_de: 'Wie sie aussehen und sich anfühlen soll',
     title_en: 'What it should look and feel like',
     instructions:
-      'Give both slider values WITH their captions. List each reference site with what the client liked and disliked about it, verbatim where possible. Include brand colours, brand guideline availability and the "do not want" list. Mention premises photos and screenshots only if files were provided.',
+      'Give both slider values WITH their captions, and the note the client added to each where they gave one. List each reference site with what the client liked and disliked about it, verbatim where possible. Include brand colours, brand guideline availability and the "do not want" list. Mention premises photos and screenshots only if files were provided.',
     source_fields: [
       'tone_scale',
+      'tone_note',
       'personality_scale',
+      'personality_note',
       'references',
       'reference_screenshots',
       'avoid',
@@ -101,7 +105,6 @@ const rows: Omit<OnbBriefSection, 'sort' | 'active'>[] = [
       'assets_upload',
       'photo_portal_needed',
       'photo_portal',
-      'site_emails',
       'routing_split',
       'routing_single',
       'notification_routing',
@@ -157,6 +160,8 @@ const rows: Omit<OnbBriefSection, 'sort' | 'active'>[] = [
       'address_street',
       'opening_hours',
       'legal_pages',
+      'legal_pages_links',
+      'legal_pages_advice',
       'legal_reviewer',
       'legal_extras',
       'sells_to_consumers',

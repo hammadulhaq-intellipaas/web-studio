@@ -28,6 +28,8 @@ async function waitSaved(page: Page) {
 
 test.describe('onboarding form', () => {
   test('walks every screen with reveals, custom controls, resume and language switch', async ({ page, browser }) => {
+    // Nine screens, a second browser context and a language switch: well past the 90s default.
+    test.setTimeout(240_000);
     const url = await start(page);
 
     // ---- Screen 1 · Your project: blocked while empty, reveal / clear / restore
@@ -70,10 +72,11 @@ test.describe('onboarding form', () => {
     await next(page, 'inboxes');
 
     // ---- Screen 3 · Inboxes: routing splits into a table
-    await page.fill('[data-testid=f-site_emails]', 'praxis@physio-nordend.example');
     await page.click('[data-testid=opt-routing_split-yes]');
     await page.fill('[data-testid=f-notification_routing-0-type]', 'Allgemeine Anfrage');
+    await expect(page.locator('[data-testid=f-notification_routing-0-type]')).toHaveValue('Allgemeine Anfrage');
     await page.fill('[data-testid=f-notification_routing-0-address]', 'praxis@physio-nordend.example');
+    await expect(page.locator('[data-testid=f-notification_routing-0-type]')).toHaveValue('Allgemeine Anfrage');
     await page.click('[data-testid=add-notification_routing]');
     await expect(page.locator('[data-testid=row-notification_routing-2]')).toBeVisible();
     await page.fill('[data-testid=f-approver]', 'Lena Hartmann');
@@ -83,12 +86,17 @@ test.describe('onboarding form', () => {
     // ---- Screen 4 · Look and sound: sliders carry captions, references need likes, colour mood caps at two
     await page.fill('[data-testid=f-business_one_liner]', 'Wir behandeln Rückenschmerzen und Sportverletzungen, mit Terminen innerhalb einer Woche.');
     await page.fill('[data-testid=f-target_audience]', 'Berufstätige zwischen 30 und 60, die seit Monaten Schmerzen haben.');
+    await page.fill('[data-testid=f-ideal_customer]', 'Büroangestellte mit Rückenschmerzen, die eine feste Behandlungsserie buchen.');
     await page.fill('[data-testid=f-usps]', 'Termine innerhalb einer Woche, alle Kassen, barrierefreier Zugang.');
     await page.click('[data-testid=opt-proof_to_show-reviews]');
     await expect(page.locator('[data-field=factual_claims]')).toBeVisible();
     await page.fill('[data-testid=f-factual_claims]', 'Bewertungen: 4,9 auf Google, bestätigt von Lena');
     await page.click('[data-testid=opt-tone_scale-4]');
     await expect(page.locator('[data-testid=slider-caption-tone_scale]')).toContainText('Professionell und zurückhaltend');
+    // The scale stops between the numbers too: one arrow press is a tenth.
+    await page.locator('[data-testid=f-tone_scale] input[type=range]').press('ArrowRight');
+    await expect(page.locator('[data-testid=slider-caption-tone_scale]')).toContainText('4,1 / 5');
+    await page.fill('[data-testid=f-tone_note]', 'Seriös, aber nicht kühl.');
     await page.click('[data-testid=opt-personality_scale-2]');
     await page.fill('[data-testid=f-references-0-url]', 'https://www.beispiel-physio.de');
     await page.click('[data-testid=opt-brand_guidelines-no]');
@@ -143,12 +151,19 @@ test.describe('onboarding form', () => {
     await page.fill('[data-testid=f-accounts_table-0-holder]', 'Lena Hartmann');
     await page.fill('[data-testid=f-domain]', 'www.physio-nordend.de');
     await page.fill('[data-testid=f-site_manager]', 'Lena Hartmann, Passwort: geheim123');
-    await page.click('[data-testid=opt-legal_pages-reuse]');
-    await page.fill('[data-testid=f-legal_reviewer]', 'Lena Hartmann');
-    await page.click('[data-testid=opt-sells_to_consumers-no]');
+    // The redaction notice is transient (it clears itself after a few seconds), so it is
+    // asserted on the save that strips the password, not after the rest of the screen.
     await waitSaved(page);
     await expect(page.locator('[data-testid=onb-notice-redacted]')).toBeVisible();
     await expect(page.locator('[data-testid=f-site_manager]')).toHaveValue(/redacted/);
+
+    await page.click('[data-testid=opt-legal_pages-reuse]');
+    // "Yes, use our existing pages" now asks for the links to them.
+    await expect(page.locator('[data-field=legal_pages_links]')).toBeVisible();
+    await page.fill('[data-testid=f-legal_pages_links]', 'https://www.physio-nordend.de/impressum');
+    await page.fill('[data-testid=f-legal_reviewer]', 'Lena Hartmann');
+    await page.click('[data-testid=opt-sells_to_consumers-no]');
+    await waitSaved(page);
     await next(page, 'timing');
 
     // ---- Screen 9 · Timing
@@ -172,17 +187,17 @@ test.describe('onboarding form', () => {
     await fresh.close();
 
     // ---- DE → EN switch keeps the record and translates the CMS copy
-    // The second tab moved the shared record's step to Screen 4, and the toggle reloads the
-    // page from the record, so come back to the review node first.
-    await page.reload();
-    await page.click('[data-testid=step-review]');
-    await expect(page.locator('[data-screen=onb-review-ready]')).toBeVisible();
-    // The step is saved on a debounce and the toggle reloads the page from the record, so
-    // wait for the server to have it (the review screen carries no save indicator).
+    // The second tab moved the shared record's step back to Screen 4, and the stepper only
+    // unlocks as far as this session has reached — which a reload resets. So put the record
+    // back on the review node through the API rather than clicking through the stepper.
     const formId = url.split('/').pop()!;
-    await expect
-      .poll(async () => (await (await page.request.get(`/api/onboarding/${formId}`)).json()).record.current_step, { timeout: 15_000 })
-      .toBe('review');
+    const rec = await (await page.request.get(`/api/onboarding/${formId}`)).json();
+    const back = await page.request.patch(`/api/onboarding/${formId}`, {
+      data: { base_rev: rec.record.rev, changes: {}, current_step: 'review' },
+    });
+    expect(back.ok(), `reset step: ${back.status()}`).toBeTruthy();
+    await page.reload();
+    await expect(page.locator('[data-screen=onb-review-ready]')).toBeVisible();
     await page.click('[data-testid=language-toggle] button[aria-label=English]');
     await page.waitForURL(/\/en\/onboardingform\//);
     await expect(page.locator('h2')).toContainText('Review and confirm');

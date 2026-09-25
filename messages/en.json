@@ -557,10 +557,12 @@
       "uploadDrag": "Drag files here or",
       "uploadPick": "Choose files",
       "uploadHint": "Up to {max} files, max. {mb} MB each",
+      "uploadHintTotal": "Up to {max} files, {mb} MB in total · {left} MB left",
       "uploadDelete": "Remove file",
       "uploadErr": {
         "unsupported_type": "{name}: file type not supported.",
         "too_large": "{name}: file is too large.",
+        "over_total": "Sorry, “{name}” is a little too big. All files here can add up to {mb} MB, and you have {left} MB left. Could you please compress it, or share large files through the folder link instead?",
         "too_many": "{name}: too many files for this field.",
         "upload_failed": "{name}: upload failed. Please try again."
       },

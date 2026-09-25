@@ -1,6 +1,6 @@
 import type { Locale } from '@/lib/types';
 import { textFor } from './texts';
-import { linesOf, textOf } from './logic';
+import { linesOf, sliderCaptionIndex, textOf } from './logic';
 import { loc, type Answers, type OnbField, type OnboardingDefinition, type RepeaterRow } from './types';
 
 /** Shown in place of an answer we do not have, so the read-back never invents one. */
@@ -22,7 +22,7 @@ function labelsOf(field: OnbField | undefined, value: unknown, locale: Locale): 
 
 function captionOf(field: OnbField | undefined, value: unknown, locale: Locale): string {
   if (!field || typeof value !== 'number') return '';
-  const caption = field.config.captions?.[value - (field.config.min ?? 1)];
+  const caption = field.config.captions?.[sliderCaptionIndex(field, value)];
   return caption ? caption[locale] : '';
 }
 

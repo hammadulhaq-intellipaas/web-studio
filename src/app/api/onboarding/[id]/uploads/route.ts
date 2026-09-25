@@ -32,7 +32,7 @@ const KNOWN_EXT = new Map<string, string>([
   ['zip', 'application/zip'],
 ]);
 
-export type RejectionReason = 'unsupported_type' | 'too_large' | 'too_many' | 'upload_failed';
+export type RejectionReason = 'unsupported_type' | 'too_large' | 'over_total' | 'too_many' | 'upload_failed';
 
 /**
  * Uploads belong to a form and one of its upload fields. No sign-in: the unguessable form
@@ -59,9 +59,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!field) return NextResponse.json({ error: 'invalid_field' }, { status: 400 });
 
   const accept = new Set((field.config.accept ?? Array.from(KNOWN_EXT.keys())).map((e) => e.toLowerCase()));
-  const maxBytes = (field.config.max_mb ?? DEFAULT_MAX_MB) * 1024 * 1024;
+  const totalBytes = field.config.max_total_mb != null ? field.config.max_total_mb * 1024 * 1024 : null;
+  const maxBytes = (field.config.max_mb ?? field.config.max_total_mb ?? DEFAULT_MAX_MB) * 1024 * 1024;
   const maxFiles = field.config.max_files ?? DEFAULT_MAX_FILES;
-  let count = existing.filter((f) => f.field_key === fieldKey).length;
+  const mine = existing.filter((f) => f.field_key === fieldKey);
+  let count = mine.length;
+  let used = mine.reduce((sum, f) => sum + (f.size_bytes ?? 0), 0);
 
   const supabase = createSupabaseAdminClient();
   const stored: { id: string; name: string }[] = [];
@@ -75,7 +78,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       continue;
     }
     if (file.size > maxBytes) {
-      rejected.push({ name: file.name, reason: 'too_large' });
+      rejected.push({ name: file.name, reason: totalBytes != null ? 'over_total' : 'too_large' });
+      continue;
+    }
+    if (totalBytes != null && used + file.size > totalBytes) {
+      rejected.push({ name: file.name, reason: 'over_total' });
       continue;
     }
     if (count >= maxFiles) {
@@ -116,6 +123,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     stored.push({ id: row.id, name: file.name });
     count += 1;
+    used += file.size;
   }
 
   const all = await loadFiles(id);
