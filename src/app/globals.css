@@ -201,10 +201,19 @@ body {
 .onb-markdown p:last-child {
   margin-bottom: 0;
 }
-.onb-markdown ul,
+/* Tailwind's preflight strips list markers, so they have to be asked for again. */
+.onb-markdown ul {
+  margin: 0 0 10px;
+  padding-left: 22px;
+  list-style: disc;
+}
 .onb-markdown ol {
   margin: 0 0 10px;
-  padding-left: 20px;
+  padding-left: 22px;
+  list-style: decimal;
+}
+.onb-markdown li::marker {
+  color: #1e5eff;
 }
 .onb-markdown li {
   margin-bottom: 6px;

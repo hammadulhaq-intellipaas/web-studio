@@ -67,7 +67,10 @@ export default async function OnboardingLandingPage({ params }: { params: Promis
         >
           {landing?.title}
         </h1>
-        <div className="onb-markdown" style={{ fontSize: 17, lineHeight: 1.6, color: BODY, maxWidth: 600, textWrap: 'pretty' }}>
+        <div
+          className="onb-markdown"
+          style={{ fontSize: 17, lineHeight: 1.6, color: BODY, maxWidth: 600, textWrap: 'pretty', textAlign: 'left' }}
+        >
           <ReactMarkdown>{fillPlaceholders(landing?.content_markdown ?? '', { minutes })}</ReactMarkdown>
         </div>
         <a
