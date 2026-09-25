@@ -63,6 +63,41 @@ describe('visibility', () => {
   });
 });
 
+describe('locale-only fields', () => {
+  it('asks the German media-law question in German and not in English', () => {
+    const de = visibility(def.fields, completeAnswers(), 'de').visible.map((f) => f.id);
+    const en = visibility(def.fields, completeAnswers(), 'en').visible.map((f) => f.id);
+    expect(de).toContain('content_responsible');
+    expect(en).not.toContain('content_responsible');
+    // Everything else is unaffected: the gate is opt-in per field.
+    expect(en.length).toBe(de.length - 1);
+  });
+
+  it('does not block the screen in the locale where it is not asked', () => {
+    const answers = { ...completeAnswers() };
+    delete answers.content_responsible;
+    const inEn = validateScreen(def, 'business', answers, {}, TODAY, 'en');
+    const inDe = validateScreen(def, 'business', answers, {}, TODAY, 'de');
+    expect(inEn.some((e) => e.field === 'content_responsible')).toBe(false);
+    expect(inDe.some((e) => e.field === 'content_responsible')).toBe(true);
+  });
+
+  it('never deletes the answer when the client switches language', () => {
+    // clearHidden is rule-based only, so a German answer survives a trip through English.
+    const answers = completeAnswers();
+    expect(clearHidden(def.fields, answers).answers.content_responsible).toBeDefined();
+  });
+
+  it('does not report an unasked question as a gap', () => {
+    const answers = { ...completeAnswers() };
+    delete answers.content_responsible;
+    const en = computeGaps(def, answers, {}, 'en').map((g) => g.field);
+    const de = computeGaps(def, answers, {}, 'de').map((g) => g.field);
+    expect(en).not.toContain('content_responsible');
+    expect(de).toContain('content_responsible');
+  });
+});
+
 describe('clearHidden', () => {
   it('drops the answer of a field that became hidden and reports it', () => {
     const answers = { ...completeAnswers(), project_type: a('changes'), existing_url: a('https://alt.de') };

@@ -142,12 +142,24 @@ const business: OnbField[] = [
   field('vat_id', 'business', 'text', 'Wie lautet Ihre USt-IdNr.?', 'What is your VAT ID?', {
     placeholder_de: 'DE123456789',
     placeholder_en: 'DE123456789',
+    config: {
+      tooltip_de:
+        'Die USt-IdNr. steht in Ihrem Impressum, wenn Sie eine haben. In Deutschland ist diese Angabe gesetzlich vorgeschrieben.',
+      tooltip_en:
+        'Your VAT ID goes on your legal notice if you have one. In Germany that is a legal requirement.',
+    },
   }),
   field('register_entry', 'business', 'text', 'Wie lauten Registergericht und Registernummer?', 'What is your register court and number?', {
     help_de: 'Bitte frei lassen, wenn Sie keine haben.',
     help_en: 'Please leave it blank if you do not have one.',
     placeholder_de: 'Amtsgericht München, HRB 12345',
     placeholder_en: 'Amtsgericht München, HRB 12345',
+    config: {
+      tooltip_de:
+        'Registergericht und Registernummer gehören ins Impressum. Außer bei einem Einzelunternehmen haben Sie das fast sicher.',
+      tooltip_en:
+        'The register court and number belong on your legal notice. Unless you are a sole trader, you will almost certainly have one.',
+    },
   }),
   field(
     'content_responsible',
@@ -161,11 +173,23 @@ const business: OnbField[] = [
       help_en: 'The named person under § 18 Abs. 2 MStV, usually the owner or managing director.',
       placeholder_de: 'Name',
       placeholder_en: 'Name',
+      // A German media-law requirement with no equivalent in an English brief.
+      config: {
+        locales: ['de'],
+        tooltip_de:
+          'Nach § 18 Abs. 2 MStV muss im Impressum stehen, wer für die Inhalte verantwortlich ist. Das ist eine deutsche Vorgabe.',
+      },
     },
   ),
   field('public_phone', 'business', 'tel', 'Welche Telefonnummer sollen wir auf der Seite zeigen?', 'What phone number should we show on the site?', {
     placeholder_de: '+49 89 1234567',
     placeholder_en: '+49 89 1234567',
+    config: {
+      tooltip_de:
+        'Diese Nummer steht öffentlich auf Ihrer Website. Bitte geben Sie Ihre Mobilnummer nur an, wenn Sie sie dort zeigen wollen.',
+      tooltip_en:
+        'This number is published on your website. Only give us a mobile number if you want it shown there.',
+    },
   }),
   field('public_email', 'business', 'email', 'Welche E-Mail-Adresse sollen wir auf der Seite zeigen?', 'What email address should we show on the site?', {
     required: true,

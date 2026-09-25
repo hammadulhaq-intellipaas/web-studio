@@ -65,7 +65,7 @@ export function UnderstoodStep({
   const corrections = typeof record.answers.understood_corrections?.v === 'string' ? record.answers.understood_corrections.v : '';
 
   const sections = useMemo(() => {
-    const { visible } = visibility(definition.fields, record.answers);
+    const { visible } = visibility(definition.fields, record.answers, locale);
     return definition.screens
       .filter((s) => s.kind === 'questions')
       .map((screen) => ({

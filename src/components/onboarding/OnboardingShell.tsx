@@ -119,7 +119,10 @@ export function OnboardingShell({
     return counts;
   }, [files]);
 
-  const { visible } = useMemo(() => visibility(definition.fields, record.answers), [definition.fields, record.answers]);
+  const { visible } = useMemo(
+    () => visibility(definition.fields, record.answers, locale),
+    [definition.fields, record.answers, locale],
+  );
   const screenFields = useMemo(() => (step ? visible.filter((f) => f.screen_id === step.id) : []), [visible, step]);
 
   const requiredNow = useCallback(

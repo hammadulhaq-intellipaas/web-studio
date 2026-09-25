@@ -526,7 +526,8 @@
       "countUnder": "{n} Seiten. Ihr Angebot umfasst bis zu {max} – es ist also Platz, wenn Sie mehr möchten.",
       "countOver": "{n} Seiten. Ihr Angebot umfasst {band}. Bitte machen Sie weiter, wir melden uns wegen der {over} zusätzlichen Seiten.",
       "saveLinkSending": "Link wird gesendet …",
-      "saveLinkRetry": "Erneut senden"
+      "saveLinkRetry": "Erneut senden",
+      "whyNeeded": "Warum brauchen wir das?"
     },
     "errors": {
       "required": "Das brauchen wir noch, bevor es weitergeht.",

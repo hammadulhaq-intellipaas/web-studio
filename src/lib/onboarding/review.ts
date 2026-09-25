@@ -36,7 +36,7 @@ function rebuildTail(
     answers: record.answers,
     files: fileCounts(files),
     flags: record.flags,
-    gaps: computeGaps(definition, record.answers, fileCounts(files)),
+    gaps: computeGaps(definition, record.answers, fileCounts(files), record.locale),
     history: review.history,
     llmQuestions,
     budget,
@@ -56,7 +56,7 @@ async function runRound(
   previous: ReviewState | null,
 ): Promise<{ review: ReviewState; llmFlags: FormFlag[] }> {
   const counts = fileCounts(files);
-  const gaps = computeGaps(definition, record.answers, counts);
+  const gaps = computeGaps(definition, record.answers, counts, record.locale);
   const history = previous?.history ?? [];
   const round = (previous?.round ?? 0) + 1;
   const hash = hashAnswers(record.answers);

@@ -125,11 +125,25 @@ export interface Visibility {
  * One ordered pass over the definition. The CMS lint guarantees a field's dependencies
  * come earlier, so a single pass settles every reveal.
  */
-export function visibility(fields: OnbField[], answers: Answers): Visibility {
+/**
+ * Some questions only exist in one jurisdiction — the person responsible for content under
+ * German media law has no equivalent in an English-language brief — so a field can name the
+ * locales it belongs to. An empty or missing list means every locale.
+ */
+export function shownInLocale(field: OnbField, locale?: Locale): boolean {
+  const only = field.config.locales;
+  return !locale || !only?.length || only.includes(locale);
+}
+
+/**
+ * `locale` filters out questions that do not apply to it. It is deliberately NOT used by
+ * `clearHidden`: switching language must never delete an answer the client already gave.
+ */
+export function visibility(fields: OnbField[], answers: Answers, locale?: Locale): Visibility {
   const hidden = new Set<string>();
   const visible: OnbField[] = [];
   for (const field of fields) {
-    if (matches(field.show_when, answers, hidden)) visible.push(field);
+    if (matches(field.show_when, answers, hidden) && shownInLocale(field, locale)) visible.push(field);
     else hidden.add(field.id);
   }
   return { visible, hidden };
@@ -385,7 +399,7 @@ export function validateScreen(
   today: string,
   locale: Locale = 'de',
 ): FieldError[] {
-  const { visible } = visibility(definition.fields, answers);
+  const { visible } = visibility(definition.fields, answers, locale);
   const ctx: ValidationContext = { answers, files, today, fields: definition.fields };
   return visible.filter((f) => f.screen_id === screenId).flatMap((f) => validateField(f, ctx, locale));
 }
@@ -410,9 +424,16 @@ export function validateAll(
  * "don't know", thinner than its minimum, or an upload without files. Rules decide WHAT
  * is missing; the model only decides how to ask (spec §06, Job 1).
  */
-export function computeGaps(definition: Pick<OnboardingDefinition, 'fields'>, answers: Answers, files: FileCounts): Gap[] {
+export function computeGaps(
+  definition: Pick<OnboardingDefinition, 'fields'>,
+  answers: Answers,
+  files: FileCounts,
+  locale?: Locale,
+): Gap[] {
   const gaps: Gap[] = [];
-  const { visible } = visibility(definition.fields, answers);
+  // A question the client was never asked, because it does not apply to their locale, is
+  // not a gap in their answers.
+  const { visible } = visibility(definition.fields, answers, locale);
   const ctx = { answers, files, fields: definition.fields };
   for (const field of visible) {
     if (field.type === 'notice') continue;

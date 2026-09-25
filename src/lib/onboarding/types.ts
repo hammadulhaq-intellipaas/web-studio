@@ -121,6 +121,11 @@ export interface FieldConfig {
   ai_assist?: boolean;
   /** Count the lines of this field against the page band held by the named field. */
   count_band?: string;
+  /** Only ask this in these locales; empty or absent means all of them. */
+  locales?: Locale[];
+  /** Why we need it, behind an info button next to the label. */
+  tooltip_de?: string;
+  tooltip_en?: string;
   // notice: which onb_texts key to render
   text_key?: string;
   tone?: 'info' | 'warn';

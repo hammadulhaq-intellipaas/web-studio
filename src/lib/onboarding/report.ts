@@ -75,7 +75,7 @@ export function buildReport(
   const counts: Record<string, number> = {};
   for (const file of files) if (file.field_key) counts[file.field_key] = (counts[file.field_key] ?? 0) + 1;
 
-  const gaps = computeGaps(definition, record.answers, counts);
+  const gaps = computeGaps(definition, record.answers, counts, record.locale as Locale);
   const candidates = [
     ...gapItems(gaps, record.answers),
     ...skippedItems(record, known),

@@ -526,7 +526,8 @@
       "countUnder": "{n} pages. Your quote covers up to {max}, so there is room if you want more.",
       "countOver": "{n} pages. Your quote covers {band}. Please keep going and we will come back to you about the extra {over}.",
       "saveLinkSending": "Sending your link …",
-      "saveLinkRetry": "Send again"
+      "saveLinkRetry": "Send again",
+      "whyNeeded": "Why do we need this?"
     },
     "errors": {
       "required": "We need this one before you can continue.",
