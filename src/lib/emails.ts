@@ -192,6 +192,22 @@ export function renderTeamEmail(ctx: EmailContext, adminUrl: string, extras: Tea
  * Team notification recipients: the `RESEND_TO_EMAIL` CSV, falling back to the
  * `team_email` app setting when the env var is unset.
  */
+/**
+ * Whether a lead is one of ours rather than a customer's, and so should not put a mail in
+ * three people's inboxes. The list is a CMS setting: exact addresses, or `@domain` to cover
+ * a whole one. It only ever silences the *team* copy — the customer still gets theirs, so
+ * the flow can be walked end to end.
+ */
+export function isTestLeadAddress(email: string | null | undefined, skipSetting = ''): boolean {
+  const needle = (email ?? '').trim().toLowerCase();
+  if (!needle) return false;
+  return skipSetting
+    .split(',')
+    .map((rule) => rule.trim().toLowerCase())
+    .filter(Boolean)
+    .some((rule) => (rule.startsWith('@') ? needle.endsWith(rule) : needle === rule));
+}
+
 export function teamRecipients(teamEmailSetting = ''): string[] {
   const raw = process.env.RESEND_TO_EMAIL || teamEmailSetting;
   return raw

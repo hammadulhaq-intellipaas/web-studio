@@ -398,6 +398,7 @@ export const SETTINGS: SettingDef[] = [
   { key: 'yearly_discount_pct', label: 'Yearly payment discount %', type: 'number', description: 'Discount on recurring prices when paying annually (prototype: 18).' },
   { key: 'support_email', label: 'Customer support email', type: 'text', description: 'Shown to the customer when they accept a quote, as the address to write to if they get stuck on the brief.' },
   { key: 'team_email', label: 'Team notification email', type: 'text', description: 'Fallback recipient for new-lead and booking notifications when RESEND_TO_EMAIL is unset.' },
+  { key: 'team_notify_skip', label: 'Test addresses (no team notification)', type: 'text', description: 'Comma-separated. A lead from one of these never notifies the team, so you can walk the customer flow without mailing everyone. Exact addresses, or "@domain" for a whole domain. The customer still gets their own emails.' },
   { key: 'default_bundle', label: 'Default bundle', type: 'text', description: 'Used when no base bundle rule matches (e.g. "gold").' },
   { key: 'default_care_plan', label: 'Default care plan', type: 'text', description: 'Pre-selected care plan id (e.g. "plus").' },
   { key: 'default_cloudflare_plan', label: 'Default Cloudflare plan', type: 'text', description: 'Pre-selected Cloudflare plan id (e.g. "shield").' },

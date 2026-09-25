@@ -1,6 +1,6 @@
 import 'server-only';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
-import { sendLeadEmails, type CustomerEmailVariant, type EmailContext } from '@/lib/emails';
+import { isTestLeadAddress, sendLeadEmails, type CustomerEmailVariant, type EmailContext } from '@/lib/emails';
 import { pickLocale, type Catalog, type Lead, type LeadConfig, type Locale } from '@/lib/types';
 import { logActivity } from './activity';
 import { diffConfigs, type QuoteChange } from './diff';
@@ -10,11 +10,14 @@ import type { PricedQuote } from './price';
 /** Minimum gap between two "quote updated" team notifications for the same lead. */
 export const TEAM_UPDATE_COOLDOWN_MS = 60 * 60_000;
 
-async function teamEmailSetting(): Promise<string> {
+async function setting(key: string): Promise<string> {
   const admin = createSupabaseAdminClient();
-  const { data } = await admin.from('app_settings').select('value').eq('key', 'team_email').maybeSingle();
+  const { data } = await admin.from('app_settings').select('value').eq('key', key).maybeSingle();
   return typeof data?.value === 'string' ? data.value : '';
 }
+
+const teamEmailSetting = () => setting('team_email');
+const testAddressSetting = () => setting('team_notify_skip');
 
 type LeadForEmail = Pick<Lead, 'id' | 'locale' | 'vorname' | 'nachname' | 'firma' | 'email' | 'telefon' | 'ziel' | 'persona_id'>;
 
@@ -65,7 +68,10 @@ export function describeChanges(changes: QuoteChange[]): string[] {
 /** First submit: customer confirmation (with link) + team notification. Never throws. */
 export async function sendSubmitEmails(lead: LeadForEmail, priced: PricedQuote, catalog: Catalog, sessionId: string | null) {
   try {
-    await sendLeadEmails(emailContext(lead, priced, catalog, { sessionId, variant: 'new' }), await teamEmailSetting());
+    const [team, testAddresses] = await Promise.all([teamEmailSetting(), testAddressSetting()]);
+    await sendLeadEmails(emailContext(lead, priced, catalog, { sessionId, variant: 'new' }), team, {
+      team: !isTestLeadAddress(lead.email, testAddresses),
+    });
   } catch (e) {
     console.error('[quotes] submit emails failed:', e);
   }
@@ -95,7 +101,9 @@ export async function sendResubmitEmails(
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
-    const notifyTeam = !lastMail || Date.now() - Date.parse(lastMail.created_at) > TEAM_UPDATE_COOLDOWN_MS;
+    const notifyTeam =
+      !isTestLeadAddress(lead.email, await testAddressSetting()) &&
+      (!lastMail || Date.now() - Date.parse(lastMail.created_at) > TEAM_UPDATE_COOLDOWN_MS);
 
     const changes = describeChanges(diffConfigs(previous, priced.config));
     await sendLeadEmails(emailContext(lead, priced, catalog, { sessionId, variant: 'updated' }), await teamEmailSetting(), {
