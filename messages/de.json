@@ -666,6 +666,8 @@
     "sendDraft": "Anfrage senden",
     "locked": "Dieses Angebot ist abgeschlossen.",
     "lockedSub": "Änderungen werden nicht mehr gespeichert. Melden Sie sich bei uns, wenn Sie etwas anpassen möchten.",
+    "acceptedTitle": "Angebot gespeichert",
+    "acceptedSub": "Sie haben dieses Angebot gespeichert. Sie können es weiter ansehen; für Änderungen melden Sie sich einfach bei uns.",
     "teamBadge": "Team-Modus",
     "teamFor": "Angebot für {name}",
     "backToAdmin": "Zurück zum Admin",
@@ -676,14 +678,18 @@
     "teamSaveHint": "Speichert diese Konfiguration als neue Version am Lead. Der Kunde wird nicht benachrichtigt."
   },
   "acceptQuote": {
-    "title": "Angebot annehmen",
-    "body": "Wenn das so passt, nehmen Sie das Angebot hier an. Danach starten wir Ihr Briefing, damit wir mit dem Bau beginnen können.",
-    "locksNote": "Mit der Annahme wird die Konfiguration festgeschrieben. Möchten Sie danach noch etwas ändern, melden Sie sich einfach bei uns.",
-    "cta": "Angebot annehmen",
+    "title": "Angebot speichern",
+    "body": "Sie können das Angebot oben noch ändern. Wenn alles passt, speichern Sie es hier.",
+    "locksNote": "Mit dem Speichern wird das Angebot festgeschrieben: Sie können es danach weiter ansehen, aber nicht mehr ändern. Melden Sie sich einfach bei uns, wenn doch noch etwas anders sein soll.",
+    "cta": "Angebot speichern",
     "sending": "Einen Moment …",
     "error": "Das hat nicht geklappt. Bitte versuchen Sie es noch einmal.",
-    "doneTitle": "Angebot angenommen",
-    "doneBody": "Wir haben Ihnen den Link zu Ihrem Briefing per E-Mail geschickt. Sie können auch direkt hier starten.",
-    "startBrief": "Briefing starten"
+    "doneTitle": "Angebot gespeichert",
+    "doneBody": "Das ist der Link zu Ihrem Briefing. Sie können es auch später ausfüllen – wir haben Ihnen den Link an {email} geschickt.",
+    "doneBodyNoMail": "Das ist der Link zu Ihrem Briefing. Sie können es auch später ausfüllen. Bitte speichern Sie sich den Link, die E-Mail konnten wir gerade nicht zustellen.",
+    "help": "Wenn Sie beim Ausfüllen nicht weiterkommen, schreiben Sie uns einfach an {support}.",
+    "startBrief": "Briefing öffnen",
+    "copyLink": "Link kopieren",
+    "copied": "Kopiert"
   }
 }

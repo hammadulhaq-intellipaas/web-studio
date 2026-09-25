@@ -507,7 +507,7 @@ export function PriceSidebar({ catalog }: { catalog: Catalog }) {
 
       <ShareBox />
       {/* Only renders on a customer's own quote link; null everywhere else. */}
-      <AcceptQuote />
+      <AcceptQuote supportEmail={catalog.supportEmail} />
       </div>
 
       {/* Pinned to the bottom of the sidebar column so the CTA is always in view. */}

@@ -29,6 +29,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 const actions = await import('@/app/admin/leads/actions');
+const { ensureOnboardingForm } = await import('@/lib/onboarding/ensure-form');
 
 const catalog = makeCatalog();
 const LEAD_ID = 'b55f200f-ddd1-478e-a5d3-15feae2a7561';
@@ -180,12 +181,12 @@ describe('status, agreed amount, manual version, send', () => {
   });
 });
 
-describe('createOnboardingFormFromLead', () => {
-  it('prefills Screen 1 from the quote, links the form and redirects to it', async () => {
+describe('ensureOnboardingForm', () => {
+  it('prefills Screen 1 from the quote and links the form to the lead', async () => {
     seedLead({ config: { ...seedConfig(), answers: { ...seedConfig().answers, hasSite: 'website', pages: '58' } } });
-    const r = await actions.createOnboardingFormFromLead(LEAD_ID);
-    expect(r).toBeUndefined(); // redirected
+    const formId = await ensureOnboardingForm(LEAD_ID);
     const form = fake.db.rows('onboarding_forms')[0];
+    expect(formId).toBe(form.id);
     expect(form.lead_id).toBe(LEAD_ID);
     expect(form.email).toBe('julian@example.com');
     expect(form.company).toBe('Beyond Therapy');
@@ -201,16 +202,23 @@ describe('createOnboardingFormFromLead', () => {
     // ...but the trading name is not the registered name, and this one goes straight onto
     // the legal notice, so it is left for the client to write.
     expect(answers.legal_name).toBeUndefined();
-    expect(redirects).toEqual([`/admin/onboarding/${form.id}`]);
-    expect(fake.db.rows('lead_activity').some((a) => a.kind === 'onboarding')).toBe(true);
   });
 
   it('leaves the package empty for a BYOW quote', async () => {
     seedLead({ config: { ...seedConfig(), bundle: 'byow', bundleName: 'Bring Your Own Website' } });
-    await actions.createOnboardingFormFromLead(LEAD_ID);
+    await ensureOnboardingForm(LEAD_ID);
     const answers = fake.db.rows('onboarding_forms')[0].answers as Record<string, unknown>;
     expect(answers.booked_package).toBeUndefined();
     expect(answers.contact_email).toEqual({ v: 'julian@example.com', src: 'lead' });
+  });
+
+  // Pressed twice, sent twice, opened in the CMS twice: one form, one link.
+  it('returns the existing form instead of making a second one', async () => {
+    seedLead();
+    const first = await ensureOnboardingForm(LEAD_ID);
+    const second = await ensureOnboardingForm(LEAD_ID);
+    expect(second).toBe(first);
+    expect(fake.db.rows('onboarding_forms')).toHaveLength(1);
   });
 });
 

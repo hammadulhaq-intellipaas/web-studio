@@ -164,6 +164,7 @@ export function makeCatalog(): Catalog {
     trustItems: [],
     nextSteps: [],
     calendlyEventUrl: '',
+    supportEmail: 'hallo@example.com',
     defaultBundle: 'gold',
     defaultCarePlan: 'plus',
     defaultCloudflarePlan: 'shield',

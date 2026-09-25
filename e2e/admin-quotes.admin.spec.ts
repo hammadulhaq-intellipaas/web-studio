@@ -62,7 +62,7 @@ test.describe.serial('admin — quotes pipeline', () => {
     // The row's actions are visible, not hidden behind a menu.
     await expect(page.getByTestId(`lead-open-${leadId}`)).toBeVisible();
     await expect(page.getByTestId(`lead-copy-${leadId}`)).toBeVisible();
-    await expect(page.getByTestId(`lead-onboarding-new-${leadId}`)).toBeVisible();
+    await expect(page.getByTestId(`lead-onboarding-${leadId}`)).toBeVisible();
 
     // Removing cannot be undone from the CMS, so it asks first.
     page.once('dialog', (d) => d.accept());
@@ -121,29 +121,29 @@ test.describe.serial('admin — quotes pipeline', () => {
     await expect(page.getByTestId('lead-activity')).toContainText('Owner:');
   });
 
-  test('the leads list starts the onboarding form, then links to it', async ({ page, request }) => {
+  test('the leads list links straight to the onboarding form the lead already has', async ({ page, request }) => {
     const email = testEmail('onbrow');
     const leadId = await createLeadViaApi(request, email);
     await page.goto(`/admin/leads?q=${encodeURIComponent(email)}`);
 
-    // No form yet: the row offers to start one.
-    await page.getByTestId(`lead-onboarding-new-${leadId}`).click();
-    await expect(page).toHaveURL(/\/admin\/onboarding\/[A-Za-z0-9]{21}$/);
-    const formId = page.url().split('/').pop()!;
-
-    // Back on the list the same row now links straight to it.
-    await page.goto(`/admin/leads?q=${encodeURIComponent(email)}`);
+    // The form is created with the lead, so there is nothing to start — only to open.
+    const { data: form } = await db.from('onboarding_forms').select('id').eq('lead_id', leadId).single();
+    await expect(page.getByTestId(`lead-onboarding-${leadId}`)).toHaveAttribute('href', `/admin/onboarding/${form!.id}`);
     await expect(page.getByTestId(`lead-onboarding-new-${leadId}`)).toHaveCount(0);
-    await expect(page.getByTestId(`lead-onboarding-${leadId}`)).toHaveAttribute('href', `/admin/onboarding/${formId}`);
   });
 
-  test('Create onboarding form prefills the client form from the quote', async ({ page, request }) => {
+  test('the onboarding form the lead comes with is prefilled from the quote', async ({ page, request }) => {
     const email = testEmail('handoff');
     const leadId = await createLeadViaApi(request, email);
     await page.goto(`/admin/leads/${leadId}`);
-    await page.getByTestId('lead-create-onboarding').click();
-    await expect(page).toHaveURL(/\/admin\/onboarding\/[A-Za-z0-9]{21}$/);
-    const formId = page.url().split('/').pop()!;
+    // No "create" button any more: the brief link is simply there, and it is the same
+    // link the customer is emailed.
+    await expect(page.getByTestId('lead-create-onboarding')).toHaveCount(0);
+    await expect(page.getByTestId('lead-copy-onboarding-link')).toBeVisible();
+    const briefLink = await page.getByTestId('lead-onboarding-link').innerText();
+    const formId = briefLink.trim().split('/onboardingform/').pop()!;
+    expect(formId).toMatch(/^[A-Za-z0-9]{21}$/);
+    await page.goto(`/admin/onboarding/${formId}`);
     await expect(page.getByTestId('onb-admin-lead-link')).toBeVisible();
 
     const { data: form } = await db.from('onboarding_forms').select('lead_id, email, answers').eq('id', formId).single();

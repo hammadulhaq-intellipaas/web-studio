@@ -3,9 +3,7 @@ import { isValidSessionId } from '@/lib/session-id';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { getOnboardingDefinition } from '@/lib/onboarding/definition';
 import { formLink, sendSaveLinkEmail } from '@/lib/onboarding/emails';
-import { prefillFromLead } from '@/lib/onboarding/prefill';
-import { applyPatch, createForm, loadForm, saveWithRev } from '@/lib/onboarding/records';
-import type { Answers as OnboardingAnswers } from '@/lib/onboarding/types';
+import { ensureOnboardingForm } from '@/lib/onboarding/ensure-form';
 import { logActivity } from '@/lib/quotes/activity';
 import { loadBoundLead } from '@/lib/quotes/binding';
 import { quotesSchemaReady } from '@/lib/quotes/schema';
@@ -38,36 +36,10 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
 
   const admin = createSupabaseAdminClient();
 
-  // Reuse an existing form for this lead — the team may have created one already, or this
-  // may be a second press of the button.
-  const { data: existing } = await admin
-    .from('onboarding_forms')
-    .select('id')
-    .eq('lead_id', lead.id)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  let formId = (existing?.id as string | undefined) ?? null;
-
-  if (!formId) {
-    formId = await createForm(lead.locale);
-    const [record, definition] = await Promise.all([loadForm(formId), getOnboardingDefinition()]);
-    if (!record) return NextResponse.json({ error: 'form_failed' }, { status: 500 });
-
-    const { data: full } = await admin
-      .from('leads')
-      .select('vorname, nachname, firma, email, source_url, drive_link, config, stage2')
-      .eq('id', lead.id)
-      .single();
-
-    const patch = applyPatch(definition, record, {
-      changes: prefillFromLead(full as Parameters<typeof prefillFromLead>[0]) as Record<string, OnboardingAnswers[string]>,
-    });
-    if (!patch.ok) return NextResponse.json({ error: patch.error }, { status: patch.status });
-    const saved = await saveWithRev(formId, record.rev, { ...patch.update, lead_id: lead.id });
-    if (!saved.ok) return NextResponse.json({ error: 'form_failed' }, { status: 500 });
-  }
+  // The form already exists for any submitted lead; this only creates one for the rare
+  // case where it does not yet (an older lead, or a draft the team sent by hand).
+  const formId = await ensureOnboardingForm(lead.id);
+  if (!formId) return NextResponse.json({ error: 'form_failed' }, { status: 500 });
 
   const alreadyAccepted = lead.status === 'accepted';
   if (!alreadyAccepted) {
@@ -82,16 +54,28 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     await logActivity(lead.id, 'accepted', 'customer', 'Customer accepted the quote', { formId }).catch(() => undefined);
   }
 
-  const link = formLink(formId, lead.locale);
+  // Whether the mail actually went is reported back rather than swallowed: the screen tells
+  // them to check their inbox, so it must not say that when nothing was sent.
+  let emailed = false;
   if (!alreadyAccepted && lead.email) {
-    await sendSaveLinkEmail({
-      texts: (await getOnboardingDefinition()).texts,
+    const definition = await getOnboardingDefinition();
+    emailed = await sendSaveLinkEmail({
+      texts: definition.texts,
       locale: lead.locale,
       to: lead.email,
       name: [lead.vorname, lead.nachname].filter(Boolean).join(' ') || null,
       formId,
-    }).catch(() => undefined);
+    });
+    if (!emailed) console.error('[accept] onboarding link email failed for lead', lead.id);
+    await logActivity(
+      lead.id,
+      'email',
+      'system',
+      emailed ? 'Onboarding link sent to the customer' : 'Onboarding link email FAILED',
+      { formId },
+    ).catch(() => undefined);
   }
 
-  return NextResponse.json({ ok: true, formId, link, alreadyAccepted });
+  const link = formLink(formId, lead.locale);
+  return NextResponse.json({ ok: true, formId, link, alreadyAccepted, emailed, email: lead.email });
 }

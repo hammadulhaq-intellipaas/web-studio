@@ -77,14 +77,19 @@ export function QuoteBanner({ catalog }: { catalog: Catalog }) {
 
   const teamBar = teamMode;
   const locked = quote.locked && !teamMode;
+  // A quote the customer saved themselves is locked for a happier reason than a closed
+  // one, and the banner says so rather than reading like the deal fell through.
+  const accepted = quote.status === 'accepted';
+  const lockedTitle = accepted ? t('acceptedTitle') : t('locked');
+  const lockedSub = accepted ? t('acceptedSub') : t('lockedSub');
 
   return (
     <div
       data-testid="quote-banner"
       style={{
         flex: 'none',
-        background: teamBar ? '#0F2440' : locked ? '#FFF7ED' : '#EEF4FF',
-        borderBottom: `1px solid ${teamBar ? '#1E4FD6' : locked ? '#FED7AA' : '#D5E2FF'}`,
+        background: teamBar ? '#0F2440' : locked ? (accepted ? '#F1FAF5' : '#FFF7ED') : '#EEF4FF',
+        borderBottom: `1px solid ${teamBar ? '#1E4FD6' : locked ? (accepted ? '#BFE6D2' : '#FED7AA') : '#D5E2FF'}`,
         color: teamBar ? '#ffffff' : INK,
       }}
     >
@@ -104,15 +109,15 @@ export function QuoteBanner({ catalog }: { catalog: Catalog }) {
             {teamBar
               ? pill(t('teamBadge'), '#0F2440', '#8FD8EA')
               : locked
-                ? pill(t('locked'), '#9A3412', '#FFEDD5')
+                ? pill(lockedTitle, accepted ? '#1E6E44' : '#9A3412', accepted ? '#DCF3E6' : '#FFEDD5')
                 : pill(quote.draft ? t('bannerDraft') : t('bannerTitle', { date }), BLUE, '#DCE7FF')}
             <span style={{ fontSize: 14, fontWeight: 800, letterSpacing: -0.2 }}>
               {teamBar ? t('teamFor', { name }) : totals}
             </span>
             {teamBar && <span style={{ fontSize: 13, color: '#8FD8EA', fontWeight: 600 }}>{totals}</span>}
           </div>
-          <div style={{ fontSize: 12.5, color: teamBar ? '#C7D4EA' : locked ? '#9A3412' : BODY, marginTop: 4, lineHeight: 1.45 }}>
-            {locked ? t('lockedSub') : teamBar ? t('teamSaveHint') : quote.draft ? t('bannerDraftSub') : t('bannerSub')}
+          <div style={{ fontSize: 12.5, color: teamBar ? '#C7D4EA' : locked ? (accepted ? '#1E6E44' : '#9A3412') : BODY, marginTop: 4, lineHeight: 1.45 }}>
+            {locked ? lockedSub : teamBar ? t('teamSaveHint') : quote.draft ? t('bannerDraftSub') : t('bannerSub')}
           </div>
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
@@ -144,7 +149,7 @@ export function QuoteBanner({ catalog }: { catalog: Catalog }) {
       </div>
       {teamBar && quote.locked && (
         <div style={{ maxWidth: 1140, margin: '0 auto', padding: '0 24px 10px', fontSize: 12, color: GREEN }}>
-          {t('locked')} {t('lockedSub')}
+          {lockedTitle} {lockedSub}
         </div>
       )}
     </div>

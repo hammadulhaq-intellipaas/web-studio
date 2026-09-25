@@ -15,10 +15,6 @@ import { hashSelection, priceSelection } from '@/lib/quotes/price';
 import { quotesSchemaReady } from '@/lib/quotes/schema';
 import { normalizeSessionState, selectionFromLeadConfig, selectionFromState, stateFromLead } from '@/lib/quotes/selection';
 import { insertVersion } from '@/lib/quotes/versions';
-import { getOnboardingDefinition } from '@/lib/onboarding/definition';
-import { applyPatch, createForm, loadForm, saveWithRev } from '@/lib/onboarding/records';
-import { prefillFromLead } from '@/lib/onboarding/prefill';
-import type { Answers as OnboardingAnswers } from '@/lib/onboarding/types';
 
 export type ActionResult = { ok: true; message?: string; url?: string } | { ok: false; error: string };
 
@@ -383,34 +379,3 @@ export async function createDraftQuote(input: DraftQuoteInput): Promise<ActionRe
   redirect(`/admin/leads/${leadId}`);
 }
 
-/* ------------------------------------------------------------------ onboarding hand-off */
-
-/**
- * Starts the client onboarding form for a lead with what the quote already knows. What is
- * safe to carry over, and what deliberately is not, lives in `prefillFromLead`. Runs
- * through `applyPatch` so redaction, hidden-field clearing and flags apply as usual.
- */
-export async function createOnboardingFormFromLead(leadId: string): Promise<ActionResult> {
-  let formId: string | null = null;
-  try {
-    const email = await requireAdmin();
-    const lead = await loadLead(leadId);
-    const ready = await quotesSchemaReady();
-
-    formId = await createForm(lead.locale);
-    const [record, definition] = await Promise.all([loadForm(formId), getOnboardingDefinition()]);
-    if (!record) throw new Error('Form not found after creation');
-
-    const changes = prefillFromLead(lead);
-    const patch = applyPatch(definition, record, { changes: changes as Record<string, OnboardingAnswers[string]> });
-    if (!patch.ok) throw new Error(patch.error);
-    const saved = await saveWithRev(formId, record.rev, { ...patch.update, lead_id: leadId });
-    if (!saved.ok) throw new Error('Could not prefill the form');
-
-    if (ready) await logActivity(leadId, 'onboarding', `team:${email}`, 'Onboarding form created', { formId });
-    revalidateLead(leadId);
-  } catch (e) {
-    return fail(e);
-  }
-  redirect(`/admin/onboarding/${formId}`);
-}

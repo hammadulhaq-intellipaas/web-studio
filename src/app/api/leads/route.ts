@@ -13,6 +13,7 @@ import { hashSelection, priceSelection } from '@/lib/quotes/price';
 import { quotesSchemaReady } from '@/lib/quotes/schema';
 import { stateFromSubmission } from '@/lib/quotes/selection';
 import { insertVersion } from '@/lib/quotes/versions';
+import { ensureOnboardingForm } from '@/lib/onboarding/ensure-form';
 
 const answersSchema = z.object({
   hasSite: z.string().nullable(),
@@ -326,6 +327,14 @@ export async function POST(request: Request) {
       eurToUsdRate: catalog.eurToUsdRate,
     });
   }
+
+  // Their brief exists from this moment, so the link is always there for the team to copy
+  // or resend and accepting only has to send a link that already exists. Never blocks the
+  // submit: a lead without a form yet is recoverable, a lost enquiry is not.
+  await ensureOnboardingForm(inserted.id).catch((e) => {
+    console.error('[leads] onboarding form creation failed:', e);
+    return null;
+  });
 
   await sendSubmitEmails(
     { id: inserted.id, locale: locale as Locale, ...contactUpdate, persona_id: selection.personaId },

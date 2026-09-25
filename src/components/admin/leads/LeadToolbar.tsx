@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import {
   archiveLeads,
   createCustomerLink,
-  createOnboardingFormFromLead,
   saveVersionNow,
   sendQuoteToCustomer,
   type ActionResult,
@@ -23,13 +22,15 @@ export interface LeadToolbarProps {
   status: string;
   onboardingFormId: string | null;
   onboardingFormHref: string | null;
+  /** The customer's own brief link — the same one their email carries. */
+  onboardingCustomerLink: string | null;
 }
 
 /** Copy link · open configurator · send to customer · save version · onboarding · remove. */
 export function LeadToolbar(p: LeadToolbarProps) {
   const router = useRouter();
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<'quote' | 'brief' | null>(null);
   const [pending, start] = useTransition();
 
   const run = (label: string, fn: () => Promise<ActionResult>) =>
@@ -40,12 +41,12 @@ export function LeadToolbar(p: LeadToolbarProps) {
       router.refresh();
     });
 
-  const copy = async () => {
-    if (!p.customerLink) return;
+  const copyText = async (text: string | null, which: 'quote' | 'brief') => {
+    if (!text) return;
     try {
-      await navigator.clipboard.writeText(p.customerLink);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard.writeText(text);
+      setCopied(which);
+      setTimeout(() => setCopied(null), 2000);
     } catch {
       /* clipboard blocked */
     }
@@ -54,8 +55,8 @@ export function LeadToolbar(p: LeadToolbarProps) {
   return (
     <div className="flex flex-wrap items-center gap-2" data-testid="lead-toolbar">
       {p.customerLink ? (
-        <button type="button" onClick={() => void copy()} className={btn} data-testid="lead-copy-link">
-          {copied ? 'Link copied ✓' : 'Copy customer link'}
+        <button type="button" onClick={() => void copyText(p.customerLink, 'quote')} className={btn} data-testid="lead-copy-link">
+          {copied === 'quote' ? 'Link copied ✓' : 'Copy customer link'}
         </button>
       ) : (
         p.ready && (
@@ -79,13 +80,20 @@ export function LeadToolbar(p: LeadToolbarProps) {
           Save version now
         </button>
       )}
-      {p.onboardingFormHref ? (
+      {p.onboardingFormHref && (
         <a href={p.onboardingFormHref} className={btn} data-testid="lead-open-onboarding">
           Open onboarding form
         </a>
-      ) : (
-        <button type="button" disabled={pending} onClick={() => run('Form created', () => createOnboardingFormFromLead(p.leadId))} className={btn} data-testid="lead-create-onboarding">
-          Create onboarding form
+      )}
+      {p.onboardingCustomerLink && (
+        <button
+          type="button"
+          onClick={() => void copyText(p.onboardingCustomerLink, 'brief')}
+          title="The customer's own link to the brief — the same one their email carries"
+          className={btn}
+          data-testid="lead-copy-onboarding-link"
+        >
+          {copied === 'brief' ? 'Brief link copied ✓' : 'Copy brief link'}
         </button>
       )}
       {p.ready && (

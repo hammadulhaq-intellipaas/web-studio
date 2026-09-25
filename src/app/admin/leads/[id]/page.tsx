@@ -5,6 +5,8 @@ import { loadLeadDetail } from '@/lib/quotes/admin';
 import { readableAnswers, readableStage2 } from '@/lib/quotes/answers';
 import { diffConfigs } from '@/lib/quotes/diff';
 import { customerLink } from '@/lib/quotes/links';
+import { formLink } from '@/lib/onboarding/emails';
+import { ensureOnboardingForm } from '@/lib/onboarding/ensure-form';
 import { pickLocale } from '@/lib/types';
 import { LocalTime } from '@/components/admin/LocalTime';
 import { StatusSelect } from '@/components/admin/StatusSelect';
@@ -74,7 +76,14 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
     }))
     .reverse();
 
-  const onboarding = onboardingForms[0] ?? null;
+  // Leads submitted since the brief went live already have a form; opening an older one
+  // here backfills it, so the link the team copies is the same link the customer is sent.
+  let onboarding = onboardingForms[0] ?? null;
+  if (!onboarding) {
+    const backfilled = await ensureOnboardingForm(lead.id).catch(() => null);
+    if (backfilled) onboarding = { id: backfilled, company: lead.firma, status: 'in_progress', locale: lead.locale, created_at: new Date().toISOString() };
+  }
+  const onboardingLink = onboarding ? formLink(onboarding.id, lead.locale) : null;
 
   return (
     <div>
@@ -125,10 +134,16 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             status={lead.status}
             onboardingFormId={onboarding?.id ?? null}
             onboardingFormHref={onboarding ? `/admin/onboarding/${onboarding.id}` : null}
+            onboardingCustomerLink={onboardingLink}
           />
           {link && (
             <div className="mt-2 text-xs text-slate-500" data-testid="lead-customer-link">
               Customer link: <a className="text-blue-700" href={link} target="_blank" rel="noreferrer">{link}</a>
+            </div>
+          )}
+          {onboardingLink && (
+            <div className="mt-1 text-xs text-slate-500" data-testid="lead-onboarding-link">
+              Brief link: <a className="text-blue-700" href={onboardingLink} target="_blank" rel="noreferrer">{onboardingLink}</a>
             </div>
           )}
         </div>
@@ -304,11 +319,11 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
           </Section>
 
           <Section title="Onboarding" testId="lead-onboarding">
-            {onboardingForms.length === 0 ? (
-              <p className="text-sm text-slate-500">No onboarding form yet. “Create onboarding form” carries over everything this quote already asked, marked as coming from the quote so the client checks it.</p>
+            {!onboarding ? (
+              <p className="text-sm text-slate-500">No onboarding form yet — it is created with the lead, so this only happens if that failed.</p>
             ) : (
               <ul className="space-y-1 text-sm">
-                {onboardingForms.map((f) => (
+                {(onboardingForms.length ? onboardingForms : [onboarding]).map((f) => (
                   <li key={f.id} className="flex items-center justify-between gap-2">
                     <Link href={`/admin/onboarding/${f.id}`} className="font-semibold text-blue-700 hover:underline">
                       {f.company || f.id}

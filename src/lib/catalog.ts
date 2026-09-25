@@ -71,6 +71,8 @@ export const getCatalog = cache(async (): Promise<Catalog> => {
     trustItems: (settingsMap.trust_items ?? []) as LocalizedText[],
     nextSteps: (settingsMap.next_steps ?? []) as LocalizedText[],
     calendlyEventUrl: String(settingsMap.calendly_event_url || process.env.NEXT_PUBLIC_CALENDLY_URL || ''),
+    // Falls back to the team address: better one real inbox than none at all.
+    supportEmail: String(settingsMap.support_email || settingsMap.team_email || ''),
     defaultBundle: String(settingsMap.default_bundle ?? 'gold'),
     defaultCarePlan: String(settingsMap.default_care_plan ?? 'plus'),
     defaultCloudflarePlan: String(settingsMap.default_cloudflare_plan ?? 'shield'),

@@ -65,6 +65,50 @@ test.describe('public funnel — permanent quote link', () => {
     expect(versions?.every((v) => v.reason === 'submit' && v.actor === 'customer')).toBe(true);
   });
 
+  test('saving the quote locks it and hands over the brief link', async ({ page }) => {
+    const email = testEmail('quotesave');
+    await walkToConfigurator(page, GASTRO.persona);
+    await page.getByTestId('to-lead').click();
+    await fillLeadAndSubmit(page, email);
+    await passCalendlyPanel(page);
+    const link = await page.getByTestId('quote-link').inputValue();
+    const lead = await getLeadByEmail(email);
+
+    // The customer reopens their own link. The quote is still theirs to change...
+    const other = await page.context().browser()!.newContext();
+    const cust = await other.newPage();
+    await cust.goto(link);
+    await expect(cust.getByTestId('quote-accept')).toBeVisible();
+    await cust.getByTestId('addon-newsletter').click();
+    await expect(cust.getByTestId('sum-once')).toHaveText('€4.850');
+
+    // ...until they save it.
+    await cust.getByTestId('quote-accept-cta').click();
+    await expect(cust.getByTestId('quote-accepted')).toBeVisible({ timeout: 30_000 });
+    // The brief link is on screen. It names their own address when the mail went out, and
+    // says so plainly when it did not (test addresses are undeliverable).
+    const panel = await cust.getByTestId('quote-accepted').innerText();
+    expect(panel.includes(email) || /nicht zustellen/.test(panel)).toBe(true);
+    const briefUrl = (await cust.getByTestId('quote-accepted-url').innerText()).trim();
+    expect(briefUrl).toMatch(/\/onboardingform\/[A-Za-z0-9]{21}$/);
+    await expect(cust.getByTestId('quote-accepted-link')).toHaveAttribute('href', briefUrl);
+
+    // The banner flips to locked without a reload, and stays locked on the next visit.
+    await expect(cust.getByTestId('quote-banner')).toContainText('Angebot gespeichert');
+    await cust.reload();
+    await expect(cust.getByTestId('quote-accept')).toHaveCount(0);
+    await other.close();
+
+    // The team sees it as accepted, with the same form behind the link.
+    const { data: after } = await db.from('leads').select('status, accepted_at').eq('id', lead!.id).single();
+    expect(after?.status).toBe('accepted');
+    expect(after?.accepted_at).toBeTruthy();
+    const { data: form } = await db.from('onboarding_forms').select('id').eq('lead_id', lead!.id).single();
+    expect(briefUrl.endsWith(`/onboardingform/${form!.id}`)).toBe(true);
+    const { data: acts } = await db.from('lead_activity').select('kind').eq('lead_id', lead!.id);
+    expect(acts?.some((a) => a.kind === 'accepted')).toBe(true);
+  });
+
   test('a dead link starts fresh with a notice and does not re-create the row', async ({ page, baseURL }) => {
     const ghost = 'e2eGhostSessionId00001'.slice(0, 21);
     await page.goto(`/?c=${ghost}`);

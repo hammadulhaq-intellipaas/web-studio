@@ -200,6 +200,8 @@ export interface Catalog {
   trustItems: LocalizedText[];
   nextSteps: LocalizedText[];
   calendlyEventUrl: string;
+  /** Address the customer is told to write to if they get stuck on the brief. */
+  supportEmail: string;
   /** Fallback bundle when no base rule matches. */
   defaultBundle: string;
   defaultCarePlan: string;

@@ -117,7 +117,7 @@ export function currentBundle(
 export interface QuoteMeta {
   leadId: string;
   status: string;
-  /** `won` / `lost`: the customer's changes are no longer saved. */
+  /** `accepted` / `won` / `lost`: the customer's changes are no longer saved. */
   locked: boolean;
   /** Team-created draft (the customer has not submitted anything yet). */
   draft: boolean;

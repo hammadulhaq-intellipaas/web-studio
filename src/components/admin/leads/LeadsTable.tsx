@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { archiveLeads, createOnboardingFormFromLead } from '@/app/admin/leads/actions';
+import { archiveLeads } from '@/app/admin/leads/actions';
 import { eur, relativeTime, STATUS_COLORS } from '@/lib/admin/format';
 import type { LeadsTableRow } from '@/lib/quotes/list-rows';
 import { StatusSelect } from '@/components/admin/StatusSelect';
@@ -37,14 +37,6 @@ export function LeadsTable({ rows, ready }: { rows: LeadsTableRow[]; ready: bool
       return next;
     });
   const toggleAll = () => setSelected(allSelected ? new Set() : new Set(rows.map((r) => r.id)));
-
-  // The action creates the form and redirects to it, so a failure is the only thing to report.
-  const startOnboarding = (leadId: string) =>
-    start(async () => {
-      setMessage(null);
-      const result = await createOnboardingFormFromLead(leadId);
-      if (result && !result.ok) setMessage(result.error);
-    });
 
   const remove = (targets: string[], what: string) => {
     if (!window.confirm(`Remove ${what} from the CMS? This cannot be undone here — the data stays in the database.`)) return;
@@ -214,7 +206,8 @@ export function LeadsTable({ rows, ready }: { rows: LeadsTableRow[]; ready: bool
                           {copied === r.id ? 'Copied ✓' : 'Copy link'}
                         </button>
                       )}
-                      {r.onboardingFormId ? (
+                      {/* The form is created with the lead, so there is nothing to start here. */}
+                      {r.onboardingFormId && (
                         <Link
                           href={`/admin/onboarding/${r.onboardingFormId}`}
                           data-testid={`lead-onboarding-${r.id}`}
@@ -223,17 +216,6 @@ export function LeadsTable({ rows, ready }: { rows: LeadsTableRow[]; ready: bool
                         >
                           Onboarding
                         </Link>
-                      ) : (
-                        <button
-                          type="button"
-                          disabled={pending}
-                          onClick={() => startOnboarding(r.id)}
-                          data-testid={`lead-onboarding-new-${r.id}`}
-                          title="Start the onboarding form, prefilled with what this quote already knows"
-                          className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-bold text-slate-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 disabled:opacity-50"
-                        >
-                          Onboarding +
-                        </button>
                       )}
                       {ready && (
                         <button
