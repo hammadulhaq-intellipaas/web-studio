@@ -150,13 +150,12 @@ const rows: Omit<OnbBriefSection, 'sort' | 'active'>[] = [
     title_de: 'Rechtliches und Compliance',
     title_en: 'Legal and compliance',
     instructions:
-      'Legal-page decision (reuse / none / not sure) and who reviewed them; extra documents needed; whether the business sells to consumers online and the accessibility (BFSG) note if so; the Impressum data: legal name, form, address, register entry, VAT ID, responsible person, public phone and email. Accounts and domain: who holds which login, names only.',
+      'Legal-page decision (reuse / none / not sure) and who reviewed them; extra documents needed; whether the business sells to consumers online and the accessibility (BFSG) note if so; the Impressum data: legal name, form, address, register entry, VAT ID, responsible person and public phone. Accounts and domain: who holds which login, names only. The domain is only asked for a brand new site; for changes to an existing one it is the current website address.',
     source_fields: [
       'vat_id',
       'register_entry',
       'content_responsible',
       'public_phone',
-      'public_email',
       'address_street',
       'opening_hours',
       'legal_pages',
@@ -167,6 +166,7 @@ const rows: Omit<OnbBriefSection, 'sort' | 'active'>[] = [
       'sells_to_consumers',
       'accounts_table',
       'domain',
+      'existing_url',
     ],
     generated_by: 'llm',
   },

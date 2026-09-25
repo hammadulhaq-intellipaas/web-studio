@@ -81,7 +81,7 @@ describe('grounding', () => {
   const corpus = buildCorpus({
     public_phone: a('069 / 123 456 78'),
     maps_link: a('https://maps.app.goo.gl/abc123'),
-    public_email: a('praxis@physio-nordend.de'),
+    contact_email: a('praxis@physio-nordend.de'),
     launch_date: a('2026-12-01'),
     factual_claims: a('Seit 2009 am Markt, über 4.000 Patienten'),
   });

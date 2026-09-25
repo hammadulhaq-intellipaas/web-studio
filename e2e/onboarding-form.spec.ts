@@ -58,7 +58,6 @@ test.describe('onboarding form', () => {
     await page.fill('[data-testid=f-address_street]', 'Eckenheimer Landstraße 12');
     await page.fill('[data-testid=f-address_city]', '60318 Frankfurt am Main');
     await page.fill('[data-testid=f-content_responsible]', 'Lena Hartmann');
-    await page.fill('[data-testid=f-public_email]', 'praxis@physio-nordend.example');
     await page.click('[data-testid=dk-opening_hours]');
     await expect(page.locator('[data-testid=dk-active-opening_hours]')).toBeVisible();
     await page.fill('[data-testid=dk-date-opening_hours]', '2027-01-10');
@@ -150,7 +149,9 @@ test.describe('onboarding form', () => {
     await page.selectOption('[data-testid=f-accounts_table-0-account]', 'domain');
     await page.fill('[data-testid=f-accounts_table-0-provider]', 'IONOS');
     await page.fill('[data-testid=f-accounts_table-0-holder]', 'Lena Hartmann');
-    await page.fill('[data-testid=f-domain]', 'www.physio-nordend.de');
+    // This walk picked "changes to my existing site", so the domain question is not asked:
+    // screen 1 already took that address.
+    await expect(page.locator('[data-field=domain]')).toHaveCount(0);
     await page.fill('[data-testid=f-site_manager]', 'Lena Hartmann, Passwort: geheim123');
     // The redaction notice is transient (it clears itself after a few seconds), so it is
     // asserted on the save that strips the password, not after the rest of the screen.
@@ -191,12 +192,17 @@ test.describe('onboarding form', () => {
     // The second tab moved the shared record's step back to Screen 4, and the stepper only
     // unlocks as far as this session has reached — which a reload resets. So put the record
     // back on the review node through the API rather than clicking through the stepper.
+    // The closed tab's last autosave can still land after we read the rev, so the patch
+    // races it: re-read and try again rather than depending on which one gets there first.
     const formId = url.split('/').pop()!;
-    const rec = await (await page.request.get(`/api/onboarding/${formId}`)).json();
-    const back = await page.request.patch(`/api/onboarding/${formId}`, {
-      data: { base_rev: rec.record.rev, changes: {}, current_step: 'review' },
-    });
-    expect(back.ok(), `reset step: ${back.status()}`).toBeTruthy();
+    let back: Awaited<ReturnType<typeof page.request.patch>> | null = null;
+    for (let attempt = 0; attempt < 5 && !back?.ok(); attempt++) {
+      const rec = await (await page.request.get(`/api/onboarding/${formId}`)).json();
+      back = await page.request.patch(`/api/onboarding/${formId}`, {
+        data: { base_rev: rec.record.rev, changes: {}, current_step: 'review' },
+      });
+    }
+    expect(back?.ok(), `reset step: ${back?.status()}`).toBeTruthy();
     await page.reload();
     await expect(page.locator('[data-screen=onb-review-ready]')).toBeVisible();
     await page.click('[data-testid=language-toggle] button[aria-label=English]');

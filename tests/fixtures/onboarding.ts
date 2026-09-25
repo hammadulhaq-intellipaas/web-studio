@@ -60,7 +60,6 @@ export function completeAnswers(): Answers {
     address_street: a('Eckenheimer Landstraße 12'),
     address_city: a('60318 Frankfurt am Main'),
     content_responsible: a('Lena Hartmann'),
-    public_email: a('praxis@physio-nordend.de'),
     opening_hours: a('Mo bis Fr, 8 bis 18 Uhr'),
     service_scope: a('one_town'),
     regions_served: a('Frankfurt Nordend, Bornheim, Westend'),

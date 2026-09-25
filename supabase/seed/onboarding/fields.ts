@@ -191,13 +191,6 @@ const business: OnbField[] = [
         'This number is published on your website. Only give us a mobile number if you want it shown there.',
     },
   }),
-  field('public_email', 'business', 'email', 'Welche E-Mail-Adresse sollen wir auf der Seite zeigen?', 'What email address should we show on the site?', {
-    required: true,
-    help_de: 'Das muss nicht die Adresse sein, mit der Sie dieses Formular ausfüllen.',
-    help_en: 'This may not be the one you are using to fill in the form.',
-    placeholder_de: 'info@ihrefirma.de',
-    placeholder_en: 'info@yourcompany.com',
-  }),
   field('opening_hours', 'business', 'textarea', 'Wie sind Ihre Öffnungszeiten?', 'What are your opening hours?', {
     required: true,
     allow_dont_know: true,
@@ -965,10 +958,12 @@ const accessLegal: OnbField[] = [
       ],
     },
   }),
+  // Only for a brand new site. A client changing an existing one already gave us the
+  // address on screen 1, and that is the domain, so asking again is asking twice.
   field('domain', 'access_legal', 'text', 'Welche Domain soll die Seite nutzen?', 'Which domain should the site use?', {
-    required: true,
-    help_de: 'Wenn die neue Seite unter einer anderen Adresse laufen soll, sagen Sie es uns bitte hier.',
-    help_en: 'Please change it if the new site should use a different address.',
+    show_when: when('project_type', 'new'),
+    help_de: 'Die Adresse, unter der die neue Seite laufen soll, falls Sie schon eine haben.',
+    help_en: 'The address the new site should run on, if you already have one.',
     placeholder_de: 'www.ihrefirma.de',
     placeholder_en: 'www.yourcompany.com',
     config: noneTick('Wir haben noch keine, bitte beraten Sie uns', 'We do not have one yet, please advise'),
@@ -1127,8 +1122,11 @@ const review: OnbField[] = [
  * given to them survive in the records that carry them.
  */
 export const retiredFieldIds = [
-  // 25 Sep: the public addresses are already asked on the business step (public_email).
+  // 25 Sep: both asked for an address the client has already given us — once on the
+  // project step and, where messages are routed separately, again on the inboxes step.
+  // The legal page takes it from there rather than asking a third time.
   'site_emails',
+  'public_email',
   // The 24 Sep corrections dropped "who holds the account?" from every integration
   // block, and the "other service" block no longer asks for a provider separately.
   'booking_account',
