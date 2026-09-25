@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import type { Locale } from '@/lib/types';
 import type { CompletenessReport, ReportItem } from '@/lib/onboarding/types';
+import { stripDashes } from '@/lib/onboarding/guardrails';
 import { BLUE, BODY, BORDER, GREEN, INK, MUTED } from '@/components/funnel/ui';
 
 /** One line per open point, in the words of whatever found it. */
@@ -17,10 +18,10 @@ function reason(item: ReportItem, t: ReturnType<typeof useTranslations>): string
     case 'dont_know':
       return item.detail ? t('reportDontKnowBy', { date: item.detail }) : t('reportDontKnow');
     case 'skipped':
-      return item.detail || t('reportSkipped');
+      return item.detail ? stripDashes(item.detail) : t('reportSkipped');
     case 'vague':
       // The model's own question is more use to the client than a category name.
-      return item.detail || t('reportVague');
+      return item.detail ? stripDashes(item.detail) : t('reportVague');
     default:
       return '';
   }
@@ -84,7 +85,7 @@ const bubble = {
 /**
  * The completeness check, shown as a message from the assistant rather than a form panel:
  * it is the one place on the form where something speaks to the client about their answers.
- * It is deliberately one-way — there is no reply box, and the line under it says so — so
+ * It is deliberately one-way (there is no reply box, and the line under it says so), so
  * nobody types a question expecting an answer.
  *
  * Advisory only. Required fields are enforced screen by screen, so everything listed here
@@ -100,7 +101,7 @@ export function ReportCard({
   report: CompletenessReport | null;
   loading: boolean;
   locale: Locale;
-  onJumpToScreen: (screenId: string) => void;
+  onJumpToScreen: (screenId: string, fieldId?: string) => void;
 }) {
   const t = useTranslations('onboarding.review');
 
@@ -161,14 +162,14 @@ export function ReportCard({
                   >
                     <div style={{ flex: '1 1 240px', minWidth: 0 }}>
                       <div style={{ fontSize: 13.5, fontWeight: 700, color: INK }}>
-                        {(locale === 'de' ? item.label?.de : item.label?.en) || item.field}
+                        {stripDashes((locale === 'de' ? item.label?.de : item.label?.en) || item.field)}
                       </div>
                       <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2, lineHeight: 1.45 }}>{reason(item, t)}</div>
                     </div>
                     {item.screen && (
                       <button
                         type="button"
-                        onClick={() => onJumpToScreen(item.screen!)}
+                        onClick={() => onJumpToScreen(item.screen!, item.field)}
                         data-testid={`onb-report-fix-${item.field}`}
                         className="hov-blue-text"
                         style={{

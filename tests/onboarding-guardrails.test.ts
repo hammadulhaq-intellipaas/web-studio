@@ -105,6 +105,6 @@ describe('grounding', () => {
 describe('sanitizeForPdf', () => {
   it('keeps German typography and drops emoji and zero-width characters', () => {
     const input = 'Größe „Über“ – 5 € … ✓ fertig 🚀 Pfeil → hier​';
-    expect(sanitizeForPdf(input)).toBe('Größe „Über“ – 5 € … + fertig  Pfeil -> hier');
+    expect(sanitizeForPdf(input)).toBe('Größe „Über“, 5 € … + fertig  Pfeil -> hier');
   });
 });

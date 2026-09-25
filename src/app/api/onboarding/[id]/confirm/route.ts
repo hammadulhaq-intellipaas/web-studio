@@ -4,7 +4,8 @@ import { isValidSessionId } from '@/lib/session-id';
 import { getOnboardingDefinition } from '@/lib/onboarding/definition';
 import { deliverConfirmedForm } from '@/lib/onboarding/delivery';
 import { redactSecrets } from '@/lib/onboarding/guardrails';
-import { loadBrief, loadForm, saveWithRev } from '@/lib/onboarding/records';
+import { validateAll } from '@/lib/onboarding/logic';
+import { fileCounts, loadBrief, loadFiles, loadForm, saveWithRev } from '@/lib/onboarding/records';
 import { listItems, textFor } from '@/lib/onboarding/texts';
 
 export const dynamic = 'force-dynamic';
@@ -31,6 +32,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (record.status === 'confirmed') return NextResponse.json({ record });
   if (record.status !== 'brief') return NextResponse.json({ error: 'status', record }, { status: 409 });
   if (!(await loadBrief(id, record.brief_version))) return NextResponse.json({ error: 'no_brief', record }, { status: 409 });
+
+  // The answers can change after the review started (the client edits from the final
+  // review, a date goes by, a required question is added), so check them once more here.
+  const files = await loadFiles(id);
+  const errors = validateAll(definition, record.answers, fileCounts(files), new Date().toISOString().slice(0, 10), record.locale);
+  if (errors.length) {
+    return NextResponse.json({ error: 'incomplete', fields: Array.from(new Set(errors.map((e) => e.field))) }, { status: 422 });
+  }
 
   const checks = listItems(textFor(definition.texts, 'confirm_checks', record.locale)?.content_markdown ?? '');
   const ticked = new Set(parsed.data.checks);

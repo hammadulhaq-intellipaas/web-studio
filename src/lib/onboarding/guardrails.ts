@@ -213,10 +213,11 @@ export function stripDashesDeep<T>(value: T): T {
 
 /**
  * The PDF uses a WinAnsi font: emoji and most symbols would render as boxes. Umlauts,
- * ß, €, typographic quotes, en/em dashes and the ellipsis are all in WinAnsi and stay.
+ * ß, €, typographic quotes and the ellipsis are all in WinAnsi and stay. Em and en dashes
+ * go, as everywhere the client reads the review (see stripDashes).
  */
 export function sanitizeForPdf(text: string): string {
-  return text
+  return stripDashes(text)
     .replace(/[\u200B-\u200D\uFEFF\u2028\u2029]/g, '')
     .replace(/\u2192/g, '->')
     .replace(/[\u2713\u2714\u2611]/g, '+')

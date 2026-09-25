@@ -5,9 +5,10 @@ import { useTranslations } from 'next-intl';
 import ReactMarkdown from 'react-markdown';
 import type { Locale } from '@/lib/types';
 import { understoodText } from '@/lib/onboarding/understood';
+import { stripDashes } from '@/lib/onboarding/guardrails';
 import { textFor } from '@/lib/onboarding/texts';
 import type { OnboardingDefinition, OnboardingFormRecord } from '@/lib/onboarding/types';
-import { BODY, BORDER, gradButton, MUTED } from '@/components/funnel/ui';
+import { BLUE, BODY, BORDER, gradButton, MUTED } from '@/components/funnel/ui';
 
 const POLL_MS = 3000;
 const POLL_MAX = 20;
@@ -74,10 +75,10 @@ export function DoneScreen({
             <path d="M5 13l4.5 4.5L19 8" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
-        <h2 style={{ fontSize: 32, fontWeight: 800, letterSpacing: -0.9, margin: '0 0 10px' }}>{done?.title}</h2>
+        <h2 style={{ fontSize: 32, fontWeight: 800, letterSpacing: -0.9, margin: '0 0 10px' }}>{done ? stripDashes(done.title) : null}</h2>
         {done && (
           <div className="onb-markdown" style={{ fontSize: 15.5, color: BODY, lineHeight: 1.55 }}>
-            <ReactMarkdown>{done.content_markdown}</ReactMarkdown>
+            <ReactMarkdown>{stripDashes(done.content_markdown)}</ReactMarkdown>
           </div>
         )}
         {record.confirmed && (
@@ -93,6 +94,9 @@ export function DoneScreen({
             style={{ ...gradButton, display: 'inline-block', textDecoration: 'none', borderRadius: 12, padding: '14px 30px', fontSize: 15, fontWeight: 700, boxShadow: '0 10px 22px -8px rgba(30,79,214,.5)' }}
           >
             {t('downloadPdf')}
+          </a>
+          <a href={`/api/onboarding/${record.id}/answers-pdf`} data-testid="onb-done-answers-pdf" className="hov-blue-text" style={{ fontSize: 13.5, fontWeight: 700, color: BLUE, textDecoration: 'none' }}>
+            {t('downloadAnswers')}
           </a>
           <span data-testid="onb-delivery" data-delivered={delivered ? 'true' : 'false'} style={{ fontSize: 12.5, color: MUTED }}>
             {delivered || pollError ? (record.email ? t('emailed', { email: record.email }) : '') : t('pdfPending')}

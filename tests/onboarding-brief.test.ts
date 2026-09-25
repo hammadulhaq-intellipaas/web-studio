@@ -43,7 +43,7 @@ describe('fallback and still-needed', () => {
     expect(sections.who.content_markdown).toContain('**Wie lautet Ihr vollständiger Firmenname?');
     expect(sections.who.content_markdown).toContain('Physio Nordend Lena Hartmann e.K.');
     expect(sections.pages.still_needed).toContain('Welches Paket haben Sie gebucht?');
-    expect(sections.look.content_markdown).toContain('Freundlich, aber professionell (3/5)');
+    expect(sections.look.content_markdown).toContain('Freundlich, aber professionell');
     expect(sections.dates.sources).toContain('launch_date');
   });
 

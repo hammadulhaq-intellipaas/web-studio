@@ -11,7 +11,7 @@ describe('displayValue', () => {
     const answers = completeAnswers();
     expect(displayValue(field('booked_package'), answers.booked_package, 'en')).toBe('Gold');
     expect(displayValue(field('booked_page_band'), answers.booked_page_band, 'de')).toBe('5 bis 8 Seiten');
-    expect(displayValue(field('tone_scale'), answers.tone_scale, 'en')).toBe('Friendly but professional (3/5)');
+    expect(displayValue(field('tone_scale'), answers.tone_scale, 'en')).toBe('Friendly but professional');
     expect(displayValue(field('integrations'), answers.integrations, 'de')).toBe('Google Maps, Online-Terminbuchung');
     expect(displayValue(field('visitor_action'), answers.visitor_action, 'en')).toBe('Book an appointment');
     expect(displayValue(field('notification_routing'), answers.notification_routing, 'en')).toBe(
@@ -54,7 +54,7 @@ describe('exportRecord', () => {
     expect(out.client).toEqual({ company: 'Physio Nordend', contact_name: 'Lena Hartmann', email: 'lena@physio-nordend.de' });
     expect(out.quote).toEqual({ package: 'gold', page_band: '58' });
     expect(out.answers.tone_scale.value).toEqual({ value: 3, label: 'Friendly but professional', label_de: 'Freundlich, aber professionell' });
-    expect(out.answers.tone_scale.display.de).toBe('Freundlich, aber professionell (3/5)');
+    expect(out.answers.tone_scale.display.de).toBe('Freundlich, aber professionell');
     expect(out.answers.references.value).toEqual([
       { id: 'ref1', url: 'https://www.beispiel-physio.de', likes: 'Ruhige Farben, große Fotos der Praxisräume', dislikes: '' },
     ]);

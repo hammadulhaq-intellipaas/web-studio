@@ -116,7 +116,7 @@ export function BriefPdf({ record, sections, content, footerText, flags }: Brief
                   <Text style={styles.stillNeededTitle}>{L.stillNeeded}</Text>
                   {body.still_needed.map((item, j) => (
                     <Text key={j} style={styles.stillNeededItem}>
-                      – {sanitizeForPdf(item)}
+                      • {sanitizeForPdf(item)}
                     </Text>
                   ))}
                 </View>
