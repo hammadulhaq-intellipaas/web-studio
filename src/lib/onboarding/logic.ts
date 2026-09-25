@@ -196,6 +196,7 @@ export type ErrorCode =
   | 'max'
   | 'max_chars'
   | 'date_min'
+  | 'date_weekend'
   | 'checkboxes_min'
   | 'checkboxes_max'
   | 'checkboxes_exclusive'
@@ -225,6 +226,30 @@ export interface ValidationContext {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const URL_RE = /^(https?:\/\/)?([\w-]+\.)+[a-z]{2,}(:\d+)?(\/\S*)?$/i;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Adds whole days to an ISO date without dragging a timezone into it. */
+export function addDays(iso: string, days: number): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+export function isWeekend(iso: string): boolean {
+  const day = new Date(`${iso}T00:00:00Z`).getUTCDay();
+  return day === 0 || day === 6;
+}
+
+/**
+ * The first date a `date` field will accept: its floor (`today` or a fixed date) pushed
+ * out by any lead time, and then off a weekend if the field does not allow one.
+ */
+export function earliestDate(cfg: OnbField['config'], today: string): string | undefined {
+  const base = cfg.min_date === 'today' ? today : cfg.min_date;
+  if (!base) return undefined;
+  let min = cfg.min_days_ahead ? addDays(base, cfg.min_days_ahead) : base;
+  if (cfg.no_weekends) while (isWeekend(min)) min = addDays(min, 1);
+  return min;
+}
 
 export function isRequiredNow(field: OnbField, ctx: Pick<ValidationContext, 'answers' | 'files' | 'fields'>): boolean {
   if (!field.required) return false;
@@ -359,8 +384,9 @@ export function validateField(field: OnbField, ctx: ValidationContext, locale: L
     }
     case 'date': {
       if (typeof v !== 'string' || !DATE_RE.test(v) || Number.isNaN(Date.parse(v))) return [{ field: field.id, code: 'invalid_date' }];
-      const min = cfg.min_date === 'today' ? ctx.today : cfg.min_date;
+      const min = earliestDate(cfg, ctx.today);
       if (min && v < min) return [{ field: field.id, code: 'date_min', params: { min } }];
+      if (cfg.no_weekends && isWeekend(v)) return [{ field: field.id, code: 'date_weekend' }];
       return [];
     }
     case 'radio':
@@ -483,12 +509,6 @@ export function computeGaps(
 export interface FlagContext {
   /** Number of credential-looking strings the redaction removed so far. */
   redactions?: number;
-}
-
-function addDays(iso: string, days: number): string {
-  const d = new Date(`${iso}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
 }
 
 /** Top-level page count implied by `page_list` (sub-pages count too — they are pages). */

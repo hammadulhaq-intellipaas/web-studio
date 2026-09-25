@@ -93,6 +93,10 @@ export interface FieldConfig {
   max?: number;
   // date: 'today' or an ISO date
   min_date?: string;
+  /** Lead time in days on top of `min_date`, e.g. 28 for "no sooner than four weeks". */
+  min_days_ahead?: number;
+  /** Saturdays and Sundays cannot be picked: nothing goes live over a weekend. */
+  no_weekends?: boolean;
   // slider
   /** Grid the slider stops on; the default 0.1 lets the client stop between two captions. */
   step?: number;

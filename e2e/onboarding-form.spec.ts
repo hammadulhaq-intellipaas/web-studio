@@ -22,6 +22,22 @@ async function next(page: Page, expectScreen: string) {
   await expect(page.locator(`[data-screen=onb-${expectScreen}]`)).toBeVisible();
 }
 
+/**
+ * Dates use our own calendar, not the browser's, so a lead time or a no-weekends rule can
+ * grey out the days we cannot accept. Walk the months rather than typing.
+ */
+async function pickDate(page: Page, fieldId: string, day: string) {
+  await page.click(`[data-testid=f-${fieldId}]`);
+  const wanted = new Date(`${day}T00:00:00Z`);
+  const label = new Intl.DateTimeFormat('de-DE', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(wanted);
+  for (let i = 0; i < 24; i++) {
+    if ((await page.locator(`[data-testid=cal-month-${fieldId}]`).innerText()) === label) break;
+    await page.click(`[data-testid=cal-next-${fieldId}]`);
+  }
+  await page.click(`[data-testid=cal-day-${day}]`);
+  await expect(page.locator(`[data-testid=f-${fieldId}]`)).toHaveAttribute('data-value', day);
+}
+
 async function waitSaved(page: Page) {
   await expect(page.locator('[data-testid=onb-save-status]')).toHaveAttribute('data-status', 'saved', { timeout: 20_000 });
 }
@@ -169,8 +185,13 @@ test.describe('onboarding form', () => {
     await next(page, 'timing');
 
     // ---- Screen 9 · Timing
-    await page.fill('[data-testid=f-launch_date]', '2027-03-01');
-    await page.fill('[data-testid=f-content_ready_date]', '2027-01-15');
+    // Four weeks out and never a weekend: today and the next few weeks are not clickable.
+    const soon = new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
+    await page.click('[data-testid=f-launch_date]');
+    await expect(page.locator(`[data-testid=cal-day-${soon}]`)).toBeDisabled();
+    await page.click('[data-testid=f-launch_date]');
+    await pickDate(page, 'launch_date', '2027-03-01');
+    await pickDate(page, 'content_ready_date', '2027-01-15');
     await page.click('[data-testid=onb-next]');
     await expect(page.locator('[data-screen=onb-review-ready]')).toBeVisible();
     await expect(page.locator('[data-testid=onb-start-review]')).toBeEnabled();

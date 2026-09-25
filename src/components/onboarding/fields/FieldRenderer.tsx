@@ -7,6 +7,7 @@ import { rowsOf, textOf } from '@/lib/onboarding/logic';
 import type { Answer, Answers, OnbField, OnboardingDefinition, RepeaterRow } from '@/lib/onboarding/types';
 import { AiAssist } from './AiAssist';
 import { CheckboxPills, RadioPills, SelectInput, TextAreaInput, TextInput } from './BasicInputs';
+import { DateInput } from './DateInput';
 import { FieldShell } from './FieldShell';
 import { PageCounter } from './PageCounter';
 import { Notice } from './Notice';
@@ -45,12 +46,26 @@ export function FieldRenderer(props: FieldRendererProps) {
 
   const control = (() => {
     switch (field.type) {
+      case 'date': {
+        // Its own calendar, so a lead time or a no-weekends rule shows as days that cannot
+        // be clicked rather than as an error after the fact.
+        return (
+          <DateInput
+            field={field}
+            locale={locale}
+            invalid={invalid}
+            inputId={inputId}
+            value={answer?.v == null ? null : String(answer.v)}
+            today={new Date().toISOString().slice(0, 10)}
+            onChange={(v) => (v === null ? onChange(null) : set(v))}
+          />
+        );
+      }
       case 'text':
       case 'url':
       case 'email':
       case 'tel':
-      case 'number':
-      case 'date': {
+      case 'number': {
         const value = answer?.v == null ? null : (answer.v as string | number);
         return (
           <TextInput

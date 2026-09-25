@@ -448,22 +448,26 @@
     "customer": {
       "subject": "Your inquiry at IntelliPaaS Web Studio",
       "greeting": "Hello {name},",
-      "intro": "thank you for your inquiry! We'll contact you personally — usually the same day. Here's your configuration at a glance:",
+      "intro": "thanks for your enquiry. Here is a copy of your website quote, including the package, options, and pricing you selected.",
       "onceLabel": "One-time",
       "monthlyLabel": "Monthly",
       "yearlyLabel": "Yearly",
       "sumOnce": "Total one-time",
       "sumMonthly": "Total monthly",
       "discount": "Discount {code} (−{pct}%)",
-      "noRisk": "No risk — the initial call is non-binding.",
-      "signoff": "Your IntelliPaaS Web Studio team",
+      "signoff": "The IntelliPaaS Web Studio team",
       "subjectUpdated": "Your updated inquiry at IntelliPaaS Web Studio",
       "introUpdated": "thank you, we received your changes. Here is your updated configuration at a glance:",
       "subjectQuote": "Your quote from IntelliPaaS Web Studio",
-      "introQuote": "as discussed, we have put together your website configuration. You can review and adjust it any time through your personal link:",
-      "linkLabel": "View your quote",
-      "linkHint": "The button opens your quote. You can still change it there, and accept it when you are happy.",
-      "acceptCta": "Accept the quote"
+      "introQuote": "your IntelliPaaS Web Studio quote is ready for your final review. Please check the details and accept the quote when you are happy with everything. Once you have accepted it, we will send you the onboarding form to collect the information needed to get started.",
+      "linkLabel": "Your quote",
+      "linkHint": "You can review or change your selections using the button above.",
+      "cta": "Review your quote",
+      "ctaQuote": "Review and accept your quote",
+      "linkFallback": "If the button does not work, use this link:",
+      "detailsLabel": "Your quote details:",
+      "detailsLabelQuote": "Quote details",
+      "regards": "Best regards,"
     },
     "team": {
       "subject": "New inquiry: {firma} ({bundle})",
@@ -543,7 +547,7 @@
       "min": "At least {min}.",
       "max": "At most {max}.",
       "max_chars": "At most {max} characters.",
-      "date_min": "The date can't be in the past.",
+      "date_min": "That date is too soon. {min} at the earliest.",
       "checkboxes_min": "Please select at least {min}.",
       "checkboxes_max": "Please select at most {max}.",
       "checkboxes_exclusive": "This option can't be combined with others.",
@@ -551,7 +555,17 @@
       "ranking_min": "At least {n} × \"{bucket}\".",
       "ranking_max": "At most {n} × \"{bucket}\".",
       "rows_min": "Please add at least {min} entries.",
-      "rows_max": "At most {max} entries."
+      "rows_max": "At most {max} entries.",
+      "date_weekend": "Please pick a weekday; Saturdays and Sundays are not available."
+    },
+    "date": {
+      "placeholder": "Pick a date",
+      "ruleEarliest": "{date} at the earliest.",
+      "ruleWeekdays": "Please pick a weekday; Saturdays and Sundays are not available.",
+      "ruleBoth": "{date} at the earliest, and on a weekday, please.",
+      "prevMonth": "Previous month",
+      "nextMonth": "Next month",
+      "clear": "Clear the date"
     },
     "fields": {
       "addRow": "Add another",

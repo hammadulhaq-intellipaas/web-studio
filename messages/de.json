@@ -448,22 +448,26 @@
     "customer": {
       "subject": "Ihre Anfrage bei IntelliPaaS Web Studio",
       "greeting": "Hallo {name},",
-      "intro": "vielen Dank für Ihre Anfrage! Wir melden uns persönlich bei Ihnen — meist noch am selben Tag. Hier ist Ihre Konfiguration im Überblick:",
+      "intro": "vielen Dank für Ihre Anfrage. Hier ist eine Kopie Ihres Website-Angebots mit dem Paket, den Optionen und den Preisen, die Sie ausgewählt haben.",
       "onceLabel": "Einmalig",
       "monthlyLabel": "Monatlich",
       "yearlyLabel": "Jährlich",
       "sumOnce": "Summe einmalig",
       "sumMonthly": "Summe monatlich",
       "discount": "Rabatt {code} (−{pct} %)",
-      "noRisk": "Kein Risiko — das Erstgespräch ist unverbindlich.",
       "signoff": "Ihr IntelliPaaS Web Studio Team",
       "subjectUpdated": "Ihre aktualisierte Anfrage bei IntelliPaaS Web Studio",
       "introUpdated": "vielen Dank, wir haben Ihre Änderungen erhalten. Hier ist Ihre aktualisierte Konfiguration im Überblick:",
       "subjectQuote": "Ihr Angebot von IntelliPaaS Web Studio",
-      "introQuote": "wie besprochen haben wir Ihre Website-Konfiguration für Sie zusammengestellt. Über Ihren persönlichen Link können Sie sie jederzeit ansehen und anpassen:",
-      "linkLabel": "Ihr Angebot ansehen",
-      "linkHint": "Über den Button öffnen Sie Ihr Angebot. Dort können Sie es noch ändern und dann annehmen.",
-      "acceptCta": "Angebot annehmen"
+      "introQuote": "Ihr Angebot vom IntelliPaaS Web Studio liegt zur finalen Durchsicht bereit. Bitte prüfen Sie die Angaben und nehmen Sie das Angebot an, wenn alles passt. Sobald Sie es angenommen haben, senden wir Ihnen das Briefing-Formular, mit dem wir die Angaben für den Start sammeln.",
+      "linkLabel": "Ihr Angebot",
+      "linkHint": "Über den Button oben können Sie Ihre Auswahl ansehen oder ändern.",
+      "cta": "Angebot ansehen",
+      "ctaQuote": "Angebot ansehen und annehmen",
+      "linkFallback": "Falls der Button nicht funktioniert, nutzen Sie bitte diesen Link:",
+      "detailsLabel": "Ihre Angebotsdetails:",
+      "detailsLabelQuote": "Angebotsdetails",
+      "regards": "Mit freundlichen Grüßen"
     },
     "team": {
       "subject": "Neue Anfrage: {firma} ({bundle})",
@@ -543,7 +547,7 @@
       "min": "Mindestens {min}.",
       "max": "Höchstens {max}.",
       "max_chars": "Höchstens {max} Zeichen.",
-      "date_min": "Das Datum darf nicht in der Vergangenheit liegen.",
+      "date_min": "Dieses Datum liegt zu früh. Frühestens ab {min}.",
       "checkboxes_min": "Bitte mindestens {min} auswählen.",
       "checkboxes_max": "Bitte höchstens {max} auswählen.",
       "checkboxes_exclusive": "Diese Option lässt sich nicht mit anderen kombinieren.",
@@ -551,7 +555,17 @@
       "ranking_min": "Mindestens {n} × „{bucket}“.",
       "ranking_max": "Höchstens {n} × „{bucket}“.",
       "rows_min": "Bitte mindestens {min} Einträge.",
-      "rows_max": "Höchstens {max} Einträge."
+      "rows_max": "Höchstens {max} Einträge.",
+      "date_weekend": "Bitte einen Wochentag wählen, Samstag und Sonntag gehen nicht."
+    },
+    "date": {
+      "placeholder": "Datum wählen",
+      "ruleEarliest": "Frühestens ab {date}.",
+      "ruleWeekdays": "Bitte einen Wochentag wählen, Samstag und Sonntag gehen nicht.",
+      "ruleBoth": "Frühestens ab {date}, und bitte an einem Wochentag.",
+      "prevMonth": "Vorheriger Monat",
+      "nextMonth": "Nächster Monat",
+      "clear": "Datum entfernen"
     },
     "fields": {
       "addRow": "Weitere hinzufügen",

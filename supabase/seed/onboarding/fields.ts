@@ -1065,9 +1065,11 @@ const accessLegal: OnbField[] = [
 /* ------------------------------------------------------------------ Step 9 · timing */
 
 const timing: OnbField[] = [
+  // Four weeks is the earliest we can take a launch seriously, and nothing goes live on a
+  // Saturday or a Sunday, so neither is offered.
   field('launch_date', 'timing', 'date', 'Wann soll die Seite live gehen?', 'When would you like the site to go live?', {
     required: true,
-    config: { min_date: 'today' },
+    config: { min_date: 'today', min_days_ahead: 28, no_weekends: true },
   }),
   field('launch_date_fixed', 'timing', 'radio', 'Steht dieses Datum fest?', 'Is that date fixed?', { options: YES_NO }),
   field('launch_date_reason', 'timing', 'text', 'Woran hängt es?', 'What is it tied to?', {

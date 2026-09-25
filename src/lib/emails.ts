@@ -68,6 +68,10 @@ export function renderCustomerEmail(ctx: EmailContext): { subject: string; html:
   const variant = ctx.variant ?? 'new';
   const subject = variant === 'updated' ? m.subjectUpdated : variant === 'quote' ? m.subjectQuote : m.subject;
   const intro = variant === 'updated' ? m.introUpdated : variant === 'quote' ? m.introQuote : m.intro;
+  // The quote the team sends is the one they are asked to accept; the copy they get back
+  // after their own enquiry is theirs to look over.
+  const cta = variant === 'quote' ? m.ctaQuote : m.cta;
+  const detailsLabel = variant === 'quote' ? m.detailsLabelQuote : m.detailsLabel;
 
   const discountRow = (saved: string) =>
     voucher
@@ -86,12 +90,13 @@ export function renderCustomerEmail(ctx: EmailContext): { subject: string; html:
            <tr><td align="center" bgcolor="#1E5EFF" style="border-radius:12px">
              <a href="${escapeHtml(ctx.customerLink)}"
                 style="display:inline-block;padding:14px 30px;font-size:16px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:12px;background:#1E5EFF">
-               ${m.acceptCta}
+               ${cta}
              </a>
            </td></tr>
          </table>
-         <div style="color:#5B6B85;font-size:12.5px;margin-top:12px">${m.linkHint}</div>
-         <div style="margin-top:8px"><a href="${escapeHtml(ctx.customerLink)}" style="color:#1E5EFF;font-size:12px;word-break:break-all">${escapeHtml(ctx.customerLink)}</a></div>
+         ${variant === 'quote' ? '' : `<div style="color:#5B6B85;font-size:12.5px;margin-top:12px">${m.linkHint}</div>`}
+         <div style="color:#5B6B85;font-size:12.5px;margin-top:10px">${m.linkFallback}</div>
+         <div style="margin-top:6px"><a href="${escapeHtml(ctx.customerLink)}" style="color:#1E5EFF;font-size:12px;word-break:break-all">${escapeHtml(ctx.customerLink)}</a></div>
        </div>`
     : '';
 
@@ -99,7 +104,8 @@ export function renderCustomerEmail(ctx: EmailContext): { subject: string; html:
     <p>${interp(m.greeting, { name })}</p>
     <p>${intro}</p>
     ${linkBlock}
-    <h3 style="margin:18px 0 6px;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#5B6B85">${m.onceLabel}</h3>
+    <p style="margin:22px 0 4px;font-weight:800">${detailsLabel}</p>
+    <h3 style="margin:14px 0 6px;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#5B6B85">${m.onceLabel}</h3>
     <table width="100%" style="border-collapse:collapse;font-size:14px">
       ${receiptRows(receipt.oneOff)}
       ${voucher && voucher.scope !== 'recurring' ? discountRow(fmt(totals.voucherSavedOneTime, locale, catalog)) : ''}
@@ -121,8 +127,8 @@ export function renderCustomerEmail(ctx: EmailContext): { subject: string; html:
            </table>`
         : ''
     }
-    <p style="margin-top:20px">${m.noRisk}</p>
-    <p style="color:#7A879B">${m.signoff}</p>
+    <p style="margin-top:24px">${m.regards}</p>
+    <p style="color:#7A879B;margin-top:2px">${m.signoff}</p>
   `);
 
   return { subject, html };
