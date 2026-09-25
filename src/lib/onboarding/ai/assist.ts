@@ -36,9 +36,9 @@ export interface AssistResult {
 
 /**
  * "Help me say this better": one pass over a single answer, lifted into premium wording.
- * The model may only reshape what the client wrote — no new facts, no prices, no
- * durations — and the result is checked against their own words before it is offered. It is a suggestion either way:
- * nothing is stored until the client accepts it.
+ * The model may only reshape what the client wrote (no new facts, no prices, no
+ * durations), and the result is checked against their own words before it is offered.
+ * It is a suggestion either way: nothing is stored until the client accepts it.
  */
 export async function assistField({
   definition,

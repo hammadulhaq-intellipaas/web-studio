@@ -441,7 +441,10 @@ export function validateAll(
   today: string,
   locale: Locale = 'de',
 ): FieldError[] {
-  const { visible } = visibility(definition.fields, answers);
+  // Same visibility as the screens: a question this locale never shows (the German-only
+  // Impressum contact on an English form) cannot be missing. Checking it here flagged a
+  // step the client could open and find nothing to fix on.
+  const { visible } = visibility(definition.fields, answers, locale);
   const ctx: ValidationContext = { answers, files, today, fields: definition.fields };
   return visible.flatMap((f) => validateField(f, ctx, locale));
 }
@@ -649,6 +652,20 @@ export function sliderCaptionIndex(field: OnbField, value: number): number {
 
 export function sliderLabel(field: OnbField, value: number, locale: Locale): string {
   return cap(field.config.captions?.[sliderCaptionIndex(field, value)], locale);
+}
+
+/**
+ * The slider in words, the way the client set it: its caption on a stop, "Between A and
+ * B" in between. No numbers, the client never saw any.
+ */
+export function sliderPhrase(field: OnbField, value: number, locale: Locale): string {
+  const min = field.config.min ?? 1;
+  if (Math.abs(value - Math.round(value)) < 0.05) return sliderLabel(field, value, locale);
+  const lower = Math.floor(value) - min;
+  const a = cap(field.config.captions?.[lower], locale);
+  const b = cap(field.config.captions?.[lower + 1], locale);
+  if (!a || !b) return sliderLabel(field, value, locale);
+  return locale === 'de' ? `Zwischen „${a}“ und „${b}“` : `Between "${a}" and "${b}"`;
 }
 
 export function bucketLabel(field: OnbField, bucket: string, locale: Locale): string {

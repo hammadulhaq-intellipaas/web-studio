@@ -43,18 +43,18 @@ test.describe('public funnel — permanent quote link', () => {
     await expect(restored.getByTestId('rec-name')).toBeVisible();
     await expect(restored.getByTestId('sum-once')).toHaveText(GASTRO.sumOnceDe);
 
-    // Change the configuration and send the update — same lead, new version, no consent checkbox.
+    // Nothing changed yet, so there is nothing to send.
+    await expect(restored.getByTestId('quote-send')).toBeDisabled();
+
+    // Change the configuration and send it — same lead, new version. We already hold their
+    // contact details, so the button sends from here rather than walking them to a form.
     await restored.getByTestId('addon-newsletter').click();
     await expect(restored.getByTestId('sum-once')).toHaveText('€4.850');
+    await expect(restored.getByTestId('quote-send')).toBeEnabled();
     await restored.getByTestId('quote-send').click();
-    await expect(restored.getByTestId('lead-heading')).toHaveText('Anfrage aktualisieren');
-    await expect(restored.getByTestId('lead-consent-given')).toBeVisible();
-    // The optional intake belongs to a first enquiry only; the onboarding form collects all
-    // of it properly once a quote exists, so it is not repeated on the customer's own link.
-    await expect(restored.getByTestId('s2-section-unternehmen')).toHaveCount(0);
-    await expect(restored.getByTestId('lead-email')).toHaveValue(email);
-    await restored.getByTestId('lead-submit').click();
-    await expect(restored.getByTestId('done-title')).toHaveText('Danke, wir haben Ihre Änderungen erhalten.');
+    await expect(restored.getByTestId('quote-banner')).toContainText('Ihre Änderungen sind bei uns', { timeout: 30_000 });
+    // And with the change sent, there is nothing left to send again.
+    await expect(restored.getByTestId('quote-send')).toBeDisabled({ timeout: 20_000 });
     await other.close();
 
     const { data: leads } = await db.from('leads').select('id, total_one_time').eq('email', email);
@@ -78,13 +78,23 @@ test.describe('public funnel — permanent quote link', () => {
     const other = await page.context().browser()!.newContext();
     const cust = await other.newPage();
     await cust.goto(link);
-    await expect(cust.getByTestId('quote-accept')).toBeVisible();
+    await expect(cust.getByTestId('quote-accept-side')).toBeVisible();
     await cust.getByTestId('addon-newsletter').click();
     await expect(cust.getByTestId('sum-once')).toHaveText('€4.850');
+
+    // The save screen asks for nothing we already hold: a decision, a warning, and where
+    // the brief link is going.
+    await cust.getByTestId('to-lead').click();
+    await expect(cust.getByTestId('quote-accept')).toBeVisible({ timeout: 20_000 });
+    await expect(cust.getByTestId('lead-vorname')).toHaveCount(0);
+    await expect(cust.getByTestId('lead-email')).toHaveCount(0);
+    await expect(cust.getByTestId('quote-accept-warning')).toBeVisible();
+    await expect(cust.getByTestId('quote-accept-recipient')).toContainText(email);
 
     // ...until they save it.
     await cust.getByTestId('quote-accept-cta').click();
     await expect(cust.getByTestId('quote-accepted')).toBeVisible({ timeout: 30_000 });
+    await expect(cust.getByTestId('welcome-title')).toContainText('Willkommen an Bord');
     // The brief link is on screen. It names their own address when the mail went out, and
     // says so plainly when it did not (test addresses are undeliverable).
     const panel = await cust.getByTestId('quote-accepted').innerText();
@@ -96,7 +106,7 @@ test.describe('public funnel — permanent quote link', () => {
     // The banner flips to locked without a reload, and stays locked on the next visit.
     await expect(cust.getByTestId('quote-banner')).toContainText('Angebot gespeichert');
     await cust.reload();
-    await expect(cust.getByTestId('quote-accept')).toHaveCount(0);
+    await expect(cust.getByTestId('quote-accept-side')).toHaveCount(0);
     await other.close();
 
     // The team sees it as accepted, with the same form behind the link.

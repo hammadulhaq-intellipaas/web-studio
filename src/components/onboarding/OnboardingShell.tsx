@@ -80,6 +80,10 @@ export function OnboardingShell({
   });
   const [maxReached, setMaxReached] = useState(stepIndex);
   const [showErrors, setShowErrors] = useState(false);
+  // Opened from the review to change something: the screen shows the way straight back.
+  const [fixMode, setFixMode] = useState(false);
+  const [returnTried, setReturnTried] = useState(false);
+  const [focusField, setFocusField] = useState<string | null>(null);
   const topRef = useRef<HTMLDivElement>(null);
 
   const step = steps[stepIndex];
@@ -104,6 +108,8 @@ export function OnboardingShell({
       setStepIndex(index);
       setMaxReached((m) => Math.max(m, index));
       setShowErrors(false);
+      setReturnTried(false);
+      if (target.kind === 'review') setFixMode(false);
       queue({ changes: {}, current_step: target.id });
       window.history.pushState({ onbStep: target.id }, '');
       window.scrollTo({ top: 0, behavior: 'instant' });
@@ -191,6 +197,52 @@ export function OnboardingShell({
 
   const back = () => goTo(Math.max(0, stepIndex - 1));
 
+  /**
+   * From the review to one answer: open its screen with the errors already showing, then
+   * scroll to the question and put the cursor in it, so the client lands exactly on what
+   * needs changing rather than at the top of a long screen.
+   */
+  const openFromReview = useCallback(
+    (screenId: string, fieldId?: string) => {
+      const i = steps.findIndex((s) => s.id === screenId);
+      if (i < 0) return;
+      goTo(i);
+      setFixMode(true);
+      setShowErrors(true);
+      setFocusField(fieldId ?? null);
+    },
+    [goTo, steps],
+  );
+
+  useEffect(() => {
+    if (!focusField) return;
+    const id = focusField;
+    const timer = setTimeout(() => {
+      const el = document.querySelector<HTMLElement>(`[data-field="${id}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.querySelector<HTMLElement>('input:not([type=hidden]), textarea, select, button')?.focus({ preventScroll: true });
+        el.classList.add('onb-flash');
+        setTimeout(() => el.classList.remove('onb-flash'), 1800);
+      }
+      setFocusField(null);
+    }, 80);
+    return () => clearTimeout(timer);
+  }, [focusField, stepIndex]);
+
+  /** Back to the review; while this screen still has errors, say so first (once). */
+  const returnToReview = (force: boolean) => {
+    if (!force && screenErrors.length) {
+      setShowErrors(true);
+      setReturnTried(true);
+      document.querySelector(`[data-field="${screenErrors[0].field}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    void flush();
+    setFixMode(false);
+    goTo(reviewIndex);
+  };
+
   /** One click: get the pending answers to the server, then send the link. */
   const saveAndEmailLink = async () => {
     await flush();
@@ -270,10 +322,7 @@ export function OnboardingShell({
             setBrief={setBrief}
             locale={locale}
             onBackToForm={() => goTo(Math.max(0, reviewIndex - 1))}
-            onJumpToScreen={(screenId) => {
-              const i = steps.findIndex((s) => s.id === screenId);
-              if (i >= 0) goTo(i);
-            }}
+            onJumpToScreen={openFromReview}
             onChange={setAnswer}
             flush={flush}
           />
@@ -298,6 +347,15 @@ export function OnboardingShell({
             saveStatus={status}
             banner={banner}
             onSaveLink={() => void saveAndEmailLink()}
+            reviewReturn={
+              fixMode && !confirmed && step.kind === 'questions'
+                ? {
+                    onReturn: () => returnToReview(false),
+                    onLeaveAnyway: () => returnToReview(true),
+                    stillOpen: returnTried ? screenErrors.length : 0,
+                  }
+                : undefined
+            }
           />
         ) : null}
       </div>

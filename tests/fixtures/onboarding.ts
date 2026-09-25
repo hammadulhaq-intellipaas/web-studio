@@ -64,6 +64,7 @@ export function completeAnswers(): Answers {
     service_scope: a('one_town'),
     regions_served: a('Frankfurt Nordend, Bornheim, Westend'),
     private_content: a('no'),
+    site_emails: a('praxis@physio-nordend.de, allgemeine Anfragen'),
     routing_split: a('yes'),
     notification_routing: a([{ _id: 'r1', type: 'Allgemeine Anfrage', address: 'praxis@physio-nordend.de' }]),
     approver: a('Lena Hartmann'),

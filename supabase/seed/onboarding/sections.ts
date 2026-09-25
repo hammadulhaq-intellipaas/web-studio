@@ -167,6 +167,7 @@ const rows: Omit<OnbBriefSection, 'sort' | 'active'>[] = [
       'accounts_table',
       'domain',
       'existing_url',
+      'site_emails',
     ],
     generated_by: 'llm',
   },

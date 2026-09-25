@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { quoteFingerprint } from './canonical';
 import type { Catalog, LeadConfig, Locale, Selection, Totals } from '@/lib/types';
 import {
   addonCost,
@@ -77,31 +78,7 @@ export function priceSelection(
   return { config, totals, receipt };
 }
 
-/** The price-relevant part of a selection, in a canonical order. */
-function canonicalSelection(selection: Selection) {
-  const sortKeys = <T>(o: Record<string, T>) =>
-    Object.fromEntries(Object.entries(o).filter(([, v]) => v !== false && v != null).sort(([a], [b]) => a.localeCompare(b)));
-  return {
-    bundle: selection.bundle,
-    addons: sortKeys(selection.selectedAddons),
-    qty: sortKeys(selection.qty),
-    sub: Object.fromEntries(
-      Object.entries(selection.selectedSubAddons ?? {})
-        .filter(([, v]) => v?.length)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([k, v]) => [k, [...v].sort()]),
-    ),
-    care: selection.care,
-    support: selection.support,
-    cf: selection.cf,
-    backupUp: selection.backupUp,
-    aiBundle: selection.aiBundle,
-    payYearly: selection.payYearly,
-    voucher: selection.voucher?.code?.toUpperCase() ?? null,
-  };
-}
-
 /** Stable fingerprint of what is being bought; two identical configurations hash equal. */
 export function hashSelection(selection: Selection): string {
-  return createHash('sha256').update(JSON.stringify(canonicalSelection(selection))).digest('hex');
+  return createHash('sha256').update(quoteFingerprint(selection)).digest('hex');
 }

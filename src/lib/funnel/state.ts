@@ -126,5 +126,10 @@ export interface QuoteMeta {
   hasConsent: boolean;
   oneTime: number;
   monthly: number;
+  /**
+   * Fingerprint of the configuration they last submitted. The browser compares its own
+   * against this to know whether there is anything to send.
+   */
+  submitted: string | null;
   locale: 'de' | 'en';
 }

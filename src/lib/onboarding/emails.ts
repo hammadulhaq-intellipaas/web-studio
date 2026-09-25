@@ -70,10 +70,16 @@ export async function sendSaveLinkEmail(input: {
   to: string;
   name: string | null;
   formId: string;
+  /**
+   * `welcome` is the letter that goes out when the customer saves their quote: the quote
+   * is settled and the brief is what happens next. The default is the plain "here is your
+   * link back" note the form's own save button sends.
+   */
+  kind?: 'save_link' | 'welcome';
 }): Promise<boolean> {
   const c = client();
   if (!c) return false;
-  const mail = renderTextEmail(input.texts, 'email_save_link', input.locale, {
+  const mail = renderTextEmail(input.texts, input.kind === 'welcome' ? 'email_welcome_onboard' : 'email_save_link', input.locale, {
     name: input.name ?? '',
     link: formLink(input.formId, input.locale),
   });

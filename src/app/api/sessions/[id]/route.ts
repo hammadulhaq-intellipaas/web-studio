@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { isValidSessionId } from '@/lib/session-id';
 import { loadBoundLead, quoteMeta } from '@/lib/quotes/binding';
+import { getCatalog } from '@/lib/catalog';
 
 /**
  * Restore a funnel state from a shared `?c=<id>` link. When the session belongs to a
@@ -15,9 +16,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   }
 
   const supabase = createSupabaseAdminClient();
-  const [{ data, error }, bound] = await Promise.all([
+  const [{ data, error }, bound, catalog] = await Promise.all([
     supabase.from('funnel_sessions').select('state').eq('id', id).maybeSingle(),
     loadBoundLead(id),
+    getCatalog(),
   ]);
 
   if (error) {
@@ -26,5 +28,5 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   }
   if (!data) return NextResponse.json({ error: 'not_found' }, { status: 404 });
 
-  return NextResponse.json({ state: data.state, quote: bound ? quoteMeta(bound) : null });
+  return NextResponse.json({ state: data.state, quote: bound ? quoteMeta(bound, catalog) : null });
 }

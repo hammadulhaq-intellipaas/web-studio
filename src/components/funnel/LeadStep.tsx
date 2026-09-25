@@ -12,6 +12,7 @@ import { Link } from '@/i18n/navigation';
 import { useFunnel, type LeadForm } from '@/stores/funnel';
 import { useAppLocale, useSelection, useSummaryLabels } from './hooks';
 import { PromoBox } from './PriceSidebar';
+import { SaveQuotePanel, WelcomeOnboard, useSaveQuote } from './SaveQuote';
 import { backButton, BLUE, BODY, BORDER, GREEN, gradButton, INK, LockIcon, MUTED, MUTED2 } from './ui';
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
@@ -127,6 +128,11 @@ export function LeadStep({ catalog }: { catalog: Catalog }) {
   const quote = store.quote;
   const teamMode = store.teamMode && !!quote;
   const updateMode = !!quote && !teamMode;
+  // For a customer returning to a quote they already submitted, this screen is not a form
+  // any more: we hold every detail it would ask for, so all that is left is the decision.
+  // Not immediately after a first submit, though — that still owes them the booking panel.
+  const savePage = updateMode && !quote.draft && !submitted;
+  const { state: saveState, result: saved, save } = useSaveQuote();
   const consentGiven = !!quote?.hasConsent && !teamMode;
   const [teamSignIn, setTeamSignIn] = useState(false);
 
@@ -223,12 +229,20 @@ export function LeadStep({ catalog }: { catalog: Catalog }) {
       <button onClick={() => store.go('config')} className="hov-blue-text" style={backButton}>
         {t('back')}
       </button>
-      <h2 style={{ fontSize: 32, fontWeight: 800, letterSpacing: -0.8, margin: '0 0 8px' }} data-testid="lead-heading">
-        {teamMode ? t('teamTitle') : updateMode && !quote.draft ? t('updateTitle') : t('title')}
-      </h2>
-      <p style={{ fontSize: 15.5, color: BODY, margin: '0 0 24px' }}>
-        {teamMode ? t('teamSub') : updateMode && !quote.draft ? t('updateSub') : t('sub')}
-      </p>
+      {/* Once it is saved the brief is the only thing left to do, so it leads and the
+          prices sit underneath for reference. */}
+      {saved?.link ? (
+        <WelcomeOnboard result={saved} supportEmail={catalog.supportEmail} />
+      ) : (
+        <>
+          <h2 style={{ fontSize: 32, fontWeight: 800, letterSpacing: -0.8, margin: '0 0 8px' }} data-testid="lead-heading">
+            {teamMode ? t('teamTitle') : savePage ? t('saveTitle') : t('title')}
+          </h2>
+          <p style={{ fontSize: 15.5, color: BODY, margin: '0 0 24px' }}>
+            {teamMode ? t('teamSub') : savePage ? t('saveSub') : t('sub')}
+          </p>
+        </>
+      )}
 
       {/* Summary */}
       <div
@@ -294,7 +308,9 @@ export function LeadStep({ catalog }: { catalog: Catalog }) {
         </div>
       )}
 
-      {!submitted ? (
+      {saved?.link ? null : savePage ? (
+        <SaveQuotePanel email={store.lead.email || null} state={saveState} onSave={() => void save()} />
+      ) : !submitted ? (
         <div
           style={{ background: '#ffffff', border: `1px solid ${BORDER}`, borderRadius: 18, padding: 26 }}
         >

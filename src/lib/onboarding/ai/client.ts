@@ -3,7 +3,7 @@ import { generateObject, NoObjectGeneratedError, type LanguageModel } from 'ai';
 import type { z } from 'zod';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { apiKeyPresent, getLanguageModel } from '@/lib/ai/provider';
-import { redactSecrets } from '../guardrails';
+import { redactSecrets, stripDashesDeep } from '../guardrails';
 import type { OnbPrompt, OnboardingSettings, PromptId } from '../types';
 
 export type AiJob = 'completeness' | 'brief' | 'rewrite' | 'assist';
@@ -53,7 +53,7 @@ export async function callModel<T>(input: AiCall<T>): Promise<AiResult<T>> {
   let result: AiResult<T>;
 
   if (fixtureMode()) {
-    result = { ok: true, object: input.fixture(), model: modelId, usage: null, durationMs: Date.now() - started };
+    result = { ok: true, object: stripDashesDeep(input.fixture()), model: modelId, usage: null, durationMs: Date.now() - started };
   } else {
     try {
       const { object, usage } = await generateObject({
@@ -64,7 +64,8 @@ export async function callModel<T>(input: AiCall<T>): Promise<AiResult<T>> {
       });
       result = {
         ok: true,
-        object,
+        // No em or en dashes reach the client, whatever the model writes.
+        object: stripDashesDeep(object),
         model: modelId,
         usage: (usage as unknown as Record<string, unknown>) ?? null,
         durationMs: Date.now() - started,

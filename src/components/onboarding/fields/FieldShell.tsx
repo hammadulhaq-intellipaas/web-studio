@@ -4,10 +4,11 @@ import { useId, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import type { Locale } from '@/lib/types';
 import type { FieldError } from '@/lib/onboarding/logic';
-import type { OnbField, OnboardingSettings } from '@/lib/onboarding/types';
+import type { Answer, OnbField, OnboardingSettings } from '@/lib/onboarding/types';
 import { loc } from '@/lib/onboarding/types';
 import { BLUE, BORDER, MUTED } from '@/components/funnel/ui';
 import { errorStyle, helpStyle, inputStyle, labelStyle, pillStyle } from './styles';
+import { errorText } from './errorText';
 
 const SETTING_LINKS: Record<string, keyof OnboardingSettings> = {
   onb_examples_url: 'examplesUrl',
@@ -24,6 +25,7 @@ export function FieldShell({
   locale,
   required,
   errors,
+  answer,
   dontKnow,
   onDontKnow,
   dontKnowDate,
@@ -38,6 +40,8 @@ export function FieldShell({
   locale: Locale;
   required: boolean;
   errors: FieldError[];
+  /** The current answer, so a date that has since passed can say so. */
+  answer?: Answer;
   dontKnow: boolean;
   onDontKnow?: (on: boolean) => void;
   dontKnowDate?: string;
@@ -205,7 +209,7 @@ export function FieldShell({
 
       {topErrors.map((e, i) => (
         <div key={i} data-testid={`err-${field.id}`} role="alert" style={errorStyle}>
-          {te(e.code, (e.params ?? {}) as Record<string, string | number>)}
+          {errorText(te, e, answer ? { [field.id]: answer } : {}, locale)}
         </div>
       ))}
     </div>

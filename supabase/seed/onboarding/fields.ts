@@ -259,6 +259,14 @@ const business: OnbField[] = [
 /* ------------------------------------------------------------------ Step 3 · inboxes */
 
 const inboxes: OnbField[] = [
+  field('site_emails', 'inboxes', 'textarea', 'Welche E-Mail-Adressen sollen auf Ihrer Seite stehen?', 'Which email addresses should appear on your site?', {
+    required: true,
+    help_de: 'Bitte nur Adressen, die auch wirklich jemand liest.',
+    help_en: 'Please list only addresses that someone actually reads.',
+    placeholder_de: 'info@ihrefirma.de, allgemeine Anfragen\ntermine@ihrefirma.de, Terminwünsche',
+    placeholder_en: 'info@yourcompany.com, general enquiries\nbookings@yourcompany.com, appointments',
+    config: { rows: 4 },
+  }),
   field(
     'routing_split',
     'inboxes',
@@ -1124,10 +1132,8 @@ const review: OnbField[] = [
  * given to them survive in the records that carry them.
  */
 export const retiredFieldIds = [
-  // 25 Sep: both asked for an address the client has already given us — once on the
-  // project step and, where messages are routed separately, again on the inboxes step.
-  // The legal page takes it from there rather than asking a third time.
-  'site_emails',
+  // 25 Sep: the business step asked for a public address the inboxes step already asks
+  // for. The inboxes one is the question we keep; the legal page takes it from there.
   'public_email',
   // The 24 Sep corrections dropped "who holds the account?" from every integration
   // block, and the "other service" block no longer asks for a provider separately.

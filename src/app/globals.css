@@ -290,3 +290,37 @@ body {
     display: block !important;
   }
 }
+
+/* Onboarding review: the "go back to review" bar sits under the sticky header. */
+.onb-return-bar {
+  top: 84px;
+}
+/* Check-answers rows: question · answer · change on desktop, stacked on phones. */
+.onb-kv {
+  display: grid;
+  grid-template-columns: minmax(0, 220px) minmax(0, 1fr) auto;
+  gap: 4px 14px;
+  align-items: baseline;
+}
+@media (max-width: 760px) {
+  .onb-return-bar {
+    top: 72px;
+  }
+  .onb-kv {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .onb-kv > dt {
+    grid-column: 1 / -1;
+  }
+}
+
+/* The question a client was sent to from the review, briefly highlighted on arrival. */
+@keyframes onbFlash {
+  0% { box-shadow: 0 0 0 0 rgba(30, 94, 255, 0); }
+  25% { box-shadow: 0 0 0 6px rgba(30, 94, 255, 0.18); }
+  100% { box-shadow: 0 0 0 0 rgba(30, 94, 255, 0); }
+}
+.onb-flash {
+  border-radius: 12px;
+  animation: onbFlash 1.8s ease-out;
+}

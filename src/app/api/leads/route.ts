@@ -10,6 +10,7 @@ import { logActivity } from '@/lib/quotes/activity';
 import { sendResubmitEmails, sendSubmitEmails } from '@/lib/quotes/emails';
 import { customerLink } from '@/lib/quotes/links';
 import { hashSelection, priceSelection } from '@/lib/quotes/price';
+import { quoteFingerprint } from '@/lib/quotes/canonical';
 import { quotesSchemaReady } from '@/lib/quotes/schema';
 import { stateFromSubmission } from '@/lib/quotes/selection';
 import { insertVersion } from '@/lib/quotes/versions';
@@ -256,6 +257,7 @@ export async function POST(request: Request) {
         hasConsent: !!(existing.consent_at || update.consent_at),
         oneTime: totals.oneTimeEffective,
         monthly: totals.monthlyEffective,
+        submitted: quoteFingerprint(selection),
         locale,
       },
     });
@@ -357,6 +359,7 @@ export async function POST(request: Request) {
           hasConsent: true,
           oneTime: totals.oneTimeEffective,
           monthly: totals.monthlyEffective,
+          submitted: quoteFingerprint(selection),
           locale,
         }
       : null,

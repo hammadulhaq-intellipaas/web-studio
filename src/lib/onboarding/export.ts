@@ -1,5 +1,5 @@
 import type { Locale } from '@/lib/types';
-import { bucketLabel, fieldLabel, optionLabel, rowsOf, sliderLabel, textOf, visibility } from './logic';
+import { bucketLabel, fieldLabel, optionLabel, rowsOf, sliderLabel, sliderPhrase, textOf, visibility } from './logic';
 import type {
   Answer,
   Answers,
@@ -68,10 +68,9 @@ function displayBase(field: OnbField, answer: Answer | undefined, locale: Locale
       return labels.join(', ');
     }
     case 'slider': {
+      // Words only, as on the slider itself; the number stays in the structured export.
       const n = Number(v);
-      const caption = sliderLabel(field, n, locale);
-      const max = field.config.max ?? 5;
-      return caption ? `${caption} (${n}/${max})` : String(n);
+      return Number.isFinite(n) ? sliderPhrase(field, n, locale) || String(n) : '';
     }
     case 'ranking': {
       const map = (typeof v === 'object' && !Array.isArray(v) ? v : {}) as Record<string, string>;

@@ -65,6 +65,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
       to: lead.email,
       name: [lead.vorname, lead.nachname].filter(Boolean).join(' ') || null,
       formId,
+      kind: 'welcome',
     });
     if (!emailed) console.error('[accept] onboarding link email failed for lead', lead.id);
     await logActivity(

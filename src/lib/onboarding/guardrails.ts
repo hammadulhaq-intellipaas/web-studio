@@ -183,6 +183,32 @@ export function findUngrounded(text: string, corpus: Corpus): string[] {
   return Array.from(new Set(hits));
 }
 
+/* ------------------------------------------------------------------ dashes */
+
+/**
+ * No em or en dashes anywhere the client reads in the review, including model output: a
+ * dash used as punctuation becomes a comma, and a dash between numbers ("10–12") a hyphen.
+ * Hyphens inside words are untouched.
+ */
+export function stripDashes(text: string): string {
+  return text
+    .replace(/(\d)\s*[–—]\s*(\d)/g, '$1-$2')
+    .replace(/\s*[–—]+\s*(?=[.,;:!?)]|$)/gm, '')
+    .replace(/(^|\n)\s*[–—]+\s*/g, '$1')
+    .replace(/\s*[–—]+\s*/g, ', ')
+    .replace(/,\s*,/g, ',');
+}
+
+/** stripDashes over every string in a structured value (model objects, brief sections). */
+export function stripDashesDeep<T>(value: T): T {
+  if (typeof value === 'string') return stripDashes(value) as T;
+  if (Array.isArray(value)) return value.map((v) => stripDashesDeep(v)) as T;
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([k, v]) => [k, stripDashesDeep(v)])) as T;
+  }
+  return value;
+}
+
 /* ------------------------------------------------------------------ PDF */
 
 /**

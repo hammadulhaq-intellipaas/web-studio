@@ -114,7 +114,7 @@ function fixtureQuestions(record: OnboardingFormRecord, candidates: string[], ma
           {
             target: { field: 'usps', row_id: null, sub: null },
             question_de: 'Was genau macht Sie besser als andere Anbieter – nennen Sie zwei oder drei konkrete Punkte?',
-            question_en: 'What exactly makes you better than other providers — name two or three concrete points?',
+            question_en: 'What sets you apart from other providers? Two or three concrete points would be ideal.',
             quick_replies: [],
           },
         ]

@@ -49,22 +49,22 @@ Please do not put passwords anywhere in this form. We will arrange access separa
     key: 'review_intro',
     title_de: 'Fast fertig',
     title_en: 'Almost there',
-    de: `Wir haben Ihre Antworten durchgesehen. Zu ein paar Punkten haben wir noch kurze Nachfragen – jede davon können Sie auch überspringen. Danach fassen wir alles für Sie zusammen.`,
-    en: `We've been through your answers. There are a few short follow-ups — every one of them can be skipped. After that we put everything together for you.`,
+    de: `Vielen Dank, damit haben wir alles, worum wir Sie gebeten haben. Bevor wir alles für Ihre abschließende Durchsicht zusammenführen, prüfen wir Ihre Angaben und stellen Ihnen gegebenenfalls noch einige kurze Fragen. Jede davon ist freiwillig: Beantworten Sie, was Sie mögen, und überspringen Sie den Rest.`,
+    en: `Thank you, that is everything we asked for. Before we bring it all together for your final review, we look over your answers and may ask a few brief questions. Each one is optional, so answer what you like and skip the rest.`,
   },
   {
     key: 'review_nothing',
-    title_de: 'Alles da',
-    title_en: 'All there',
-    de: `Wir haben keine Nachfragen. Wir fassen Ihre Angaben jetzt zusammen.`,
-    en: `No follow-ups needed. We're putting your brief together now.`,
+    title_de: 'Alles vollständig',
+    title_en: 'Everything is in order',
+    de: `Ihre Angaben sind vollständig, wir haben keine weiteren Fragen. Als Nächstes führen wir alles für Ihre abschließende Durchsicht zusammen.`,
+    en: `Your answers are complete and we have no further questions. Next, we bring everything together for your final review.`,
   },
   {
     key: 'brief_intro',
     title_de: 'So haben wir Sie verstanden',
     title_en: 'This is our understanding of what you want',
-    de: `Lesen Sie das Briefing bitte in Ruhe durch. Stimmt etwas nicht, ändern Sie den Abschnitt direkt oder sagen Sie uns, was daran falsch ist – wir schreiben ihn dann neu. Was wir noch von Ihnen brauchen, steht am Ende. Mit Ihrer Bestätigung starten wir den Bau auf dieser Grundlage.`,
-    en: `Please read the brief carefully. If something is wrong, edit the section directly or tell us what's off and we'll rewrite it. What we still need from you is listed at the end. Your confirmation is what we start building from.`,
+    de: `Lesen Sie das Briefing bitte in Ruhe durch. Stimmt etwas nicht, ändern Sie den Abschnitt direkt oder sagen Sie uns, was daran falsch ist, und wir schreiben ihn neu. Was wir noch von Ihnen brauchen, steht am Ende. Mit Ihrer Bestätigung starten wir den Bau auf dieser Grundlage.`,
+    en: `Please read the brief carefully. If something is wrong, edit the section directly or tell us what is off and we will rewrite it. What we still need from you is listed at the end. Your confirmation is what we start building from.`,
   },
   {
     key: 'terms',
@@ -172,36 +172,48 @@ A copy of everything you have told us is on its way to you.`,
     key: 'understood',
     title_de: 'Das haben wir verstanden',
     title_en: 'Here is what we have understood',
-    de: `Bevor Sie bestätigen, lesen Sie das bitte einmal durch. Wenn etwas davon falsch ist, lässt es sich jetzt viel günstiger korrigieren als nach dem Entwurf.
+    de: `Bevor Sie bestätigen, lesen Sie dies bitte einmal in Ruhe. Sollte etwas nicht stimmen, lässt es sich jetzt weit einfacher korrigieren als nach dem Entwurf.
 
-Sie sind {business_one_liner}, arbeiten {service_scope}, vor allem für {target_audience}.
+- **Was Sie tun:** {business_one_liner}
+- **Wo Sie tätig sind:** {service_area}
+- **Für wen die Website ist:** {target_audience}
+- **Ihr idealer Kunde:** {ideal_customer}
+- **Wen sie nicht ansprechen soll:** {excluded_audience}
+- **Warum Kunden Sie wählen:** {usps}
+- **Was ein Besucher vor allem tun soll:** {visitor_action}
+- **Wirkung:** {tone_caption}
+- **Design:** {boldness_caption}
+- **In Ihren Worten:** {style_notes}
+- **Farbstimmung:** {colour_mood}
+- **Markenfarben:** {brand_colours}
+- **Schrift:** {typography_feel}
+- **Fotos:** {photo_subjects}
+- **Ganz oben auf der Startseite:** {hero_intent}
+- **Umfang der Startseite:** {homepage_density}
+- **Eine Website, die Ihnen gefällt:** {reference_1_link}, wegen: {reference_1_likes}
+- **Bitte vermeiden:** {do_not_want}
+- **Das stellen wir nach vorne:** {proof_to_show}`,
+    en: `Before you confirm, please take a moment to read this through. If anything is not quite right, it is far easier to refine now than after we have designed it.
 
-Sie heben sich ab, weil {usps}.
-
-Am meisten wollen Sie, dass ein Besucher {visitor_action}.
-
-Es soll {tone_caption} wirken, {boldness_caption}, {colour_mood}, mit {brand_colours} und {typography_feel} Schrift. Die Fotos zeigen {photo_subjects}. Ganz oben auf der Startseite: {hero_intent}. {homepage_density}.
-
-{reference_1_link} gefiel Ihnen wegen {reference_1_likes}.
-
-Sie wollen nicht: {do_not_want}.
-
-Wir stellen {proof_to_show} nach vorne.`,
-    en: `Before you confirm, please read this back. If any of it is wrong, it is far cheaper to fix here than after we have designed it.
-
-You are {business_one_liner}, working {service_scope}, mainly for {target_audience}.
-
-You stand out because {usps}.
-
-The thing you most want a visitor to do is {visitor_action}.
-
-It should look {tone_caption}, {boldness_caption}, {colour_mood}, using {brand_colours}, with {typography_feel} lettering. The photos show {photo_subjects}. At the top of the homepage: {hero_intent}. {homepage_density}.
-
-You liked {reference_1_link} for {reference_1_likes}.
-
-You do not want {do_not_want}.
-
-We will lead with {proof_to_show}.`,
+- **What you do:** {business_one_liner}
+- **Where you work:** {service_area}
+- **Who the site is for:** {target_audience}
+- **Your ideal customer:** {ideal_customer}
+- **Who it should not attract:** {excluded_audience}
+- **Why customers choose you:** {usps}
+- **The one thing a visitor should do:** {visitor_action}
+- **How it should feel:** {tone_caption}
+- **Design:** {boldness_caption}
+- **In your words:** {style_notes}
+- **Colour mood:** {colour_mood}
+- **Brand colours:** {brand_colours}
+- **Lettering:** {typography_feel}
+- **Photos:** {photo_subjects}
+- **Top of the homepage:** {hero_intent}
+- **How much the homepage says:** {homepage_density}
+- **A website you like:** {reference_1_link}, for: {reference_1_likes}
+- **Please avoid:** {do_not_want}
+- **What we will lead with:** {proof_to_show}`,
   },
   {
     key: 'notice_proofreading',
@@ -255,19 +267,53 @@ Your progress is saved. The link is meant for you only — please don't share it
 Your Web Studio team`,
   },
   {
-    key: 'email_brief_client',
-    title_de: 'Ihr bestätigtes Website-Briefing – {company}',
-    title_en: 'Your confirmed website brief — {company}',
+    // Sent the moment the customer saves their quote: the quote is settled, the brief is
+    // what happens next. Deliberately separate from `email_save_link`, which is the plain
+    // "here is your link back" note the form's own button sends.
+    key: 'email_welcome_onboard',
+    title_de: 'Willkommen an Bord – Ihr Website-Briefing',
+    title_en: 'Welcome onboard — your website brief',
     de: `Hallo {name},
 
-vielen Dank für Ihre Bestätigung. Im Anhang finden Sie Ihr Briefing als PDF – die Grundlage, auf der wir Ihre Website bauen.
+willkommen an Bord! Ihr Angebot ist gespeichert, und damit geht es an die Arbeit.
+
+Als Nächstes brauchen wir Ihr Briefing. Hier ist Ihr persönlicher Link dazu:
+
+{link}
+
+Sie können das Formular in Ruhe ausfüllen, auch in mehreren Sitzungen: Jede Angabe wird in dem Moment gespeichert, in dem Sie sie eintippen, und Sie können später jederzeit etwas ändern.
+
+Der Link ist nur für Sie bestimmt – bitte geben Sie ihn nicht weiter.
+
+Ihr Web Studio Team`,
+    en: `Hello {name},
+
+Welcome onboard! Your quote is saved, and that is what we start from.
+
+Next we need your brief. Here is your personal link to it:
+
+{link}
+
+Take your time with it, over as many sittings as you like: every answer is saved the moment you type it, and you can change anything later.
+
+The link is meant for you only — please don't share it.
+
+Your Web Studio team`,
+  },
+  {
+    key: 'email_brief_client',
+    title_de: 'Ihr bestätigtes Website-Briefing: {company}',
+    title_en: 'Your confirmed website brief: {company}',
+    de: `Hallo {name},
+
+vielen Dank für Ihre Bestätigung. Im Anhang finden Sie Ihr Briefing als PDF, die Grundlage, auf der wir Ihre Website bauen.
 
 Was wir noch von Ihnen brauchen, steht im letzten Abschnitt. Wir melden uns dazu und mit dem ersten Design-Eindruck.
 
 Ihr Web Studio Team`,
     en: `Hello {name},
 
-Thank you for confirming. Attached is your brief as a PDF — the basis we build your website on.
+Thank you for confirming. Attached is your brief as a PDF, the basis we build your website on.
 
 Anything we still need from you is in the last section. We'll be in touch about that and with the first design impression.
 

@@ -43,7 +43,7 @@ export function briefSchema(sections: OnbBriefSection[], fieldKeys: [string, ...
 
 function sectionSpec(section: OnbBriefSection, definition: OnboardingDefinition, locale: Locale): string {
   return [
-    `### ${section.id} — "${loc(section as unknown as Record<string, unknown>, 'title', locale)}"`,
+    `### ${section.id}: "${loc(section as unknown as Record<string, unknown>, 'title', locale)}"`,
     section.instructions ?? '',
     `Source fields: ${section.source_fields.join(', ') || '(none)'}`,
   ]
@@ -159,7 +159,7 @@ export function fallbackSections(
         sources.push(key);
       } else if (field.required) missing.push(label);
     }
-    out[section.id] = { content_markdown: lines.join('\n\n') || '—', still_needed: missing, sources };
+    out[section.id] = { content_markdown: lines.join('\n\n') || (locale === 'de' ? 'Keine Angaben.' : 'Nothing provided.'), still_needed: missing, sources };
   }
   return out;
 }
@@ -189,7 +189,7 @@ export function stillNeededSection(
   }
   for (const s of skippedItems(record, definition, locale)) push(s);
   for (const section of Object.values(llmSections)) for (const s of section.still_needed) push(s);
-  const nothing = locale === 'de' ? 'Nichts – alle Angaben liegen vor.' : 'Nothing — everything is there.';
+  const nothing = locale === 'de' ? 'Nichts, alle Angaben liegen vor.' : 'Nothing, everything is there.';
   return {
     content_markdown: items.length ? items.map((i) => `- ${i}`).join('\n') : nothing,
     still_needed: items,

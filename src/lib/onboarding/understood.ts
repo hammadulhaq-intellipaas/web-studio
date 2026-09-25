@@ -1,10 +1,8 @@
 import type { Locale } from '@/lib/types';
 import { textFor } from './texts';
-import { linesOf, sliderCaptionIndex, textOf } from './logic';
+import { linesOf, sliderPhrase, textOf } from './logic';
+import { stripDashes } from './guardrails';
 import { loc, type Answers, type OnbField, type OnboardingDefinition, type RepeaterRow } from './types';
-
-/** Shown in place of an answer we do not have, so the read-back never invents one. */
-const MISSING = { de: '…', en: '…' };
 
 function labelOf(field: OnbField | undefined, value: unknown, locale: Locale): string {
   if (!field || typeof value !== 'string') return '';
@@ -22,8 +20,7 @@ function labelsOf(field: OnbField | undefined, value: unknown, locale: Locale): 
 
 function captionOf(field: OnbField | undefined, value: unknown, locale: Locale): string {
   if (!field || typeof value !== 'number') return '';
-  const caption = field.config.captions?.[sliderCaptionIndex(field, value)];
-  return caption ? caption[locale] : '';
+  return sliderPhrase(field, value, locale);
 }
 
 /** Free text read back inline: lines become a comma-separated list, no trailing stop. */
@@ -52,17 +49,23 @@ export function understoodTokens(definition: OnboardingDefinition, answers: Answ
   const noneTicked = (id: string) => !!answers[id]?.none;
   const avoid = noneTicked('avoid') ? (locale === 'de' ? 'nichts Bestimmtes' : 'nothing in particular') : text('avoid');
   const colours = noneTicked('brand_colours') ? '' : text('brand_colours');
+  const lower = (v: string) => v.toLocaleLowerCase(locale === 'de' ? 'de-DE' : 'en-GB');
+  const styleNotes = [text('tone_note'), text('personality_note')].filter(Boolean).join('; ');
 
   return {
     business_one_liner: text('business_one_liner'),
     target_audience: text('target_audience'),
+    ideal_customer: text('ideal_customer'),
+    excluded_audience: text('excluded_audience'),
     usps: text('usps'),
-    service_scope: pick('service_scope').toLocaleLowerCase(locale === 'de' ? 'de-DE' : 'en-GB'),
+    style_notes: styleNotes,
+    service_area: text('regions_served') || pick('service_scope'),
+    service_scope: lower(pick('service_scope')),
     visitor_action: pick('visitor_action').toLocaleLowerCase(locale === 'de' ? 'de-DE' : 'en-GB'),
-    tone_caption: captionOf(field('tone_scale'), value('tone_scale'), locale).toLocaleLowerCase(locale === 'de' ? 'de-DE' : 'en-GB'),
-    boldness_caption: captionOf(field('personality_scale'), value('personality_scale'), locale).toLocaleLowerCase(locale === 'de' ? 'de-DE' : 'en-GB'),
+    tone_caption: captionOf(field('tone_scale'), value('tone_scale'), locale),
+    boldness_caption: captionOf(field('personality_scale'), value('personality_scale'), locale),
     colour_mood: picks('colour_mood').toLocaleLowerCase(locale === 'de' ? 'de-DE' : 'en-GB'),
-    brand_colours: colours || (locale === 'de' ? 'Ihren Farben' : 'your colours'),
+    brand_colours: colours,
     typography_feel: pick('typography_feel').toLocaleLowerCase(locale === 'de' ? 'de-DE' : 'en-GB'),
     photo_subjects: picks('photo_subjects').toLocaleLowerCase(locale === 'de' ? 'de-DE' : 'en-GB'),
     hero_intent: pick('hero_intent').toLocaleLowerCase(locale === 'de' ? 'de-DE' : 'en-GB'),
@@ -74,9 +77,25 @@ export function understoodTokens(definition: OnboardingDefinition, answers: Answ
   };
 }
 
-/** The CMS read-back text with its tokens filled in. */
+const TOKEN = /\{(\w+)\}/g;
+
+/** Upper-case the first letter of a bullet's value ("- **Label:** value"). */
+function capitaliseBullet(line: string): string {
+  return line.replace(/^(\s*[-*]\s+\*\*[^*]+\*\*\s*)(\p{Ll})/u, (_, head: string, first: string) => head + first.toLocaleUpperCase());
+}
+
+/**
+ * The CMS read-back text with its tokens filled in. It is read line by line: a line whose
+ * tokens have no answer is left out rather than shown with a gap, so nothing is invented
+ * and nothing reads as broken. Every value is the client's own; no dashes survive.
+ */
 export function understoodText(definition: OnboardingDefinition, answers: Answers, locale: Locale): string {
   const tokens = understoodTokens(definition, answers, locale);
   const template = textFor(definition.texts, 'understood', locale)?.content_markdown ?? '';
-  return template.replace(/\{(\w+)\}/g, (_, key: string) => tokens[key]?.trim() || MISSING[locale]);
+  const lines = template.split('\n').flatMap((line) => {
+    const keys = Array.from(line.matchAll(TOKEN), (m) => m[1]);
+    if (keys.length && keys.some((k) => !tokens[k]?.trim())) return [];
+    return [capitaliseBullet(line.replace(TOKEN, (_, key: string) => tokens[key].trim()))];
+  });
+  return stripDashes(lines.join('\n').replace(/\n{3,}/g, '\n\n').trim());
 }

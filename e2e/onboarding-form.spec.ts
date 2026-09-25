@@ -86,7 +86,8 @@ test.describe('onboarding form', () => {
     await page.fill('[data-testid=f-private_content_detail]', 'Preislisten für Partnerpraxen');
     await next(page, 'inboxes');
 
-    // ---- Screen 3 · Inboxes: routing splits into a table
+    // ---- Screen 3 · Inboxes: the public addresses, then routing splits into a table
+    await page.fill('[data-testid=f-site_emails]', 'praxis@physio-nordend.example, allgemeine Anfragen');
     await page.click('[data-testid=opt-routing_split-yes]');
     await page.fill('[data-testid=f-notification_routing-0-type]', 'Allgemeine Anfrage');
     await expect(page.locator('[data-testid=f-notification_routing-0-type]')).toHaveValue('Allgemeine Anfrage');

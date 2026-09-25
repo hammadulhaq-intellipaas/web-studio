@@ -142,6 +142,7 @@ export function FieldRenderer(props: FieldRendererProps) {
       locale={locale}
       required={required}
       errors={errors}
+      answer={answer}
       dontKnow={dk}
       onDontKnow={(on) => onChange(on ? { v: null, dk: true } : null)}
       dontKnowDate={answer?.dk_date}
