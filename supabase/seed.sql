@@ -209,8 +209,7 @@ insert into app_settings (key, value) values
 ]'),
 ('next_steps', '[
   {"de":"Wir melden uns persönlich bei Ihnen — meist noch am selben Tag.","en":"We will contact you personally — usually the same day."},
-  {"de":"Wir stimmen Details & Anzahlung (50 %) gemeinsam ab.","en":"We align on details & the deposit (50%) together."},
-  {"de":"Ihre Website ist in 14 Tagen live.","en":"Your website goes live in 14 days."}
+  {"de":"Wir stimmen Details & Anzahlung (50 %) gemeinsam ab.","en":"We align on details & the deposit (50%) together."}
 ]'),
 ('team_email', '"leads@intellipaas.io"'),
 ('calendly_event_url', '""');

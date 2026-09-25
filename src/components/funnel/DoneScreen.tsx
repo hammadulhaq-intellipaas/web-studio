@@ -144,7 +144,8 @@ export function DoneScreen({ catalog }: { catalog: Catalog }) {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(3,1fr)',
+          // As many columns as there are steps (CMS-edited), so none is left empty.
+          gridTemplateColumns: `repeat(${Math.max(1, catalog.nextSteps.length)},1fr)`,
           gap: 12,
           textAlign: 'left',
           marginBottom: 28,
