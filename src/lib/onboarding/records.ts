@@ -26,6 +26,8 @@ import type {
 
 export interface StoredFile extends FileSummary {
   id: string;
+  /** `onboarding-uploads`, or `lead-uploads` for files uploaded before 25 Sep 2026. */
+  bucket: string;
   storage_path: string;
   created_at: string;
 }
@@ -50,10 +52,21 @@ export async function loadForm(id: string): Promise<OnboardingFormRecord | null>
 export async function loadFiles(formId: string): Promise<StoredFile[]> {
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase
-    .from('lead_files')
-    .select('id, field_key, file_name, size_bytes, mime_type, storage_path, created_at')
-    .eq('onboarding_form_id', formId)
+    .from('onboarding_files')
+    .select('id, field_key, file_name, size_bytes, mime_type, bucket, storage_path, created_at')
+    .eq('form_id', formId)
     .order('created_at');
+  // Until migration 20260925000016 is applied the table does not exist: read the old rows
+  // so the form keeps loading (uploads fail politely until the bucket exists too).
+  if (error?.code === 'PGRST205' || error?.code === '42P01') {
+    const legacy = await supabase
+      .from('lead_files')
+      .select('id, field_key, file_name, size_bytes, mime_type, storage_path, created_at')
+      .eq('onboarding_form_id', formId)
+      .order('created_at');
+    if (legacy.error) throw new Error(`Failed to load onboarding files: ${legacy.error.message}`);
+    return (legacy.data ?? []).map((f) => ({ ...f, bucket: 'lead-uploads' })) as StoredFile[];
+  }
   if (error) throw new Error(`Failed to load onboarding files: ${error.message}`);
   return (data ?? []) as StoredFile[];
 }

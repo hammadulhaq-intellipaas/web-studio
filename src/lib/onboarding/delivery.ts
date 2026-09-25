@@ -6,11 +6,14 @@ import { exportRecord } from './export';
 import { pdfFileName, renderBriefPdf } from './pdf/render';
 import { loadBrief, loadFiles, loadForm } from './records';
 import type { DeliveryState, OnboardingBrief, OnboardingDefinition, OnboardingFormRecord } from './types';
+import { ONB_BUCKET } from './uploads';
 
-const BUCKET = 'lead-uploads';
+/** Briefs rendered before 25 Sep 2026 sit in the funnel's bucket under `onboarding/`. */
+const LEGACY_BUCKET = 'lead-uploads';
 
+/** Next to the client's uploads, in the form's own folder. */
 export function pdfStoragePath(formId: string, version: number): string {
-  return `onboarding/${formId}/brief-v${version}.pdf`;
+  return `${formId}/brief-v${version}.pdf`;
 }
 
 async function writeDelivery(formId: string, delivery: DeliveryState): Promise<void> {
@@ -27,14 +30,15 @@ export async function ensurePdf(
   const supabase = createSupabaseAdminClient();
   const path = pdfStoragePath(record.id, brief.version);
   const buffer = await renderBriefPdf(definition, record, brief);
-  const { error } = await supabase.storage.from(BUCKET).upload(path, buffer, { contentType: 'application/pdf', upsert: true });
+  const { error } = await supabase.storage.from(ONB_BUCKET).upload(path, buffer, { contentType: 'application/pdf', upsert: true });
   if (error) throw new Error(`PDF upload failed: ${error.message}`);
   return { path, buffer };
 }
 
 export async function downloadPdf(path: string): Promise<Buffer | null> {
   const supabase = createSupabaseAdminClient();
-  const { data, error } = await supabase.storage.from(BUCKET).download(path);
+  const bucket = path.startsWith('onboarding/') ? LEGACY_BUCKET : ONB_BUCKET;
+  const { data, error } = await supabase.storage.from(bucket).download(path);
   if (error || !data) return null;
   return Buffer.from(await data.arrayBuffer());
 }

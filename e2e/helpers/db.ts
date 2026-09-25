@@ -107,12 +107,21 @@ export async function cleanupTestData() {
   if (ids.length) await db.from('funnel_sessions').delete().in('id', ids);
   await db.from('vouchers').delete().ilike('code', 'E2E%');
   // Onboarding forms cascade to their briefs, AI log and upload rows. Every test fills the
-  // contact email first, so the marker covers forms abandoned mid-test as well. Stored PDFs
-  // live in the bucket, not in a cascading row — remove them by prefix first.
+  // contact email first, so the marker covers forms abandoned mid-test as well. The objects
+  // themselves (uploads in `<id>/<field>/`, PDFs in `<id>/`) do not cascade: remove the
+  // form's folder first.
   const { data: forms } = await db.from('onboarding_forms').select('id').ilike('email', 'e2e-%@example.com');
   for (const f of forms ?? []) {
-    const { data: objects } = await db.storage.from('lead-uploads').list(`onboarding/${f.id}`);
-    if (objects?.length) await db.storage.from('lead-uploads').remove(objects.map((o) => `onboarding/${f.id}/${o.name}`));
+    const paths: string[] = [];
+    const { data: top } = await db.storage.from('onboarding-uploads').list(f.id);
+    for (const o of top ?? []) {
+      if (o.id) paths.push(`${f.id}/${o.name}`);
+      else {
+        const { data: inner } = await db.storage.from('onboarding-uploads').list(`${f.id}/${o.name}`);
+        for (const i of inner ?? []) paths.push(`${f.id}/${o.name}/${i.name}`);
+      }
+    }
+    if (paths.length) await db.storage.from('onboarding-uploads').remove(paths);
   }
   await db.from('onboarding_forms').delete().ilike('email', 'e2e-%@example.com');
 }

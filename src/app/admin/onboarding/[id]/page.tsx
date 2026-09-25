@@ -75,7 +75,7 @@ export default async function OnboardingDetailPage({ params }: { params: Promise
   const signed = await Promise.all(
     files.map(async (f) => {
       const isSvg = f.mime_type === 'image/svg+xml';
-      const { data } = await admin.storage.from('lead-uploads').createSignedUrl(f.storage_path, 3600, isSvg ? { download: true } : undefined);
+      const { data } = await admin.storage.from(f.bucket).createSignedUrl(f.storage_path, 3600, isSvg ? { download: true } : undefined);
       return { ...f, url: data?.signedUrl ?? null };
     }),
   );

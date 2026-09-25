@@ -4,17 +4,27 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import type { FileSummary } from '@/lib/onboarding/export';
 import type { OnbField } from '@/lib/onboarding/types';
+import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { BLUE, BODY, MUTED2 } from '@/components/funnel/ui';
 
 export type PublicFile = FileSummary & { id: string };
 
 type Reason = 'unsupported_type' | 'too_large' | 'over_total' | 'too_many' | 'upload_failed';
+type Rejected = { name: string; reason: Reason }[];
+interface Ticket {
+  name: string;
+  path: string;
+  token: string;
+  content_type: string;
+}
 
 const DEFAULT_ACCEPT = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif', 'heic', 'heif', 'svg', 'pdf', 'doc', 'docx', 'eps', 'ai', 'zip'];
 
 /**
  * Drag-and-drop upload bound to the form (no sign-in). Mirrors the funnel's UploadZone;
- * files are owned by the form and this field, and can be removed again.
+ * files are owned by the form and this field, and can be removed again. Files go straight
+ * to storage on a one-time signed URL (a request through Vercel caps out at 4.5 MB): the
+ * route signs, the browser uploads, the route confirms and records.
  */
 export function UploadInput({
   field,
@@ -65,17 +75,50 @@ export function UploadInput({
 
     setBusy(true);
     setErrors([]);
+    const endpoint = `/api/onboarding/${formId}/uploads`;
+    const json = { 'Content-Type': 'application/json' };
+    const pending = new Set(accepted.map((f) => f.name));
     try {
-      const form = new FormData();
-      accepted.forEach((f) => form.append('files', f));
-      form.append('field_key', field.id);
-      const res = await fetch(`/api/onboarding/${formId}/uploads`, { method: 'POST', body: form });
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: json,
+        body: JSON.stringify({ field_key: field.id, files: accepted.map((f) => ({ name: f.name, size: f.size })) }),
+      });
       if (!res.ok) throw new Error(String(res.status));
-      const data = (await res.json()) as { files: PublicFile[]; rejected: { name: string; reason: Reason }[] };
-      onFiles(data.files);
-      problems.push(...data.rejected.map((r) => describe(r.name, r.reason)));
+      const signed = (await res.json()) as { bucket: string; tickets: Ticket[]; rejected: Rejected };
+      for (const r of signed.rejected) {
+        pending.delete(r.name);
+        problems.push(describe(r.name, r.reason));
+      }
+
+      const storage = createSupabaseBrowserClient().storage.from(signed.bucket);
+      for (const ticket of signed.tickets) {
+        const file = accepted.find((f) => f.name === ticket.name && pending.has(f.name));
+        if (!file) continue;
+        pending.delete(file.name);
+        // Re-typed: for a Blob body storage uses the blob's own type and ignores
+        // `contentType`, and browsers leave it empty for HEIC, EPS or AI files.
+        const typed = new Blob([file], { type: ticket.content_type });
+        const { error } = await storage.uploadToSignedUrl(ticket.path, ticket.token, typed);
+        if (error) {
+          problems.push(describe(file.name, 'upload_failed'));
+          continue;
+        }
+        const done = await fetch(endpoint, {
+          method: 'PUT',
+          headers: json,
+          body: JSON.stringify({ field_key: field.id, path: ticket.path, name: file.name }),
+        });
+        if (!done.ok) {
+          problems.push(describe(file.name, 'upload_failed'));
+          continue;
+        }
+        const confirmed = (await done.json()) as { files: PublicFile[]; rejected: Rejected };
+        onFiles(confirmed.files);
+        problems.push(...confirmed.rejected.map((r) => describe(r.name, r.reason)));
+      }
     } catch {
-      problems.push(...accepted.map((f) => describe(f.name, 'upload_failed')));
+      problems.push(...Array.from(pending).map((name) => describe(name, 'upload_failed')));
     } finally {
       setErrors(problems);
       setBusy(false);
