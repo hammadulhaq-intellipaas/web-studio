@@ -36,9 +36,12 @@ export function QuoteBanner({ catalog }: { catalog: Catalog }) {
   const date = quote.submittedAt
     ? new Date(quote.submittedAt).toLocaleDateString(locale === 'de' ? 'de-DE' : 'en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
     : '';
+  // Prices are stored in euros and converted for display, so these format with the locale
+  // of the page, not of the lead: a quote raised on /en, reopened on the German page, must
+  // not print dollars above a sidebar printing euros for the same configuration.
   const totals = t('bannerTotals', {
-    once: fmt(quote.oneTime, quote.locale, catalog),
-    monthly: mon(quote.monthly, quote.locale, catalog),
+    once: fmt(quote.oneTime, locale, catalog),
+    monthly: mon(quote.monthly, locale, catalog),
   });
   const name = [lead.vorname, lead.nachname].filter(Boolean).join(' ') || lead.firma || lead.email;
 
