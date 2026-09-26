@@ -214,9 +214,11 @@ export const useFunnel = create<FunnelState>()(
           leadId: quote?.leadId ?? null,
           justSubmitted: false,
           calendlyBooked: false,
-          // A bound quote reopens on the configurator (with the quote banner), never on
-          // the contact form or the thank-you screen.
-          ...(quote && (step === 'lead' || step === 'done') ? { step: 'config' as FunnelStep } : {}),
+          // A bound quote always reopens on the configurator, with the quote banner. This
+          // used to name only 'lead' and 'done', so a session left on the landing page or
+          // mid-questionnaire dropped the customer at the start of the funnel with no sign
+          // they had a quote at all: their link looked broken.
+          ...(quote && step !== 'config' ? { step: 'config' as FunnelStep } : {}),
         });
       },
       setQuote: (quote) => set({ quote, leadId: quote?.leadId ?? get().leadId }),
