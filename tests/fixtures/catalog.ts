@@ -140,9 +140,9 @@ export function makeCatalog(): Catalog {
       { id: 'fortress', name_de: '', name_en: '', setup_price: 200, monthly_price: 249, desc_de: '', desc_en: '', recommended: false, included_when: null, sort: 3 },
     ],
     supportPlans: [
-      { id: 'none', name_de: '', name_en: '', price_monthly: null, desc_de: '', desc_en: '', sort: 0 },
-      { id: 'std', name_de: '', name_en: '', price_monthly: 49, desc_de: '', desc_en: '', sort: 1 },
-      { id: 'vip', name_de: '', name_en: '', price_monthly: 199, desc_de: '', desc_en: '', sort: 3 },
+      { id: 'none', name_de: '', name_en: '', price_monthly: null, desc_de: '', desc_en: '', included_hours: 0, sla_en: 'No SLA', channels_en: 'Billed by effort', sort: 0 },
+      { id: 'std', name_de: '', name_en: '', price_monthly: 49, desc_de: '', desc_en: '', included_hours: 1, sla_en: 'SLA 2-3 business days', channels_en: 'Email', sort: 1 },
+      { id: 'vip', name_de: '', name_en: '', price_monthly: 199, desc_de: '', desc_en: '', included_hours: 5, recommended: true, sla_en: 'Same business day', channels_en: 'Email, chat, phone', sort: 3 },
     ],
     personas: [
       {
@@ -165,6 +165,9 @@ export function makeCatalog(): Catalog {
     nextSteps: [],
     calendlyEventUrl: '',
     supportEmail: 'hallo@example.com',
+    supportHourlyRate: 150,
+    supportDayRate: 1200,
+    supportRolloverMonths: 2,
     defaultBundle: 'gold',
     defaultCarePlan: 'plus',
     defaultCloudflarePlan: 'shield',

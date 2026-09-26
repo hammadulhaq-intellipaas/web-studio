@@ -73,6 +73,9 @@ export const getCatalog = cache(async (): Promise<Catalog> => {
     calendlyEventUrl: String(settingsMap.calendly_event_url || process.env.NEXT_PUBLIC_CALENDLY_URL || ''),
     // Falls back to the team address: better one real inbox than none at all.
     supportEmail: String(settingsMap.support_email || settingsMap.team_email || ''),
+    supportHourlyRate: Number(settingsMap.support_hourly_rate ?? 150),
+    supportDayRate: Number(settingsMap.support_day_rate ?? 1200),
+    supportRolloverMonths: Number(settingsMap.support_rollover_months ?? 2),
     defaultBundle: String(settingsMap.default_bundle ?? 'gold'),
     defaultCarePlan: String(settingsMap.default_care_plan ?? 'plus'),
     defaultCloudflarePlan: String(settingsMap.default_cloudflare_plan ?? 'shield'),

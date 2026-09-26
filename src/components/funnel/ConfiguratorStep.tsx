@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslations } from 'next-intl';
-import type { Addon, Catalog } from '@/lib/types';
+import type { Addon, Catalog, Locale } from '@/lib/types';
 import { pickLocale } from '@/lib/types';
 import { fmt, mon } from '@/lib/format';
 import {
@@ -42,6 +42,11 @@ import {
 
 function singularUnit(unit: string, locale: 'de' | 'en'): string {
   return locale === 'de' ? unit.replace(/n$/, '') : unit.replace(/s$/, '');
+}
+
+/** "2.5" in English, "2,5" in German, and a bare "0" / "1" without a stray decimal. */
+function formatHours(hours: number, locale: Locale): string {
+  return hours.toLocaleString(locale === 'de' ? 'de-DE' : 'en-GB', { maximumFractionDigits: 1 });
 }
 
 function RecBadge({ label, small }: { label: string; small?: boolean }) {
@@ -983,6 +988,12 @@ function CareSection({ catalog }: { catalog: Catalog }) {
       >
         {catalog.supportPlans.map((sp) => {
           const isSelected = store.support === sp.id;
+          const hours = Number(sp.included_hours ?? 0);
+          const sla = pickLocale(sp as unknown as Record<string, unknown>, 'sla', locale);
+          const channels = pickLocale(sp as unknown as Record<string, unknown>, 'channels', locale);
+          // The split lines only exist once the support-hours migration has run. Until then
+          // each card keeps its single description, so nothing breaks in between.
+          const detailed = !!(sla || channels);
           return (
             <button
               key={sp.id}
@@ -991,25 +1002,64 @@ function CareSection({ catalog }: { catalog: Catalog }) {
               className="hov-blue-border"
               style={{
                 ...planCardStyle,
+                display: 'flex',
+                flexDirection: 'column',
                 background: isSelected ? '#EDF3FF' : '#ffffff',
                 borderColor: isSelected ? BLUE : BORDER,
               }}
             >
+              {sp.recommended && <RecBadge label={t('recBadge')} />}
               <div style={{ fontSize: 14.5, fontWeight: 800 }}>
                 {pickLocale(sp as unknown as Record<string, unknown>, 'name', locale)}
               </div>
               <div style={{ fontSize: 12.5, fontWeight: 700, color: INK, marginTop: 3 }}>
-                {sp.price_monthly != null
-                  ? `${mon(disc(Number(sp.price_monthly)), locale, catalog)}${labels.perMonth}`
-                  : `${mon(0, locale, catalog)}${labels.perMonth}`}
+                {mon(disc(Number(sp.price_monthly ?? 0)), locale, catalog)}
+                {labels.perMonth}
               </div>
-              <div style={{ fontSize: 12, color: BODY, lineHeight: 1.5, marginTop: 6 }}>
-                {pickLocale(sp as unknown as Record<string, unknown>, 'desc', locale)}
-              </div>
+
+              {detailed ? (
+                <>
+                  {/* What they get, in the size that makes the upsell obvious. */}
+                  <div style={{ marginTop: 12 }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: -0.8, color: hours ? INK : MUTED, lineHeight: 1.1 }}>
+                      {t('supHours', { hours: formatHours(hours, locale) })}
+                    </div>
+                    <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.4, marginTop: 2 }}>
+                      {hours ? t('supIncludedMonthly') : t('supIncluded')}
+                    </div>
+                    {hours > 0 ? (
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: GREEN, marginTop: 6 }} data-testid={`support-worth-${sp.id}`}>
+                        {t('supWorth', { amount: fmt(hours * catalog.supportHourlyRate, locale, catalog) })}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 12, color: MUTED, marginTop: 6 }} data-testid={`support-dayrate-${sp.id}`}>
+                        {t('supDayRate', { amount: fmt(catalog.supportDayRate, locale, catalog) })}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ borderTop: `1px solid ${BORDER}`, margin: '12px 0 10px' }} />
+                  <div style={{ fontSize: 12, color: hours ? BODY : MUTED, lineHeight: 1.5 }}>{sla}</div>
+                  <div style={{ fontSize: 12, color: hours ? BODY : MUTED, lineHeight: 1.5 }}>{channels}</div>
+                </>
+              ) : (
+                <div style={{ fontSize: 12, color: BODY, lineHeight: 1.5, marginTop: 6 }}>
+                  {pickLocale(sp as unknown as Record<string, unknown>, 'desc', locale)}
+                </div>
+              )}
             </button>
           );
         })}
       </div>
+      {/* Hours they do not use are not lost, which is the whole reason to take a plan. */}
+      {catalog.supportRolloverMonths > 0 && catalog.supportPlans.some((sp) => Number(sp.included_hours ?? 0) > 0) && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: MUTED, marginTop: -12, marginBottom: 22 }} data-testid="support-rollover">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path d="M3 12a9 9 0 0 1 15.5-6.2M21 12a9 9 0 0 1-15.5 6.2" stroke={MUTED} strokeWidth="2" strokeLinecap="round" />
+            <path d="M18 3v4h-4M6 21v-4h4" stroke={MUTED} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          {t('supRollover', { months: catalog.supportRolloverMonths })}
+        </div>
+      )}
       {bundleId === 'platinum' && (
         <div
           style={{

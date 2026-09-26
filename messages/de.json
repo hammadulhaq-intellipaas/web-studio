@@ -235,7 +235,13 @@
     "shareHint": "Öffnen Sie diesen Link auf einem anderen Gerät, um genau hier weiterzumachen.",
     "disclaimer": "Unverbindliche Schätzung. Endpreise, keine USt. (Reverse-Charge, Leistung der IntelliPaaS Inc., USA).",
     "ctaLead": "Weiter zur Anfrage →",
-    "sslShort": "SSL 256-Bit · Secured by Cloudflare"
+    "sslShort": "SSL 256-Bit · Secured by Cloudflare",
+    "supHours": "{hours} Std.",
+    "supIncludedMonthly": "Support inklusive / Mon.",
+    "supIncluded": "Support inklusive",
+    "supWorth": "Wert {amount}",
+    "supDayRate": "Abrechnung {amount}/Tag",
+    "supRollover": "Nicht genutzte Stunden verfallen nicht, sie gelten noch {months} Monate"
   },
   "reasons": {
     "byowChanges": "Da Sie noch Änderungen brauchen, werten wir Ihre selbst gebaute KI-Seite als Design-Konzept und bauen sie professionell fertig aus. Mit Gold erhalten Sie den vollen Neuaufbau — bis 8 Seiten, 2 Sprachen, Blog und SEO-Basis. „Bring Your Own Website\" bleibt weiterhin wählbar, wenn Sie doch nur live gehen möchten.",

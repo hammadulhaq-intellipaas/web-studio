@@ -157,6 +157,15 @@ export interface SupportPlan {
   price_monthly: number | null;
   desc_de: string;
   desc_en: string;
+  /** Support hours included each month; 0 means billed by effort. */
+  included_hours?: number;
+  /** The tier the cards highlight. Expected on exactly one row. */
+  recommended?: boolean;
+  /** Response time and channels on their own lines. Null falls back to `desc`. */
+  sla_de?: string | null;
+  sla_en?: string | null;
+  channels_de?: string | null;
+  channels_en?: string | null;
   sort: number;
 }
 
@@ -210,6 +219,12 @@ export interface Catalog {
   aiBundleCategory: string;
   /** Live EUR→USD exchange rate for EN locale pricing. */
   eurToUsdRate: number;
+  /** What an hour of support is worth, in euros, for the "worth X" line on the cards. */
+  supportHourlyRate: number;
+  /** Day rate quoted on the no-plan tier, in euros. */
+  supportDayRate: number;
+  /** How many months unused support hours carry over. 0 hides the note. */
+  supportRolloverMonths: number;
 }
 
 /** Answers collected in the question step (ported 1:1 from the prototype). */

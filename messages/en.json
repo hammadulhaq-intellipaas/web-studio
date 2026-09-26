@@ -235,7 +235,13 @@
     "shareHint": "Open this link on another device to pick up exactly where you left off.",
     "disclaimer": "Non-binding estimate. Final prices, no VAT (reverse charge, service provided by IntelliPaaS Inc., USA).",
     "ctaLead": "Continue to inquiry →",
-    "sslShort": "SSL 256-bit · Secured by Cloudflare"
+    "sslShort": "SSL 256-bit · Secured by Cloudflare",
+    "supHours": "{hours} h",
+    "supIncludedMonthly": "support included / mo.",
+    "supIncluded": "support included",
+    "supWorth": "Worth {amount}",
+    "supDayRate": "Billed at {amount}/day",
+    "supRollover": "Unused hours roll over for up to {months} months"
   },
   "reasons": {
     "byowChanges": "Since you still need changes, we treat your self-built AI site as a design concept and professionally finish it. With Gold you get the full rebuild — up to 8 pages, 2 languages, blog and SEO basics. \"Bring Your Own Website\" remains selectable if you only want to go live after all.",
