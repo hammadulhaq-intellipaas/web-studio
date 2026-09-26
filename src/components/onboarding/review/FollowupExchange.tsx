@@ -26,6 +26,7 @@ export function FollowupExchange({
   locale,
   onContinue,
   continuing,
+  onJumpToScreen,
 }: {
   definition: OnboardingDefinition;
   record: OnboardingFormRecord;
@@ -33,6 +34,8 @@ export function FollowupExchange({
   locale: Locale;
   onContinue: () => void;
   continuing: boolean;
+  /** Opens the answer a question is about; the screen's bar brings them back here. */
+  onJumpToScreen: (screenId: string, fieldId?: string) => void;
 }) {
   const t = useTranslations('onboarding.review');
   const review = record.review;
@@ -84,7 +87,16 @@ export function FollowupExchange({
       </p>
 
       {/* Keyed by question id so the draft answer and error reset with every new question. */}
-      <QuestionCard key={question.id} question={question} definition={definition} record={record} setRecord={setRecord} locale={locale} total={total} />
+      <QuestionCard
+        key={question.id}
+        question={question}
+        definition={definition}
+        record={record}
+        setRecord={setRecord}
+        locale={locale}
+        total={total}
+        onJumpToScreen={onJumpToScreen}
+      />
 
       {review && review.history.length > 0 && <History review={review} locale={locale} definition={definition} />}
     </section>
@@ -98,6 +110,7 @@ function QuestionCard({
   setRecord,
   locale,
   total,
+  onJumpToScreen,
 }: {
   question: ReviewQuestion;
   definition: OnboardingDefinition;
@@ -105,6 +118,7 @@ function QuestionCard({
   setRecord: Dispatch<SetStateAction<OnboardingFormRecord>>;
   locale: Locale;
   total: number;
+  onJumpToScreen: (screenId: string, fieldId?: string) => void;
 }) {
   const t = useTranslations('onboarding.review');
   const review = record.review;
@@ -155,7 +169,23 @@ function QuestionCard({
         {contextLabel && (
           <div data-testid="onb-followup-context" style={{ background: '#F5F7FB', borderRadius: 12, padding: '10px 13px', marginBottom: 16, fontSize: 13, lineHeight: 1.5, color: BODY }}>
             <div>
-              {t('aboutAnswer')} <strong style={{ color: BLUE }}>{stripDashes(contextLabel)}</strong>
+              {t('aboutAnswer')}{' '}
+              {targetField ? (
+                // It reads as a link, so it is one: opens that answer, and "Go back to
+                // review" on that screen returns to this very question.
+                <button
+                  type="button"
+                  data-testid="onb-followup-open-answer"
+                  onClick={() => onJumpToScreen(targetField.screen_id, targetField.id)}
+                  className="hov-blue-text"
+                  style={{ fontFamily: 'inherit', cursor: 'pointer', background: 'none', border: 'none', padding: 0, color: BLUE, fontSize: 13, fontWeight: 700, textAlign: 'left', textDecoration: 'underline', textUnderlineOffset: 3 }}
+                >
+                  {stripDashes(contextLabel)}
+                </button>
+              ) : (
+                <strong style={{ color: BLUE }}>{stripDashes(contextLabel)}</strong>
+              )}
+              {targetField && <span style={{ color: MUTED }}> · {t('editAnswer')}</span>}
             </div>
             {current && (
               <div style={{ marginTop: 4, color: MUTED, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>

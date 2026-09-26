@@ -653,7 +653,8 @@
       "answersNotProvided": "Not provided",
       "answersAdd": "Add this",
       "answersFix": "Correct this",
-      "downloadAnswers": "Download your answers (PDF)"
+      "downloadAnswers": "Download your answers (PDF)",
+      "editAnswer": "select it to change your answer"
     },
     "brief": {
       "title": "Your brief",

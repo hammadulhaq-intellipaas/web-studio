@@ -653,7 +653,8 @@
       "answersNotProvided": "Keine Angabe",
       "answersAdd": "Ergänzen",
       "answersFix": "Korrigieren",
-      "downloadAnswers": "Ihre Angaben als PDF herunterladen"
+      "downloadAnswers": "Ihre Angaben als PDF herunterladen",
+      "editAnswer": "zum Ändern anklicken"
     },
     "brief": {
       "title": "Ihr Briefing",

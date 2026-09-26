@@ -114,7 +114,7 @@ function BriefLoader({ record, setRecord, setBrief }: ReviewFlowProps) {
 }
 
 /** Follow-ups until the queue drains, then the hand-off to the brief writer. */
-function ReviewStage({ definition, record, setRecord, locale, setBrief }: ReviewFlowProps) {
+function ReviewStage({ definition, record, setRecord, locale, setBrief, onJumpToScreen }: ReviewFlowProps) {
   const tb = useTranslations('onboarding.brief');
   const [continuing, setContinuing] = useState(false);
   const [error, setError] = useState(false);
@@ -137,7 +137,15 @@ function ReviewStage({ definition, record, setRecord, locale, setBrief }: Review
 
   return (
     <>
-      <FollowupExchange definition={definition} record={record} setRecord={setRecord} locale={locale} onContinue={() => void toBrief()} continuing={continuing} />
+      <FollowupExchange
+        definition={definition}
+        record={record}
+        setRecord={setRecord}
+        locale={locale}
+        onContinue={() => void toBrief()}
+        continuing={continuing}
+        onJumpToScreen={onJumpToScreen}
+      />
       {error && (
         <div role="alert" style={{ marginTop: -56, marginBottom: 56, fontSize: 13, fontWeight: 600, color: DANGER }}>
           {tb('error')}

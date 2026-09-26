@@ -14,6 +14,7 @@ function weekdayInDays(n: number): string {
 }
 
 test.describe('onboarding final review', () => {
+  test.use({ locale: 'en-GB' });
   test('names each problem, opens it, and brings the client back', async ({ page, request }) => {
     test.setTimeout(300_000);
     const res = await request.get('/en/onboardingform/new', { maxRedirects: 0 });
@@ -22,6 +23,7 @@ test.describe('onboarding final review', () => {
     delete answers.content_responsible; // German-only: never missing on an English form
     delete answers.ideal_customer;
     answers.launch_date = { v: '2026-09-20' }; // has gone by
+    answers.usps = { v: 'Good service.' }; // thin: the assistant asks about it
     const saved = await request.patch(`/api/onboarding/${id}`, { data: { base_rev: 0, changes: answers, current_step: 'review' } });
     expect(saved.status()).toBe(200);
 
@@ -70,15 +72,26 @@ test.describe('onboarding final review', () => {
     // Skip every follow-up, one question at a time, until the hand-over to the brief.
     const toBrief = page.locator('[data-testid=onb-to-brief]');
     const card = page.locator('[data-testid=onb-followup]');
+
+    let openedAnswer = false;
     for (let i = 0; i < 12; i++) {
       await page.locator('[data-testid=onb-followup], [data-testid=onb-to-brief]').first().waitFor({ timeout: 90_000 });
       if (await toBrief.count()) break;
       const qid = await card.getAttribute('data-question-id');
+      // Once: the answer a question is about opens from it, and comes back to it.
+      if (!openedAnswer && (await page.locator('[data-testid=onb-followup-open-answer]').count())) {
+        openedAnswer = true;
+        await page.click('[data-testid=onb-followup-open-answer]');
+        await expect(page.locator('[data-testid=onb-return-bar]')).toBeVisible();
+        await page.click('[data-testid=onb-back-to-review]');
+        await expect(card).toHaveAttribute('data-question-id', qid!);
+      }
       await page.click('[data-testid=onb-followup-skip]');
       await expect
         .poll(async () => ((await toBrief.count()) ? 'done' : await card.getAttribute('data-question-id').catch(() => null)), { timeout: 60_000 })
         .not.toBe(qid);
     }
+    expect(openedAnswer).toBe(true);
     await expect(page.locator('[data-testid=onb-followups-summary]')).toContainText('skipped');
     await toBrief.click();
 
