@@ -524,7 +524,30 @@ export function ConfiguratorStep({ catalog }: { catalog: Catalog }) {
   useEffect(() => {
     const el = document.documentElement;
     el.setAttribute('data-funnel-locked', '');
-    return () => el.removeAttribute('data-funnel-locked');
+
+    /*
+     * With the page pinned to the viewport, a wheel gesture only does something while the
+     * pointer happens to sit inside a column. Over the margins, the gutter, the header or
+     * the sidebar's pinned footer it does nothing at all, and the page reads as frozen.
+     * So anything that is not already over a scroller drives the main column instead.
+     */
+    const onWheel = (ev: WheelEvent) => {
+      if (!window.matchMedia('(min-width: 961px)').matches) return; // the page scrolls itself
+      const col = document.querySelector<HTMLElement>('[data-cfg-col]');
+      if (!col) return;
+      for (let node = ev.target as HTMLElement | null; node && node !== el; node = node.parentElement) {
+        const overflowY = getComputedStyle(node).overflowY;
+        if (/auto|scroll/.test(overflowY) && node.scrollHeight > node.clientHeight + 1) return;
+      }
+      // Firefox and some mice report lines rather than pixels.
+      col.scrollTop += ev.deltaMode === 1 ? ev.deltaY * 16 : ev.deltaY;
+    };
+    window.addEventListener('wheel', onWheel, { passive: true });
+
+    return () => {
+      el.removeAttribute('data-funnel-locked');
+      window.removeEventListener('wheel', onWheel);
+    };
   }, []);
 
   return (
