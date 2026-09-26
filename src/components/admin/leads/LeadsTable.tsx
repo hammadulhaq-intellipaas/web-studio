@@ -89,17 +89,17 @@ export function LeadsTable({ rows, ready }: { rows: LeadsTableRow[]; ready: bool
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
-              <th className="w-10 px-4 py-3">
+              <th className="w-10 px-3 py-3">
                 {ready && (
                   <input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Select all" data-testid="leads-select-all" className="h-4 w-4 accent-blue-600" />
                 )}
               </th>
-              <th className="px-4 py-3 font-bold">Lead</th>
-              <th className="px-4 py-3 font-bold">Quote</th>
-              <th className="px-4 py-3 font-bold">Status</th>
-              <th className="px-4 py-3 font-bold">Owner</th>
-              <th className="px-4 py-3 font-bold">Activity</th>
-              <th className="px-4 py-3 text-right font-bold">Actions</th>
+              <th className="px-3 py-3 font-bold">Lead</th>
+              <th className="px-3 py-3 font-bold">Quote</th>
+              <th className="px-3 py-3 font-bold">Status</th>
+              <th className="px-3 py-3 font-bold">Owner</th>
+              <th className="px-3 py-3 font-bold">Activity</th>
+              <th className="px-3 py-3 text-right font-bold">Actions</th>
             </tr>
           </thead>
           <tbody data-testid="leads-table">
@@ -116,7 +116,7 @@ export function LeadsTable({ rows, ready }: { rows: LeadsTableRow[]; ready: bool
                   data-testid={`lead-row-${r.id}`}
                   className={`border-b border-slate-100 last:border-0 hover:bg-slate-50 ${selected.has(r.id) ? 'bg-blue-50/60' : ''}`}
                 >
-                  <td className="px-4 py-3 align-top">
+                  <td className="px-3 py-3 align-top">
                     {ready && (
                       <input
                         type="checkbox"
@@ -128,19 +128,19 @@ export function LeadsTable({ rows, ready }: { rows: LeadsTableRow[]; ready: bool
                       />
                     )}
                   </td>
-                  <td className="px-4 py-3 align-top">
+                  <td className="px-3 py-3 align-top">
                     <Link href={`/admin/leads/${r.id}`} className="font-semibold text-slate-900 hover:text-blue-700 hover:underline">
                       {r.name || r.firma || r.email}
                     </Link>
                     {r.source === 'team' && (
                       <span className="ml-2 rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-violet-700">team</span>
                     )}
-                    <div className="text-xs text-slate-500">
+                    <div className="max-w-[230px] truncate text-xs text-slate-500" title={`${r.firma ? r.firma + ' · ' : ''}${r.email}`}>
                       {r.firma && r.name ? <span className="font-semibold text-slate-600">{r.firma} · </span> : null}
                       {r.email}
                     </div>
                   </td>
-                  <td className="px-4 py-3 align-top">
+                  <td className="px-3 py-3 align-top">
                     <div className="font-semibold">
                       {r.bundleName}
                       {r.addonCount > 0 && <span className="font-normal text-slate-500"> + {r.addonCount} add-on{r.addonCount === 1 ? '' : 's'}</span>}
@@ -149,14 +149,14 @@ export function LeadsTable({ rows, ready }: { rows: LeadsTableRow[]; ready: bool
                       {eur(r.oneTime)} · {eur(r.monthly)}/mo.
                     </div>
                   </td>
-                  <td className="px-4 py-3 align-top">
+                  <td className="px-3 py-3 align-top">
                     {ready ? (
                       <StatusSelect leadId={r.id} status={r.status} compact />
                     ) : (
                       <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${STATUS_COLORS[r.status] ?? ''}`}>{r.status}</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 align-top">
+                  <td className="px-3 py-3 align-top">
                     {r.ownerEmail ? (
                       <span className="inline-flex items-center gap-2 text-xs text-slate-600" title={r.ownerEmail}>
                         <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-[10px] font-bold text-white">
@@ -168,10 +168,10 @@ export function LeadsTable({ rows, ready }: { rows: LeadsTableRow[]; ready: bool
                       <span className="text-xs text-slate-400">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 align-top text-xs text-slate-600">
+                  <td className="px-3 py-3 align-top text-xs text-slate-600">
                     {r.activityLabel ? (
                       <>
-                        <div className="max-w-[260px] truncate" title={r.activityLabel}>
+                        <div className="max-w-[180px] truncate" title={r.activityLabel}>
                           {r.activityLabel}
                         </div>
                         {r.activityAt && <div className="text-slate-400">{relativeTime(r.activityAt)}</div>}
@@ -182,7 +182,7 @@ export function LeadsTable({ rows, ready }: { rows: LeadsTableRow[]; ready: bool
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-3 align-top">
+                  <td className="px-3 py-3 align-top">
                     <div className="flex items-center justify-end gap-1 whitespace-nowrap">
                       <Link
                         href={`/admin/leads/${r.id}`}
