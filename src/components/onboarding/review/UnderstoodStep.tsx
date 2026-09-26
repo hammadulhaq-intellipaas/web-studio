@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import ReactMarkdown from 'react-markdown';
 import type { Locale } from '@/lib/types';
-import { displayValue } from '@/lib/onboarding/export';
+import { clientValue } from '@/lib/onboarding/export';
 import { stripDashes } from '@/lib/onboarding/guardrails';
 import { isRequiredNow, visibility, type FileCounts } from '@/lib/onboarding/logic';
 import { understoodText } from '@/lib/onboarding/understood';
@@ -109,7 +109,7 @@ export function UnderstoodStep({
           .map((f) => ({
             field: f,
             label: stripDashes(loc(f as unknown as Record<string, unknown>, 'label', locale)),
-            value: stripDashes(displayValue(f, record.answers[f.id], locale, files)),
+            value: stripDashes(clientValue(f, record.answers[f.id], locale, files)),
             required: isRequiredNow(f, ctx),
           })),
       }));

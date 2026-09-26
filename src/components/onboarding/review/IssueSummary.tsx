@@ -1,6 +1,6 @@
 'use client';
 
-import { forwardRef, useMemo } from 'react';
+import { forwardRef, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import type { Locale } from '@/lib/types';
 import { fieldLabel, validateAll, type FieldError, type FileCounts } from '@/lib/onboarding/logic';
@@ -16,6 +16,8 @@ export interface ReviewIssue {
   error: FieldError | null;
 }
 
+const NONE: string[] = [];
+
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
@@ -25,12 +27,20 @@ function todayIso(): string {
  * questions the server named that the browser did not flag itself (a definition changed
  * underneath an open tab), so the client is never told "something is wrong" without what.
  */
+export function useServerFields(answers: Answers): [string[], (fields: string[]) => void] {
+  // Tied to the answers they were reported for: any edit makes them stale, and the
+  // browser's own check takes over again rather than a fixed item lingering.
+  const [reported, setReported] = useState<{ answers: Answers; fields: string[] } | null>(null);
+  const fields = reported && reported.answers === answers ? reported.fields : NONE;
+  return [fields, (next: string[]) => setReported({ answers, fields: next })];
+}
+
 export function useReviewIssues(
   definition: OnboardingDefinition,
   answers: Answers,
   files: { field_key: string | null }[],
   locale: Locale,
-  extra: string[] = [],
+  extra: string[] = NONE,
 ): ReviewIssue[] {
   return useMemo(() => {
     const counts: FileCounts = {};

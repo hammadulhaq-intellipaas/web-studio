@@ -15,7 +15,7 @@ import { FollowupExchange } from './FollowupExchange';
 import { ConfirmScreen } from './ConfirmScreen';
 import { UnderstoodStep } from './UnderstoodStep';
 import { DoneScreen } from './DoneScreen';
-import { IssueSummary, useReviewIssues } from './IssueSummary';
+import { IssueSummary, useReviewIssues, useServerFields } from './IssueSummary';
 
 export interface ReviewFlowProps {
   definition: OnboardingDefinition;
@@ -153,7 +153,7 @@ function ReadyCheck({ definition, record, files, locale, onJumpToScreen, flush, 
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState(false);
   const [blocked, setBlocked] = useState(false);
-  const [serverFields, setServerFields] = useState<string[]>([]);
+  const [serverFields, setServerFields] = useServerFields(record.answers);
   const summaryRef = useRef<HTMLDivElement>(null);
   const issues = useReviewIssues(definition, record.answers, files, locale, serverFields);
 

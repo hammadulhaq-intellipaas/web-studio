@@ -4,7 +4,7 @@ import { useState, type Dispatch, type SetStateAction } from 'react';
 import { useTranslations } from 'next-intl';
 import ReactMarkdown from 'react-markdown';
 import type { Locale } from '@/lib/types';
-import { displayValue } from '@/lib/onboarding/export';
+import { clientValue } from '@/lib/onboarding/export';
 import { currentQuestion, replyLabel } from '@/lib/onboarding/followups/queue';
 import { stripDashes } from '@/lib/onboarding/guardrails';
 import { textFor } from '@/lib/onboarding/texts';
@@ -139,7 +139,7 @@ function QuestionCard({
     (question.target ? (subField ? subField.type === 'select' : targetField?.type === 'radio' || targetField?.type === 'select') : question.quick_replies.length > 0);
   const contextLabel = targetField ? (subField ? (locale === 'de' ? subField.label_de : subField.label_en) : loc(targetField as unknown as Record<string, unknown>, 'label', locale)) : null;
   // What they wrote, so the question is never asked about an answer they cannot see.
-  const current = targetField && !subField ? displayValue(targetField, record.answers[targetField.id], locale) : '';
+  const current = targetField && !subField ? clientValue(targetField, record.answers[targetField.id], locale) : '';
 
   return (
       <div

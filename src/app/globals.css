@@ -292,8 +292,9 @@ body {
 }
 
 /* Onboarding review: the "go back to review" bar sits under the sticky header. */
+/* Flush with the header's bottom edge (73px), so nothing shows through above it. */
 .onb-return-bar {
-  top: 84px;
+  top: 73px;
 }
 /* Check-answers rows: question · answer · change on desktop, stacked on phones. */
 .onb-kv {
@@ -303,9 +304,6 @@ body {
   align-items: baseline;
 }
 @media (max-width: 760px) {
-  .onb-return-bar {
-    top: 72px;
-  }
   .onb-kv {
     grid-template-columns: minmax(0, 1fr) auto;
   }

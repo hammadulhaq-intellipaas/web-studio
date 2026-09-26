@@ -1,7 +1,7 @@
 import 'server-only';
 import { renderToBuffer } from '@react-pdf/renderer';
 import { createElement } from 'react';
-import { displayValue, type FileSummary } from '../export';
+import { clientValue, type FileSummary } from '../export';
 import { visibility } from '../logic';
 import { textFor } from '../texts';
 import type { OnboardingBrief, OnboardingDefinition, OnboardingFormRecord } from '../types';
@@ -45,7 +45,7 @@ export async function renderAnswersPdf(
         .filter((f) => f.screen_id === screen.id && f.type !== 'notice')
         .map((f) => ({
           label: loc(f as unknown as Record<string, unknown>, 'label', locale),
-          value: displayValue(f, record.answers[f.id], locale, files),
+          value: clientValue(f, record.answers[f.id], locale, files),
         })),
     }));
   const element = createElement(AnswersPdf, {

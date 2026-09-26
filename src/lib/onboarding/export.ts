@@ -36,6 +36,19 @@ export function displayValue(field: OnbField, answer: Answer | undefined, locale
   return base ? `${base}\n${notes}` : notes;
 }
 
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * displayValue as the client reads it (final review, their PDF, follow-ups): dates spelled
+ * out. The brief prompt keeps displayValue, where dates must stay exactly as given.
+ */
+export function clientValue(field: OnbField, answer: Answer | undefined, locale: Locale, files: FileSummary[] = []): string {
+  const value = displayValue(field, answer, locale, files);
+  if (field.type !== 'date' || !ISO_DATE.test(value)) return value;
+  const d = new Date(`${value}T12:00:00`);
+  return d.toLocaleDateString(locale === 'de' ? 'de-DE' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
 function displayBase(field: OnbField, answer: Answer | undefined, locale: Locale, files: FileSummary[]): string {
   if (field.type === 'upload') {
     const mine = files.filter((f) => f.field_key === field.id);
@@ -93,7 +106,8 @@ function displayBase(field: OnbField, answer: Answer | undefined, locale: Locale
             .map((s) => {
               const raw = row[s.key];
               if (raw == null || String(raw).trim() === '') return null;
-              const label = locale === 'de' ? s.label_de : s.label_en;
+              // "What do you like about it?: …" reads badly; the colon is the question mark.
+              const label = (locale === 'de' ? s.label_de : s.label_en).replace(/[?:]\s*$/, '');
               const option = s.type === 'select' ? (s.options ?? []).find((o) => o.value === String(raw)) : undefined;
               const value = option ? loc(option as unknown as Record<string, unknown>, 'label', locale) : String(raw);
               return `${label}: ${value}`;

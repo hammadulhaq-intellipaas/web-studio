@@ -10,7 +10,7 @@ import type { OnboardingDefinition, OnboardingFormRecord } from '@/lib/onboardin
 import { BLUE, BODY, BORDER, gradButton, INK, MUTED } from '@/components/funnel/ui';
 import { DANGER, inputStyle, labelStyle } from '../fields/styles';
 import type { PublicFile } from '../fields/UploadInput';
-import { IssueSummary, useReviewIssues } from './IssueSummary';
+import { IssueSummary, useReviewIssues, useServerFields } from './IssueSummary';
 
 const HEADING = /^\*\*(.+?)\*\*\s*$/;
 
@@ -65,7 +65,7 @@ export function ConfirmScreen({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tried, setTried] = useState(false);
-  const [serverFields, setServerFields] = useState<string[]>([]);
+  const [serverFields, setServerFields] = useServerFields(record.answers);
   const issuesRef = useRef<HTMLDivElement>(null);
   const issues = useReviewIssues(definition, record.answers, files, locale, serverFields);
   const today = new Date().toLocaleDateString(locale === 'de' ? 'de-DE' : 'en-GB', { year: 'numeric', month: 'long', day: 'numeric' });

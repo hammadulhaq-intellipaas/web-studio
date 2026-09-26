@@ -231,14 +231,15 @@ export function OnboardingShell({
   }, [focusField, stepIndex]);
 
   /** Back to the review; while this screen still has errors, say so first (once). */
-  const returnToReview = (force: boolean) => {
+  const returnToReview = async (force: boolean) => {
     if (!force && screenErrors.length) {
       setShowErrors(true);
       setReturnTried(true);
       document.querySelector(`[data-field="${screenErrors[0].field}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
-    void flush();
+    // The review re-reads the answers (report, summary), so the change has to land first.
+    await flush();
     setFixMode(false);
     goTo(reviewIndex);
   };
@@ -350,8 +351,8 @@ export function OnboardingShell({
             reviewReturn={
               fixMode && !confirmed && step.kind === 'questions'
                 ? {
-                    onReturn: () => returnToReview(false),
-                    onLeaveAnyway: () => returnToReview(true),
+                    onReturn: () => void returnToReview(false),
+                    onLeaveAnyway: () => void returnToReview(true),
                     stillOpen: returnTried ? screenErrors.length : 0,
                   }
                 : undefined
