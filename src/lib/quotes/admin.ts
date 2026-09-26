@@ -1,7 +1,7 @@
 import 'server-only';
 import { getCatalog } from '@/lib/catalog';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
-import type { Appointment, Catalog, Lead, LeadActivity, LeadVersion } from '@/lib/types';
+import { OPEN_LEAD_STATUSES, type Appointment, type Catalog, type Lead, type LeadActivity, type LeadVersion } from '@/lib/types';
 import type { PlanRow } from '@/components/admin/PlanPanel';
 import { latestActivityFor, loadActivity } from './activity';
 import { diffConfigs, type QuoteChange } from './diff';
@@ -30,7 +30,7 @@ export interface LeadListResult {
   counts: Record<string, number>;
 }
 
-const OPEN: Lead['status'][] = ['draft', 'new', 'contacted', 'agreed'];
+
 
 /**
  * Leads for the admin list. A removed lead is gone from the CMS — it keeps its row in the
@@ -76,11 +76,11 @@ export async function loadLeadList(filter: LeadListFilter, q: string | undefined
   const counts: Record<string, number> = { open: 0, all: visible.length };
   for (const l of visible) {
     counts[l.status] = (counts[l.status] ?? 0) + 1;
-    if (OPEN.includes(l.status)) counts.open++;
+    if (OPEN_LEAD_STATUSES.includes(l.status)) counts.open++;
   }
 
   let rows = visible;
-  if (filter === 'open') rows = rows.filter((l) => OPEN.includes(l.status));
+  if (filter === 'open') rows = rows.filter((l) => OPEN_LEAD_STATUSES.includes(l.status));
   else if (filter !== 'all') rows = rows.filter((l) => l.status === filter);
 
   if (rows.length) {

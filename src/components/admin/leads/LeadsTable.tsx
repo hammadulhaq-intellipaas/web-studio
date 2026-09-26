@@ -86,7 +86,7 @@ export function LeadsTable({ rows, ready }: { rows: LeadsTableRow[]; ready: bool
       )}
 
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-        <table className="w-full min-w-[1180px] text-left text-sm">
+        <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
               <th className="w-10 px-4 py-3">
