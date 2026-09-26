@@ -49,7 +49,6 @@ export function understoodTokens(definition: OnboardingDefinition, answers: Answ
   const noneTicked = (id: string) => !!answers[id]?.none;
   const avoid = noneTicked('avoid') ? (locale === 'de' ? 'nichts Bestimmtes' : 'nothing in particular') : text('avoid');
   const colours = noneTicked('brand_colours') ? '' : text('brand_colours');
-  const lower = (v: string) => v.toLocaleLowerCase(locale === 'de' ? 'de-DE' : 'en-GB');
   const styleNotes = [text('tone_note'), text('personality_note')].filter(Boolean).join('; ');
 
   return {
@@ -60,20 +59,20 @@ export function understoodTokens(definition: OnboardingDefinition, answers: Answ
     usps: text('usps'),
     style_notes: styleNotes,
     service_area: text('regions_served') || pick('service_scope'),
-    service_scope: lower(pick('service_scope')),
-    visitor_action: pick('visitor_action').toLocaleLowerCase(locale === 'de' ? 'de-DE' : 'en-GB'),
+    service_scope: pick('service_scope'),
+    visitor_action: pick('visitor_action'),
     tone_caption: captionOf(field('tone_scale'), value('tone_scale'), locale),
     boldness_caption: captionOf(field('personality_scale'), value('personality_scale'), locale),
-    colour_mood: picks('colour_mood').toLocaleLowerCase(locale === 'de' ? 'de-DE' : 'en-GB'),
+    colour_mood: picks('colour_mood'),
     brand_colours: colours,
-    typography_feel: pick('typography_feel').toLocaleLowerCase(locale === 'de' ? 'de-DE' : 'en-GB'),
-    photo_subjects: picks('photo_subjects').toLocaleLowerCase(locale === 'de' ? 'de-DE' : 'en-GB'),
-    hero_intent: pick('hero_intent').toLocaleLowerCase(locale === 'de' ? 'de-DE' : 'en-GB'),
+    typography_feel: pick('typography_feel'),
+    photo_subjects: picks('photo_subjects'),
+    hero_intent: pick('hero_intent'),
     homepage_density: pick('homepage_density'),
     reference_1_link: String(firstReference?.url ?? ''),
     reference_1_likes: inline(String(firstReference?.likes ?? '')),
     do_not_want: avoid,
-    proof_to_show: picks('proof_to_show').toLocaleLowerCase(locale === 'de' ? 'de-DE' : 'en-GB'),
+    proof_to_show: picks('proof_to_show'),
   };
 }
 

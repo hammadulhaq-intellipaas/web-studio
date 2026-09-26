@@ -97,8 +97,9 @@ test.describe('onboarding review flow', () => {
     // Block 2: the read-back, assembled from their own words
     const understood = page.locator('[data-testid=onb-understood]');
     await expect(understood).toContainText('Rückenschmerzen');
-    await expect(understood).toContainText('einen termin buchen');
-    await expect(understood).toContainText('freundlich, aber professionell');
+    await expect(understood).toContainText('Termin');
+    await expect(understood).toContainText('Freundlich, aber professionell');
+    await expect(understood).not.toContainText('…');
 
     // A correction is required as soon as they say it is not right
     await page.click('[data-testid=onb-to-confirm]');
@@ -157,10 +158,12 @@ test.describe('onboarding review flow', () => {
     await page.click('[data-testid=onb-to-confirm]');
 
     await expect(page.locator('[data-screen=onb-confirm]')).toBeVisible();
-    // the timeline the 23 Sep 2026 spec sets out
-    await expect(page.locator('[data-testid=onb-terms]')).toContainText('10 Tagen');
-    await expect(page.locator('[data-testid=onb-terms]')).toContainText('3 Wochen');
-    await expect(page.locator('[data-testid=onb-terms]')).toContainText('5 Tagen');
+    // the timeline the 23 Sep 2026 spec sets out, folded into sections under the declaration
+    const confirm = page.locator('[data-screen=onb-confirm]');
+    await expect(page.locator('[data-testid=onb-terms]')).toContainText('Mit dem Absenden');
+    await expect(confirm).toContainText('10 Tagen');
+    await expect(confirm).toContainText('3 Wochen');
+    await expect(confirm).toContainText('5 Tagen');
 
     await page.click('[data-testid=onb-confirm-submit]');
     await expect(page.locator('[data-testid=onb-confirm-error]')).toBeVisible(); // checks missing
@@ -186,7 +189,8 @@ test.describe('onboarding review flow', () => {
     // the record is locked: no more answers, status confirmed, delivery recorded
     const { record } = await getRecord(request, id);
     expect(record.status).toBe('confirmed');
-    expect(record.delivery?.pdf_path).toMatch(/^onboarding\//);
+    // In the form's own folder of the onboarding bucket.
+    expect(record.delivery?.pdf_path).toBe(`${id}/brief-v1.pdf`);
     const patch = await request.patch(`/api/onboarding/${id}`, { data: { base_rev: record.rev, changes: { domain: { v: 'x.de' } } } });
     expect(patch.status()).toBe(409);
     await page.reload();
