@@ -227,7 +227,9 @@ export async function POST(request: Request) {
     });
     const versionNo = version?.version ?? 0;
     if (!team) {
-      const afterAgreed = ['agreed', 'won', 'lost'].includes(existing.status);
+      // Derived, not listed: a literal copy of the statuses here would drift the next time
+      // one is added, which is exactly how `accepted` fell out of the admin's Open tab.
+      const afterAgreed = existing.status === 'agreed' || LOCKED_LEAD_STATUSES.includes(existing.status);
       await logActivity(existing.id, 'system', actor, afterAgreed ? `Customer resubmitted after "${existing.status}"` : 'Customer resubmitted', {
         version: versionNo,
         status: existing.status,
