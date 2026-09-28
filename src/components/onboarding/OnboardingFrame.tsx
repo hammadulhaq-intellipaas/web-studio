@@ -18,7 +18,7 @@ export function OnboardingFrame({ header, children }: { header: React.ReactNode;
       }}
     >
       {header}
-      <main style={{ flex: 1, width: '100%', maxWidth: 1140, margin: '0 auto', padding: '0 24px' }}>{children}</main>
+      <main className="onb-main" style={{ flex: 1, width: '100%', maxWidth: 1140, margin: '0 auto', padding: '0 24px' }}>{children}</main>
       <Footer />
     </div>
   );

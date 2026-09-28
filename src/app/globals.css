@@ -292,9 +292,14 @@ body {
 }
 
 /* Onboarding review: the "go back to review" bar sits under the sticky header. */
-/* Flush with the header's bottom edge (73px), so nothing shows through above it. */
+/* Flush with the header's bottom edge (73px; 55px on phones), so nothing shows through. */
 .onb-return-bar {
   top: 73px;
+}
+@media (max-width: 640px) {
+  .onb-return-bar {
+    top: 55px;
+  }
 }
 /* Check-answers rows: question · answer · change on desktop, stacked on phones. */
 .onb-kv {
@@ -363,4 +368,75 @@ body {
 }
 .onb-prose li::marker {
   color: #1e5eff;
+}
+
+/* Site header on phones (quote form and onboarding form): always one row, never wider than
+   the screen. The Web Studio badge goes, the logo and name shrink, "Step 3 of 4" becomes
+   "3/4", the progress bar takes what room is left and the DE/EN switch gets smaller. */
+.site-header-row {
+  min-width: 0;
+}
+.site-header-right {
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+@media (max-width: 640px) {
+  .site-header-row {
+    padding: 10px 16px !important;
+    gap: 10px !important;
+  }
+  .site-brand-link {
+    gap: 8px !important;
+  }
+  .site-logo {
+    width: 34px !important;
+    height: 34px !important;
+  }
+  .site-brand {
+    font-size: 15px !important;
+  }
+  .site-badge,
+  .site-step-full {
+    display: none !important;
+  }
+  .site-step-short {
+    display: inline !important;
+  }
+  .site-header-right {
+    gap: 8px !important;
+    flex: 1 1 auto;
+    justify-content: flex-end;
+  }
+  .site-progress {
+    width: auto !important;
+    flex: 1 1 60px;
+    min-width: 24px;
+    max-width: 90px;
+  }
+  .lang-toggle button {
+    padding: 4px 8px !important;
+    font-size: 11px !important;
+  }
+  /* Onboarding pages and cards: less padding so fields get the width. */
+  .onb-main {
+    padding: 0 14px !important;
+  }
+  .onb-card {
+    padding: 18px 14px 20px !important;
+  }
+}
+
+/* Between phone and desktop the header has no room for the step label as well as the save
+   link; the stepper on the page already says which step this is. */
+@media (max-width: 960px) {
+  .onb-step-label,
+  .site-badge {
+    display: none !important;
+  }
+  .site-progress {
+    width: auto !important;
+    flex: 1 1 60px;
+    min-width: 24px;
+    max-width: 140px;
+  }
 }

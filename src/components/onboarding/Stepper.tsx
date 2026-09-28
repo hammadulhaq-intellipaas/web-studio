@@ -25,7 +25,6 @@ export function Stepper({
   onSelect: (index: number) => void;
 }) {
   const t = useTranslations('onboarding.shell');
-  const active = steps[activeIndex];
 
   return (
     <>
@@ -107,7 +106,6 @@ export function Stepper({
       </ol>
       <div className="onb-stepper-compact" data-testid="onb-stepper-compact" style={{ display: 'none', marginBottom: 18, fontSize: 13, fontWeight: 700, color: MUTED }}>
         {t('stepOf', { num: activeIndex + 1, total: steps.length })}
-        {active && <span style={{ color: INK }}> · {loc(active as unknown as Record<string, unknown>, 'title', locale)}</span>}
       </div>
     </>
   );

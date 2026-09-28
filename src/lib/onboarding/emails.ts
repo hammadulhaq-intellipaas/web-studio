@@ -101,26 +101,38 @@ export interface BriefEmailInput {
   company: string | null;
   teamEmailSetting: string;
   pdf: Attachment | null;
-  json: Attachment;
-  /** Flags + open items, already rendered as plain text for the team letter. */
-  teamSummary: string;
+  /** When the client confirmed (ISO); the team letter says it in German time. */
+  confirmedAt: string;
+}
+
+/** "28 September 2026" and "11:22", in German time: the team's clock. */
+export function germanDateTime(iso: string): { date: string; time: string } {
+  const d = new Date(iso);
+  return {
+    date: d.toLocaleDateString('en-GB', { timeZone: 'Europe/Berlin', day: 'numeric', month: 'long', year: 'numeric' }),
+    time: d.toLocaleTimeString('en-GB', { timeZone: 'Europe/Berlin', hour: '2-digit', minute: '2-digit' }),
+  };
 }
 
 export async function sendBriefEmails(input: BriefEmailInput): Promise<{ client: boolean; team: boolean }> {
   const c = client();
   if (!c) return { client: false, team: false };
+  const when = germanDateTime(input.confirmedAt);
   const params = {
     name: input.name ?? '',
     company: input.company ?? '',
     email: input.to ?? '',
     link: formLink(input.formId, input.locale),
     admin_link: adminFormLink(input.formId),
+    date: when.date,
+    time: when.time,
   };
-  const attachments = [input.pdf, input.json].filter((a): a is Attachment => !!a).map((a) => ({ filename: a.filename, content: a.content }));
+  const pdf = input.pdf ? [{ filename: input.pdf.filename, content: input.pdf.content }] : undefined;
 
   const clientMail = input.to ? renderTextEmail(input.texts, 'email_brief_client', input.locale, params) : null;
-  // The team letter is always German-first (the team's language); the CMS row decides.
-  const teamMail = renderTextEmail(input.texts, 'email_brief_team', 'de', params);
+  // The team letter: who completed the form and when, with the brief attached. Nothing else
+  // (flags, open points and the data export live in the admin).
+  const teamMail = renderTextEmail(input.texts, 'email_brief_team', 'en', params);
   const team = teamRecipients(input.teamEmailSetting);
 
   const results = await Promise.allSettled([
@@ -131,7 +143,7 @@ export async function sendBriefEmails(input: BriefEmailInput): Promise<{ client:
           subject: clientMail.subject,
           html: clientMail.html,
           text: clientMail.text,
-          attachments: input.pdf ? [{ filename: input.pdf.filename, content: input.pdf.content }] : undefined,
+          attachments: pdf,
         })
       : Promise.reject(new Error('no client address')),
     teamMail && team.length
@@ -139,9 +151,9 @@ export async function sendBriefEmails(input: BriefEmailInput): Promise<{ client:
           from: c.from,
           to: team,
           subject: teamMail.subject,
-          html: teamMail.html + letterHtml(input.teamSummary),
-          text: `${teamMail.text}\n\n${input.teamSummary}`,
-          attachments,
+          html: teamMail.html,
+          text: teamMail.text,
+          attachments: pdf,
         })
       : Promise.reject(new Error('no team recipients')),
   ]);

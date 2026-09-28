@@ -153,7 +153,7 @@ export function ScreenCard({
       {intro && <p style={{ fontSize: 15.5, color: BODY, margin: '0 0 24px', lineHeight: 1.55 }}>{intro}</p>}
       {banner}
 
-      <div style={{ background: '#ffffff', border: `1px solid ${BORDER}`, borderRadius: 18, padding: '26px 26px 28px' }}>
+      <div className="onb-card" style={{ background: '#ffffff', border: `1px solid ${BORDER}`, borderRadius: 18, padding: '26px 26px 28px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 22 }}>
           {fields.map((field) => (
             <div

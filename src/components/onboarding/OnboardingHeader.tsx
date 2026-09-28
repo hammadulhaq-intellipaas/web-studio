@@ -35,6 +35,7 @@ export function OnboardingHeader({
       }}
     >
       <div
+        className="site-header-row"
         style={{
           maxWidth: 1140,
           margin: '0 auto',
@@ -42,27 +43,28 @@ export function OnboardingHeader({
           display: 'flex',
           alignItems: 'center',
           gap: 14,
-          flexWrap: 'wrap',
         }}
       >
         <Link
           href="/onboardingform"
           title={t('logoAlt')}
-          className="hov-fade"
-          style={{ display: 'flex', alignItems: 'center', gap: 14, textDecoration: 'none' }}
+          className="hov-fade site-brand-link"
+          style={{ display: 'flex', alignItems: 'center', gap: 14, textDecoration: 'none', minWidth: 0 }}
         >
           <Image
             src="/intellipaas-logo.png"
             alt={t('logoAlt')}
             width={44}
             height={44}
+            className="site-logo"
             style={{ height: 44, width: 44, objectFit: 'cover', objectPosition: 'center 38%' }}
           />
-          <span style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-            <span style={{ fontWeight: 800, fontSize: 17, letterSpacing: -0.2, color: INK }}>
+          <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
+            <span className="site-brand" style={{ fontWeight: 800, fontSize: 17, letterSpacing: -0.2, color: INK, whiteSpace: 'nowrap' }}>
               IntelliPaaS<span style={{ color: BLUE }}>.io</span>
             </span>
             <span
+              className="site-badge"
               style={{
                 fontSize: 11,
                 fontWeight: 600,
@@ -78,13 +80,13 @@ export function OnboardingHeader({
             </span>
           </span>
         </Link>
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <div className="site-header-right" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
           {progress !== undefined && (
             <>
               {stepLabel && (
                 <span
                   data-testid="onb-step-label"
-                  className="onb-desktop-only"
+                  className="onb-desktop-only onb-step-label"
                   style={{ fontSize: 12.5, fontWeight: 600, color: MUTED, whiteSpace: 'nowrap' }}
                 >
                   {stepLabel}
@@ -92,6 +94,7 @@ export function OnboardingHeader({
               )}
               <div
                 aria-hidden
+                className="site-progress"
                 style={{ width: 140, height: 6, borderRadius: 999, background: BORDER, overflow: 'hidden' }}
               >
                 <div

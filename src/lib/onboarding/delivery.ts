@@ -2,8 +2,6 @@ import 'server-only';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { getOnboardingDefinition } from './definition';
 import { sendBriefEmails } from './emails';
-import { withOpenItems } from './ai/brief';
-import { exportRecord, type FileSummary } from './export';
 import { pdfFileName, renderBriefPdf } from './pdf/render';
 import { loadBrief, loadFiles, loadForm, publicFiles } from './records';
 import type { DeliveryState, OnboardingBrief, OnboardingDefinition, OnboardingFormRecord } from './types';
@@ -44,29 +42,9 @@ export async function downloadPdf(path: string): Promise<Buffer | null> {
   return Buffer.from(await data.arrayBuffer());
 }
 
-function teamSummary(definition: OnboardingDefinition, record: OnboardingFormRecord, brief: OnboardingBrief, files: FileSummary[]): string {
-  const lines: string[] = [];
-  if (record.flags.length) {
-    lines.push('Flags:');
-    for (const f of record.flags) {
-      const rule = definition.flagRules.find((r) => r.code === f.code && (r.detail ?? null) === (f.detail ?? null));
-      const note = rule?.note_de ?? '';
-      lines.push(`- ${f.code}${f.detail ? ` · ${f.detail}` : ''} (${f.severity}, ${f.source})${note ? ` — ${note}` : ''}${f.data ? ` ${JSON.stringify(f.data)}` : ''}`);
-    }
-  } else {
-    lines.push('Flags: keine.');
-  }
-  // The open items as the answers stand, not as the brief once listed them.
-  const still = Object.values(withOpenItems(definition, record, files, brief.sections)).flatMap((s) => s.still_needed);
-  const unique = Array.from(new Set(still.map((s) => s.trim()).filter(Boolean)));
-  lines.push('', unique.length ? 'Offene Punkte:' : 'Offene Punkte: keine.');
-  for (const s of unique) lines.push(`- ${s}`);
-  return lines.join('\n');
-}
-
 /**
- * Runs after the client confirmed (inside `after()`): PDF → storage, JSON export, one
- * email to the client (PDF) and one to the team (PDF + JSON + flags). Every step records
+ * Runs after the client confirmed (inside `after()`): PDF → storage, one email to the
+ * client (PDF) and one to the team (who, when, and the PDF). Every step records
  * its outcome in `delivery` so the done screen and the admin can show what happened.
  */
 export async function deliverConfirmedForm(formId: string): Promise<DeliveryState> {
@@ -98,8 +76,6 @@ export async function deliverConfirmedForm(formId: string): Promise<DeliveryStat
   await writeDelivery(formId, delivery);
 
   try {
-    const files = await loadFiles(formId);
-    const json = Buffer.from(JSON.stringify(exportRecord(definition, record, brief, files), null, 2), 'utf8');
     const sent = await sendBriefEmails({
       texts: definition.texts,
       locale: record.locale,
@@ -109,8 +85,7 @@ export async function deliverConfirmedForm(formId: string): Promise<DeliveryStat
       company: record.company,
       teamEmailSetting: definition.settings.teamEmail,
       pdf: pdf ? { filename: pdfFileName(record, brief.version), content: pdf.buffer } : null,
-      json: { filename: `onboarding-${formId}.json`, content: json },
-      teamSummary: teamSummary(definition, record, brief, publicFiles(files)),
+      confirmedAt: record.confirmed?.at ?? new Date().toISOString(),
     });
     const now = new Date().toISOString();
     delivery.client_email_sent_at = sent.client ? now : null;

@@ -321,18 +321,14 @@ Your Web Studio team`,
   },
   {
     key: 'email_brief_team',
-    title_de: 'Onboarding bestätigt: {company}',
-    title_en: 'Onboarding confirmed: {company}',
-    de: `{company} ({name}, {email}) hat das Briefing bestätigt.
+    title_de: 'Onboarding abgeschlossen: {company}',
+    title_en: 'Onboarding completed: {company}',
+    de: `{name} ({company}, {email}) hat das Onboarding-Formular am {date} um {time} Uhr (deutsche Zeit) abgeschlossen.
 
-Anhänge: Briefing als PDF und der vollständige Datensatz als JSON.
+Das Briefing ist als PDF angehängt.`,
+    en: `{name} ({company}, {email}) completed the onboarding form on {date} at {time} (German time).
 
-Flags für den Vertrieb und offene Punkte stehen unten und im Admin: {admin_link}`,
-    en: `{company} ({name}, {email}) has confirmed their brief.
-
-Attachments: the brief as PDF and the full record as JSON.
-
-Sales flags and open items are listed below and in the admin: {admin_link}`,
+The brief is attached as a PDF.`,
   },
   {
     key: 'pdf_footer',

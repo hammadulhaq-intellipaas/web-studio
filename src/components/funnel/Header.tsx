@@ -58,6 +58,7 @@ export function LanguageToggle({ onChange }: { onChange?: (locale: 'de' | 'en') 
   return (
     <span
       data-testid="language-toggle"
+      className="lang-toggle"
       style={{
         display: 'inline-flex',
         border: `1px solid ${BORDER}`,
@@ -89,6 +90,7 @@ export function Header() {
       }}
     >
       <div
+        className="site-header-row"
         style={{
           maxWidth: 1140,
           margin: '0 auto',
@@ -101,7 +103,6 @@ export function Header() {
         <button
           onClick={() => go('intro')}
           title={t('logoAlt')}
-          className="hov-fade"
           style={{
             fontFamily: 'inherit',
             cursor: 'pointer',
@@ -111,20 +112,24 @@ export function Header() {
             display: 'flex',
             alignItems: 'center',
             gap: 14,
+            minWidth: 0,
           }}
+          className="hov-fade site-brand-link"
         >
           <Image
             src="/intellipaas-logo.png"
             alt={t('logoAlt')}
             width={44}
             height={44}
+            className="site-logo"
             style={{ height: 44, width: 44, objectFit: 'cover', objectPosition: 'center 38%' }}
           />
-          <span style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-            <span style={{ fontWeight: 800, fontSize: 17, letterSpacing: -0.2, color: INK }}>
+          <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
+            <span className="site-brand" style={{ fontWeight: 800, fontSize: 17, letterSpacing: -0.2, color: INK, whiteSpace: 'nowrap' }}>
               IntelliPaaS<span style={{ color: BLUE }}>.io</span>
             </span>
             <span
+              className="site-badge"
               style={{
                 fontSize: 11,
                 fontWeight: 600,
@@ -140,10 +145,11 @@ export function Header() {
             </span>
           </span>
         </button>
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className="site-header-right" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
           {stepNum ? (
             <>
               <span
+                className="site-step-full"
                 style={{
                   fontSize: 12.5,
                   fontWeight: 600,
@@ -153,7 +159,12 @@ export function Header() {
               >
                 {t('stepOf', { num: stepNum, total: TOTAL_STEPS })}
               </span>
+              {/* Phones: "3/4" instead of "Step 3 of 4", so the bar never outgrows the screen. */}
+              <span className="site-step-short" style={{ display: 'none', fontSize: 12, fontWeight: 700, color: MUTED, whiteSpace: 'nowrap' }}>
+                {stepNum}/{TOTAL_STEPS}
+              </span>
               <div
+                className="site-progress"
                 style={{
                   width: 140,
                   height: 6,
