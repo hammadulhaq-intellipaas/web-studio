@@ -2,12 +2,13 @@ import 'server-only';
 import { z } from 'zod';
 import type { Locale } from '@/lib/types';
 import { displayValue, type FileSummary } from '../export';
-import { buildCorpus, findForbidden, findUngrounded, type Corpus } from '../guardrails';
+import { buildCorpus, findForbidden, findUngrounded, stripDashes, type Corpus } from '../guardrails';
 import { computeGaps, fieldLabel, sliderLabel, visibility } from '../logic';
 import type {
   BriefSectionContent,
   Gap,
   OnbBriefSection,
+  OnbField,
   OnboardingDefinition,
   OnboardingFormRecord,
   OnboardingSecrets,
@@ -51,16 +52,6 @@ function sectionSpec(section: OnbBriefSection, definition: OnboardingDefinition,
     .join('\n');
 }
 
-function skippedItems(record: OnboardingFormRecord, definition: OnboardingDefinition, locale: Locale): string[] {
-  const history = record.review?.history ?? [];
-  return history
-    .filter((h) => h.skipped)
-    .map((h) => {
-      const field = h.target ? definition.fields.find((f) => f.id === h.target!.field) : undefined;
-      return field ? fieldLabel(field, locale) : h.question[locale] ?? h.question.de;
-    });
-}
-
 function examplesBlock(secrets: OnboardingSecrets): string {
   if (!secrets.examples.length) return '';
   return [
@@ -81,7 +72,6 @@ export function buildBriefPrompt(input: {
 }): string {
   const { definition, secrets, record, files, sections, gaps, violations } = input;
   const locale = record.locale;
-  const skipped = skippedItems(record, definition, locale);
   return [
     promptText(secrets.prompts, 'brief'),
     '',
@@ -93,7 +83,6 @@ export function buildBriefPrompt(input: {
     '',
     'THE CLIENT\'S ANSWERS (field key · label: answer; [DONT_KNOW]/[UNANSWERED]/[THIN] mark gaps):',
     renderAnswers(definition, record.answers, files, locale, { markGaps: gaps }),
-    skipped.length ? `\nFollow-up questions the client skipped (still open): ${skipped.join('; ')}` : '',
     examplesBlock(secrets),
     violations?.length
       ? `\nYOUR PREVIOUS ATTEMPT WAS REJECTED. It contained content that is not in the answers or is forbidden: ${violations.join(' | ')}. Remove every such item; where a fact is missing, list it under still_needed instead.`
@@ -139,11 +128,10 @@ export function fallbackSections(
   sections: OnbBriefSection[],
 ): Record<string, BriefSectionContent> {
   const locale = record.locale;
-  const { hidden } = visibility(definition.fields, record.answers);
+  const { hidden } = visibility(definition.fields, record.answers, locale);
   const out: Record<string, BriefSectionContent> = {};
   for (const section of sections) {
     const lines: string[] = [];
-    const missing: string[] = [];
     const sources: string[] = [];
     for (const key of section.source_fields) {
       const field = definition.fields.find((f) => f.id === key);
@@ -151,50 +139,108 @@ export function fallbackSections(
       const answer = record.answers[key];
       const text = displayValue(field, answer, locale, files);
       const label = fieldLabel(field, locale);
-      if (answer?.dk) missing.push(label);
-      else if (text) {
+      if (answer?.dk) continue;
+      if (text) {
         // Question-style labels read better without a colon after the question mark.
         const head = `**${label}${/[?!.]$/.test(label) ? '' : ':'}**`;
         lines.push(text.includes('\n') ? `${head}\n${text.split('\n').map((l) => `- ${l}`).join('\n')}` : `${head} ${text}`);
         sources.push(key);
-      } else if (field.required) missing.push(label);
+      }
     }
+    const missing = openItems(definition, record, files, new Set(section.source_fields)).map((i) => i.text);
     out[section.id] = { content_markdown: lines.join('\n\n') || (locale === 'de' ? 'Keine Angaben.' : 'Nothing provided.'), still_needed: missing, sources };
   }
   return out;
 }
 
-/** Section 9: every unanswered, "don't know" or skipped item, named — composed by code, never by the model. */
-export function stillNeededSection(
+function readableDate(iso: string, locale: Locale): string {
+  const d = new Date(`${iso}T12:00:00`);
+  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString(locale === 'de' ? 'de-DE' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+export interface OpenItem {
+  field: OnbField;
+  text: string;
+}
+
+/**
+ * What the brief lists as still open, and nothing else: questions the client had to answer
+ * and left empty, answered "I don't know" (with the date they expect to know), or uploads
+ * a required step is still waiting for. Composed by code from the answers. Optional
+ * questions left blank, short answers, skipped follow-ups and the model's own ideas of
+ * what might be nice are not open items: they read as a wall of demands, and most of them
+ * had been answered. `only` narrows it to one section's fields.
+ */
+export function openItems(
   definition: OnboardingDefinition,
   record: OnboardingFormRecord,
   files: FileSummary[],
-  llmSections: Record<string, BriefSectionContent>,
-): BriefSectionContent {
+  only?: Set<string>,
+): OpenItem[] {
   const locale = record.locale;
   const counts: Record<string, number> = {};
   for (const f of files) if (f.field_key) counts[f.field_key] = (counts[f.field_key] ?? 0) + 1;
-  const gaps = computeGaps(definition, record.answers, counts);
-  const items: string[] = [];
-  const push = (s: string) => {
-    const t = s.trim();
-    if (t && !items.some((x) => x.toLowerCase() === t.toLowerCase())) items.push(t);
-  };
-  for (const gap of gaps) {
+  const items: OpenItem[] = [];
+  const seen = new Set<string>();
+  for (const gap of computeGaps(definition, record.answers, counts, locale)) {
+    if (gap.kind === 'thin' || seen.has(gap.field) || (only && !only.has(gap.field))) continue;
     const field = definition.fields.find((f) => f.id === gap.field);
     if (!field) continue;
-    const label = fieldLabel(field, locale);
-    if (gap.kind === 'dont_know' || gap.kind === 'empty' || gap.kind === 'no_files') push(label);
-    else if (gap.kind === 'thin') push(locale === 'de' ? `${label} – mehr Details` : `${label} – more detail`);
+    seen.add(gap.field);
+    const label = stripDashes(fieldLabel(field, locale));
+    const by = gap.kind === 'dont_know' ? record.answers[gap.field]?.dk_date : null;
+    let text = label;
+    if (gap.kind === 'dont_know') {
+      if (by) text = locale === 'de' ? `${label} (Sie erwarten die Angabe bis ${readableDate(by, locale)})` : `${label} (you expect to know by ${readableDate(by, locale)})`;
+      else text = locale === 'de' ? `${label} (noch nicht bekannt)` : `${label} (not known yet)`;
+    } else if (gap.kind === 'no_files') {
+      text = locale === 'de' ? `${label} (Dateien folgen noch)` : `${label} (files still to come)`;
+    }
+    items.push({ field, text });
   }
-  for (const s of skippedItems(record, definition, locale)) push(s);
-  for (const section of Object.values(llmSections)) for (const s of section.still_needed) push(s);
-  const nothing = locale === 'de' ? 'Nichts, alle Angaben liegen vor.' : 'Nothing, everything is there.';
-  return {
-    content_markdown: items.length ? items.map((i) => `- ${i}`).join('\n') : nothing,
-    still_needed: items,
-    sources: [],
-  };
+  return items;
+}
+
+/** Section 9: the open items above, grouped by the step they belong to. Composed by code. */
+export function stillNeededSection(definition: OnboardingDefinition, record: OnboardingFormRecord, files: FileSummary[]): BriefSectionContent {
+  const locale = record.locale;
+  const items = openItems(definition, record, files);
+  if (!items.length) {
+    const nothing = locale === 'de' ? 'Es fehlt nichts. Wir haben alles, was wir für den Start brauchen.' : 'Nothing is missing. We have everything we need to start.';
+    return { content_markdown: nothing, still_needed: [], sources: [] };
+  }
+  const intro =
+    locale === 'de'
+      ? 'Alles andere liegt vor. Nur diese Angaben sind noch offen, und wir kommen dazu gern auf Sie zu.'
+      : 'Everything else is in place. Only these details are still open, and we will gladly follow up on them with you.';
+  const blocks: string[] = [intro];
+  for (const screen of definition.screens) {
+    const mine = items.filter((i) => i.field.screen_id === screen.id);
+    if (!mine.length) continue;
+    blocks.push(`**${stripDashes(loc(screen as unknown as Record<string, unknown>, 'title', locale))}**\n${mine.map((i) => `- ${i.text}`).join('\n')}`);
+  }
+  return { content_markdown: blocks.join('\n\n'), still_needed: items.map((i) => i.text), sources: [] };
+}
+
+/**
+ * The brief's open items, recomputed from the answers as they stand: each section's list
+ * from its own fields, and section 9 from all of them. Used when the brief is written and
+ * again whenever it is rendered, so an older brief never shows a stale or invented list.
+ */
+export function withOpenItems(
+  definition: OnboardingDefinition,
+  record: OnboardingFormRecord,
+  files: FileSummary[],
+  sections: Record<string, BriefSectionContent>,
+): Record<string, BriefSectionContent> {
+  const out: Record<string, BriefSectionContent> = {};
+  for (const section of definition.briefSections) {
+    const current = sections[section.id];
+    if (section.generated_by === 'system') out[section.id] = stillNeededSection(definition, record, files);
+    else if (current) out[section.id] = { ...current, still_needed: openItems(definition, record, files, new Set(section.source_fields)).map((i) => i.text) };
+  }
+  for (const [id, content] of Object.entries(sections)) if (!(id in out)) out[id] = content;
+  return out;
 }
 
 /* ------------------------------------------------------------------ generation */
@@ -213,20 +259,18 @@ export async function generateBrief(input: {
 }): Promise<BriefDraft> {
   const { definition, secrets, record, files } = input;
   const llmSections = definition.briefSections.filter((s) => s.generated_by === 'llm');
-  const systemSections = definition.briefSections.filter((s) => s.generated_by === 'system');
   const fieldKeys = definition.fields.map((f) => f.id) as [string, ...string[]];
   const counts: Record<string, number> = {};
   for (const f of files) if (f.field_key) counts[f.field_key] = (counts[f.field_key] ?? 0) + 1;
-  const gaps = computeGaps(definition, record.answers, counts);
+  const gaps = computeGaps(definition, record.answers, counts, record.locale);
 
-  const finish = (sections: Record<string, BriefSectionContent>, source: 'llm' | 'fallback', model: string | null, attempts: number): BriefDraft => {
-    const withSystem = { ...sections };
-    for (const s of systemSections) withSystem[s.id] = stillNeededSection(definition, record, files, sections);
-    // Keep the CMS order.
-    const ordered: Record<string, BriefSectionContent> = {};
-    for (const s of definition.briefSections) if (withSystem[s.id]) ordered[s.id] = withSystem[s.id];
-    return { sections: ordered, source, model, attempts };
-  };
+  // The open items are the code's, in CMS order; the model only writes the prose.
+  const finish = (sections: Record<string, BriefSectionContent>, source: 'llm' | 'fallback', model: string | null, attempts: number): BriefDraft => ({
+    sections: withOpenItems(definition, record, files, sections),
+    source,
+    model,
+    attempts,
+  });
 
   if (!llmSections.length || !modelConfigured() || !(await reserveAiCall(record.id, record.ai_calls, definition.settings))) {
     return finish(fallbackSections(definition, record, files, llmSections), 'fallback', null, 0);

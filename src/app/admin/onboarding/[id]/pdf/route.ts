@@ -3,7 +3,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { isValidSessionId } from '@/lib/session-id';
 import { getOnboardingDefinition } from '@/lib/onboarding/definition';
 import { pdfFileName, renderBriefPdf } from '@/lib/onboarding/pdf/render';
-import { loadBrief, loadForm } from '@/lib/onboarding/records';
+import { loadBrief, loadFiles, loadForm, publicFiles } from '@/lib/onboarding/records';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -24,7 +24,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const [definition, brief] = await Promise.all([getOnboardingDefinition(), loadBrief(id, version)]);
   if (!brief) return NextResponse.json({ error: 'no_brief' }, { status: 404 });
 
-  const buffer = await renderBriefPdf(definition, record, brief, { team: true });
+  const buffer = await renderBriefPdf(definition, record, brief, { team: true, files: publicFiles(await loadFiles(id)) });
   return new Response(new Uint8Array(buffer), {
     headers: {
       'Content-Type': 'application/pdf',

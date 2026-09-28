@@ -8,6 +8,7 @@ import { ONB_STATUS_COLORS } from '@/lib/admin/format';
 import { LocalTime } from '@/components/admin/LocalTime';
 import { OnboardingToolbar } from '@/components/admin/OnboardingToolbar';
 import { getOnboardingDefinition } from '@/lib/onboarding/definition';
+import { withOpenItems } from '@/lib/onboarding/ai/brief';
 import { displayValue } from '@/lib/onboarding/export';
 import { loadBriefVersions } from '@/lib/onboarding/briefs';
 import { formLink } from '@/lib/onboarding/emails';
@@ -274,7 +275,7 @@ export default async function OnboardingDetailPage({ params }: { params: Promise
               )}
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 {definition.briefSections.map((section) => {
-                  const content = currentBrief.sections[section.id];
+                  const content = withOpenItems(definition, record, files, currentBrief.sections)[section.id];
                   if (!content) return null;
                   return (
                     <div key={section.id} className={`rounded-lg border p-4 ${section.generated_by === 'system' ? 'border-amber-200 bg-amber-50' : 'border-slate-200'}`}>

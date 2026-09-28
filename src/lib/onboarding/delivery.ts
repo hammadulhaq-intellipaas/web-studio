@@ -2,9 +2,10 @@ import 'server-only';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { getOnboardingDefinition } from './definition';
 import { sendBriefEmails } from './emails';
-import { exportRecord } from './export';
+import { withOpenItems } from './ai/brief';
+import { exportRecord, type FileSummary } from './export';
 import { pdfFileName, renderBriefPdf } from './pdf/render';
-import { loadBrief, loadFiles, loadForm } from './records';
+import { loadBrief, loadFiles, loadForm, publicFiles } from './records';
 import type { DeliveryState, OnboardingBrief, OnboardingDefinition, OnboardingFormRecord } from './types';
 import { ONB_BUCKET } from './uploads';
 
@@ -29,7 +30,7 @@ export async function ensurePdf(
 ): Promise<{ path: string; buffer: Buffer }> {
   const supabase = createSupabaseAdminClient();
   const path = pdfStoragePath(record.id, brief.version);
-  const buffer = await renderBriefPdf(definition, record, brief);
+  const buffer = await renderBriefPdf(definition, record, brief, { files: publicFiles(await loadFiles(record.id)) });
   const { error } = await supabase.storage.from(ONB_BUCKET).upload(path, buffer, { contentType: 'application/pdf', upsert: true });
   if (error) throw new Error(`PDF upload failed: ${error.message}`);
   return { path, buffer };
@@ -43,7 +44,7 @@ export async function downloadPdf(path: string): Promise<Buffer | null> {
   return Buffer.from(await data.arrayBuffer());
 }
 
-function teamSummary(definition: OnboardingDefinition, record: OnboardingFormRecord, brief: OnboardingBrief): string {
+function teamSummary(definition: OnboardingDefinition, record: OnboardingFormRecord, brief: OnboardingBrief, files: FileSummary[]): string {
   const lines: string[] = [];
   if (record.flags.length) {
     lines.push('Flags:');
@@ -55,7 +56,8 @@ function teamSummary(definition: OnboardingDefinition, record: OnboardingFormRec
   } else {
     lines.push('Flags: keine.');
   }
-  const still = Object.values(brief.sections).flatMap((s) => s.still_needed);
+  // The open items as the answers stand, not as the brief once listed them.
+  const still = Object.values(withOpenItems(definition, record, files, brief.sections)).flatMap((s) => s.still_needed);
   const unique = Array.from(new Set(still.map((s) => s.trim()).filter(Boolean)));
   lines.push('', unique.length ? 'Offene Punkte:' : 'Offene Punkte: keine.');
   for (const s of unique) lines.push(`- ${s}`);
@@ -108,7 +110,7 @@ export async function deliverConfirmedForm(formId: string): Promise<DeliveryStat
       teamEmailSetting: definition.settings.teamEmail,
       pdf: pdf ? { filename: pdfFileName(record, brief.version), content: pdf.buffer } : null,
       json: { filename: `onboarding-${formId}.json`, content: json },
-      teamSummary: teamSummary(definition, record, brief),
+      teamSummary: teamSummary(definition, record, brief, publicFiles(files)),
     });
     const now = new Date().toISOString();
     delivery.client_email_sent_at = sent.client ? now : null;

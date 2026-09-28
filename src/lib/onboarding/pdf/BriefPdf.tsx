@@ -3,6 +3,7 @@ import type { Locale } from '@/lib/types';
 import { sanitizeForPdf } from '../guardrails';
 import type { BriefSectionContent, FormFlag, OnbBriefSection, OnboardingFormRecord } from '../types';
 import { loc } from '../types';
+import type { AnswersPdfSection } from './AnswersPdf';
 import { MarkdownBlocks } from './markdown';
 
 /**
@@ -33,6 +34,13 @@ const styles = StyleSheet.create({
   flags: { marginTop: 14, padding: 10, backgroundColor: '#F5F7FB', borderRadius: 6 },
   flagsTitle: { fontFamily: 'Helvetica-Bold', fontSize: 9, color: '#7A879B', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 },
   flagItem: { fontSize: 9.5, color: '#4A5872', lineHeight: 1.4 },
+  appendixTitle: { fontFamily: 'Helvetica-Bold', fontSize: 15, color: '#0F2440', marginBottom: 4 },
+  appendixLead: { fontSize: 9.5, color: '#7A879B', marginBottom: 14 },
+  appendixSection: { marginBottom: 14 },
+  appendixSectionTitle: { fontFamily: 'Helvetica-Bold', fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: '#7A879B', marginBottom: 6, paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: '#E4E9F2' },
+  appendixRow: { flexDirection: 'row', marginBottom: 5 },
+  appendixLabel: { width: '40%', paddingRight: 10, fontSize: 9.5, color: '#7A879B', lineHeight: 1.4 },
+  appendixValue: { width: '60%', fontSize: 10, color: '#0F2440', lineHeight: 1.4 },
   footer: { position: 'absolute', left: 52, right: 52, bottom: 28, flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: '#E4E9F2', paddingTop: 8 },
   footerText: { fontSize: 8, color: '#7A879B', width: '82%', paddingRight: 12, lineHeight: 1.35 },
   pageNumber: { fontSize: 8, color: '#7A879B', width: '18%', textAlign: 'right' },
@@ -50,6 +58,8 @@ const LABELS: Record<Locale, Record<string, string>> = {
     notConfirmed: 'Noch nicht bestätigt',
     flags: 'Hinweise für das Team (intern)',
     page: 'Seite',
+    appendix: 'Anhang: alle Ihre Angaben',
+    appendixLead: 'Jede Frage, die Sie beantwortet haben, in Ihren eigenen Worten.',
   },
   en: {
     eyebrow: 'Web Studio · Website brief',
@@ -62,6 +72,8 @@ const LABELS: Record<Locale, Record<string, string>> = {
     notConfirmed: 'Not yet confirmed',
     flags: 'Notes for the team (internal)',
     page: 'Page',
+    appendix: 'Appendix: everything you told us',
+    appendixLead: 'Every question you answered, in your own words.',
   },
 };
 
@@ -76,9 +88,11 @@ export interface BriefPdfProps {
   footerText: string;
   /** Team copy only: flags rendered on the last page. Omitted for the client's copy. */
   flags?: FormFlag[];
+  /** Every answered question, by step, after the brief. */
+  appendix?: AnswersPdfSection[];
 }
 
-export function BriefPdf({ record, sections, content, footerText, flags }: BriefPdfProps) {
+export function BriefPdf({ record, sections, content, footerText, flags, appendix }: BriefPdfProps) {
   const locale = record.locale;
   const L = LABELS[locale];
   const company = sanitizeForPdf(record.company ?? '');
@@ -146,6 +160,24 @@ export function BriefPdf({ record, sections, content, footerText, flags }: Brief
                 {f.detail ? ` · ${f.detail}` : ''} ({f.severity}, {f.source})
                 {f.data ? ` ${JSON.stringify(f.data)}` : ''}
               </Text>
+            ))}
+          </View>
+        )}
+
+        {appendix && appendix.length > 0 && (
+          <View break>
+            <Text style={styles.appendixTitle}>{L.appendix}</Text>
+            <Text style={styles.appendixLead}>{L.appendixLead}</Text>
+            {appendix.map((section, i) => (
+              <View key={i} style={styles.appendixSection}>
+                <Text style={styles.appendixSectionTitle}>{sanitizeForPdf(section.title)}</Text>
+                {section.rows.map((row, j) => (
+                  <View key={j} style={styles.appendixRow} wrap={false}>
+                    <Text style={styles.appendixLabel}>{sanitizeForPdf(row.label)}</Text>
+                    <Text style={styles.appendixValue}>{sanitizeForPdf(row.value)}</Text>
+                  </View>
+                ))}
+              </View>
             ))}
           </View>
         )}

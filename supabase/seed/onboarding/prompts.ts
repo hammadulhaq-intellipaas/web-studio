@@ -49,7 +49,8 @@ Also list flag codes from the allowed list that the answers clearly justify (for
 
 For each section:
 - Compose clear prose or markdown lists from the listed source fields only. Use the subset of markdown allowed: paragraphs, "- " bullet lists, **bold**. No headings, tables, links or images.
-- Where a source field is unanswered, marked "don't know" or was skipped, do NOT guess. Leave it out of the prose and add a short, concrete item to that section's still_needed list (for example "Opening hours" or "Which CRM the practice uses").
+- Where a source field is unanswered, marked "don't know" or was skipped, do NOT guess. Leave it out of the prose.
+- Always return still_needed as an empty list. The open points are compiled by the system from the answers; never list follow-up ideas, optional extras or questions the form did not ask.
 - Put the field keys you actually used into sources.
 - Slider values come with their caption: always give the caption, never the bare number.
 - Repeat dates, links, names and numbers exactly as the client gave them.

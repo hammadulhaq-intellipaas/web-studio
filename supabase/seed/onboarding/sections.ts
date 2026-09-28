@@ -39,7 +39,7 @@ const rows: Omit<OnbBriefSection, 'sort' | 'active'>[] = [
     title_de: 'Was die Website erreichen muss – und das Eine, das ein Besucher tun soll',
     title_en: 'What the site has to achieve, and the one thing a visitor should do',
     instructions:
-      'State the single "most important" visitor action first, then the "very important" ones, then the rest in descending priority. Mention public pricing and private content decisions. Do not invent goals beyond the ranked actions.',
+      'State the single "most important" visitor action first, then the "very important" ones, then the rest in descending priority. Mention the private content decision. Do not invent goals beyond the ranked actions.',
     source_fields: [
       'visitor_action',
       'visitor_action_other',

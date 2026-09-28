@@ -17,7 +17,8 @@ vi.mock('@/lib/supabase/admin', () => ({
   }),
 }));
 
-const { briefSchema, buildBriefPrompt, checkSections, fallbackSections, generateBrief, stillNeededSection, briefCorpus } =
+const { briefSchema, buildBriefPrompt, checkSections, fallbackSections, generateBrief, stillNeededSection,
+  withOpenItems, briefCorpus } =
   await import('@/lib/onboarding/ai/brief');
 
 const def = makeDefinition();
@@ -42,14 +43,14 @@ describe('fallback and still-needed', () => {
     const sections = fallbackSections(def, record, [], llmSections);
     expect(sections.who.content_markdown).toContain('**Wie lautet Ihr vollständiger Firmenname?');
     expect(sections.who.content_markdown).toContain('Physio Nordend Lena Hartmann e.K.');
-    expect(sections.pages.still_needed).toContain('Welches Paket haben Sie gebucht?');
+    expect(sections.pages.still_needed).toEqual([expect.stringContaining('Welches Paket haben Sie gebucht?')]);
     expect(sections.look.content_markdown).toContain('Freundlich, aber professionell');
     expect(sections.dates.sources).toContain('launch_date');
   });
 
-  it('composes section 9 from don\'t-know answers, thin fields, skipped follow-ups and the model\'s own lists', () => {
+  it('lists only what is really open: unanswered required questions and "don\'t know"', () => {
     const record = makeRecord({
-      answers: { ...completeAnswers(), booked_package: dk(), page_list: a('Start\nKontakt') },
+      answers: { ...completeAnswers(), booked_package: dk(), page_list: a('Start\nKontakt'), vat_id: a('') },
       review: {
         round: 1,
         budget_left: 5,
@@ -71,20 +72,36 @@ describe('fallback and still-needed', () => {
         llm_questions: [],
       },
     });
-    const llm: Record<string, BriefSectionContent> = {
-      who: { content_markdown: 'x', still_needed: ['Slogan'], sources: [] },
-    };
-    const section = stillNeededSection(def, record, [], llm);
-    expect(section.still_needed).toEqual(
-      expect.arrayContaining(['Welches Paket haben Sie gebucht?', expect.stringContaining('mehr Details'), 'Wie sind Ihre Öffnungszeiten?', 'Slogan']),
+    const section = stillNeededSection(def, record, []);
+    // "I don't know" is open; a short page list, a skipped follow-up on an answered
+    // question and an optional blank (VAT ID) are not.
+    expect(section.still_needed).toEqual([expect.stringContaining('Welches Paket haben Sie gebucht?')]);
+    expect(section.content_markdown).not.toMatch(/Öffnungszeiten|mehr Details|USt-IdNr/);
+    expect(section.content_markdown).toContain('**Ihr Projekt**');
+  });
+
+  it('never lists a question the form does not ask in that language', () => {
+    const answers = { ...completeAnswers() };
+    delete answers.content_responsible;
+    expect(stillNeededSection(def, makeRecord({ locale: 'en', answers }), []).still_needed).toEqual([]);
+    expect(stillNeededSection(def, makeRecord({ locale: 'de', answers }), []).still_needed).toEqual([expect.stringContaining('Inhalt')]);
+  });
+
+  it('replaces whatever the model listed with the open items of each section', () => {
+    const record = makeRecord({ answers: { ...completeAnswers(), booked_package: { v: null, dk: true, dk_date: '2027-01-10' } } });
+    const llm: Record<string, BriefSectionContent> = Object.fromEntries(
+      llmSections.map((s) => [s.id, { content_markdown: 'x', still_needed: ['Slogan', 'Any additional build dependencies'], sources: [] }]),
     );
-    expect(section.content_markdown.split('\n').every((l) => l.startsWith('- '))).toBe(true);
+    const out = withOpenItems(def, record, [], llm);
+    expect(out.who.still_needed).toEqual([]);
+    expect(out.pages.still_needed).toEqual([expect.stringContaining('10. Januar 2027')]);
+    expect(out.still_needed.content_markdown).not.toContain('Slogan');
   });
 
   it('says so when nothing is missing', () => {
-    const section = stillNeededSection(def, makeRecord(), [], {});
+    const section = stillNeededSection(def, makeRecord(), []);
     expect(section.still_needed).toEqual([]);
-    expect(section.content_markdown).toMatch(/Nichts/);
+    expect(section.content_markdown).toMatch(/Es fehlt nichts/);
   });
 });
 
@@ -120,7 +137,7 @@ describe('generateBrief', () => {
     expect(draft.source).toBe('llm');
     expect(Object.keys(draft.sections)).toEqual(def.briefSections.map((s) => s.id));
     expect(draft.sections.who.content_markdown).toContain('Für Physio Nordend halten wir fest');
-    expect(draft.sections.still_needed.still_needed).toContain('Welches Paket haben Sie gebucht?');
+    expect(draft.sections.still_needed.still_needed).toEqual([expect.stringContaining('Welches Paket haben Sie gebucht?')]);
     expect(inserted).toHaveLength(1);
     expect(inserted[0]).toMatchObject({ job: 'brief', ok: true, model: 'fixture' });
   });
