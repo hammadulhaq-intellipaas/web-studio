@@ -80,7 +80,10 @@ const TOKEN = /\{(\w+)\}/g;
 
 /** Upper-case the first letter of a bullet's value ("- **Label:** value"). */
 function capitaliseBullet(line: string): string {
-  return line.replace(/^(\s*[-*]\s+\*\*[^*]+\*\*\s*)(\p{Ll})/u, (_, head: string, first: string) => head + first.toLocaleUpperCase());
+  // Links and email addresses stay as typed ("https://…", not "Https://…").
+  return line.replace(/^(\s*[-*]\s+\*\*[^*]+\*\*\s*)(\p{Ll})(\S*)/u, (whole, head: string, first: string, rest: string) =>
+    /^(?:https?:|www\.)|@/i.test(first + rest) ? whole : head + first.toLocaleUpperCase() + rest,
+  );
 }
 
 /**

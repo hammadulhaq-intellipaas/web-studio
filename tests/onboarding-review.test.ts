@@ -53,6 +53,12 @@ describe('understoodText', () => {
     expect(text).not.toContain('…');
   });
 
+  it('leaves links as typed instead of capitalising them', () => {
+    const answers = { ...completeAnswers(), references: a([{ _id: 'r1', url: 'https://www.beispiel-physio.de', likes: 'ruhige Farben' }]) };
+    const text = understoodText(def, answers, 'en');
+    expect(text).toContain('**A website you like:** https://www.beispiel-physio.de, for: ruhige Farben');
+  });
+
   it('leaves out a line it has no answer for instead of showing a gap', () => {
     const answers = { ...completeAnswers() };
     delete answers.excluded_audience;

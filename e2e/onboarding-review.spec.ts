@@ -108,8 +108,8 @@ test.describe('onboarding final review', () => {
     expect(pdf.status()).toBe(200);
     expect((await pdf.body()).subarray(0, 5).toString()).toBe('%PDF-');
 
-    // No verdict yet: pointed at it. Then confirm: unticked boxes are marked.
-    await page.click('[data-testid=onb-to-confirm]');
+    // No verdict yet: the button at the top points at it. Then confirm: unticked boxes are marked.
+    await page.click('[data-testid=onb-to-confirm-top]');
     await expect(page.locator('[data-testid=onb-understood-error]')).toBeVisible();
     await page.click('[data-testid=onb-understood-yes]');
     await page.click('[data-testid=onb-to-confirm]');

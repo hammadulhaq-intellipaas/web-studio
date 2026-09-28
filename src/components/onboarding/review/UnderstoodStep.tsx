@@ -15,6 +15,7 @@ import type { PublicFile } from '../fields/UploadInput';
 import { errorText } from '../fields/errorText';
 import { IssueSummary, useReviewIssues } from './IssueSummary';
 import { PdfDownload } from './PdfDownload';
+import { Spinner } from './Loaders';
 import { ReportCard } from './ReportCard';
 
 const card = { background: '#ffffff', border: `1px solid ${BORDER}`, borderRadius: 16, padding: '22px 24px' } as const;
@@ -132,7 +133,11 @@ export function UnderstoodStep({
     }
     if (!verdict || (verdict !== 'yes' && !corrections.trim())) {
       setError(true);
-      focus(verdictRef.current);
+      // Centred, so "Is that right?" and its error are both in view.
+      requestAnimationFrame(() => {
+        verdictRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        verdictRef.current?.focus({ preventScroll: true });
+      });
       return;
     }
     setSaving(true);
@@ -150,13 +155,40 @@ export function UnderstoodStep({
           <h2 style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.8, margin: '0 0 6px' }}>{t('answersTitle')}</h2>
           <p style={{ fontSize: 15, color: BODY, margin: 0, lineHeight: 1.5 }}>{t('answersHelp')}</p>
         </div>
-        <PdfDownload
-          href={`/api/onboarding/${record.id}/answers-pdf`}
-          label={t('downloadAnswers')}
-          fallbackName="answers.pdf"
-          variant="outline"
-          testId="onb-answers-pdf"
-        />
+        {/* The way forward sits up here too: the page is long, and the only other
+            button is at the very bottom. Without a verdict it scrolls to "Is that right?". */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <PdfDownload
+            href={`/api/onboarding/${record.id}/answers-pdf`}
+            label={t('downloadAnswers')}
+            fallbackName="answers.pdf"
+            variant="outline"
+            testId="onb-answers-pdf"
+          />
+          <button
+            type="button"
+            onClick={() => void submit()}
+            disabled={saving}
+            data-testid="onb-to-confirm-top"
+            className="hov-lift1"
+            style={{
+              ...gradButton,
+              borderRadius: 11,
+              padding: '11px 20px',
+              fontSize: 14.5,
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+              boxShadow: '0 10px 22px -8px rgba(30,79,214,.55)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 9,
+              opacity: saving ? 0.85 : 1,
+            }}
+          >
+            {saving && <Spinner size={14} onDark />}
+            {t('toConfirm')} <span aria-hidden="true">→</span>
+          </button>
+        </div>
       </div>
 
       <IssueSummary
@@ -221,13 +253,13 @@ export function UnderstoodStep({
         )}
       </div>
 
-      <div style={card} data-testid="onb-understood" ref={verdictRef} tabIndex={-1}>
+      <div style={card} data-testid="onb-understood">
         <h2 style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.5, margin: '0 0 10px' }}>{t('understoodTitle')}</h2>
         <div className="onb-prose" style={{ fontSize: 15, lineHeight: 1.65, color: INK }}>
           <ReactMarkdown>{readBack}</ReactMarkdown>
         </div>
 
-        <div style={{ marginTop: 20, borderTop: `1px solid ${BORDER}`, paddingTop: 18 }}>
+        <div ref={verdictRef} tabIndex={-1} data-testid="onb-verdict" style={{ marginTop: 20, borderTop: `1px solid ${BORDER}`, paddingTop: 18, outline: 'none', scrollMarginTop: 90 }}>
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>
             {t('understoodRight')}
             <span style={{ color: DANGER }}> *</span>
@@ -286,9 +318,10 @@ export function UnderstoodStep({
           disabled={saving}
           data-testid="onb-to-confirm"
           className="hov-lift1"
-          style={{ ...gradButton, borderRadius: 12, padding: '14px 28px', fontSize: 15, fontWeight: 700, opacity: saving ? 0.7 : 1 }}
+          style={{ ...gradButton, borderRadius: 12, padding: '14px 28px', fontSize: 15, fontWeight: 700, opacity: saving ? 0.85 : 1, display: 'inline-flex', alignItems: 'center', gap: 10, boxShadow: '0 10px 22px -8px rgba(30,79,214,.5)' }}
         >
-          {t('toConfirm')}
+          {saving && <Spinner onDark />}
+          {t('toConfirm')} <span aria-hidden="true">→</span>
         </button>
       </div>
     </section>

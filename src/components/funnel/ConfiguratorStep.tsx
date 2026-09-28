@@ -1001,10 +1001,13 @@ function CareSection({ catalog }: { catalog: Catalog }) {
       </div>
 
       <div style={{ ...sectionLabel, marginBottom: 10 }}>{t('supTitle')}</div>
+      {/* Four plans: 2 x 2, or 4 in a row when there is room for it, never 3 + 1
+          (see .support-grid in globals.css; it sizes to this column, not the window). */}
+      <div style={{ containerType: 'inline-size' }}>
       <div
+        className="support-grid"
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit,minmax(min(180px,100%),1fr))',
           gap: 12,
           marginBottom: 22,
         }}
@@ -1072,6 +1075,7 @@ function CareSection({ catalog }: { catalog: Catalog }) {
             </button>
           );
         })}
+      </div>
       </div>
       {/* Hours they do not use are not lost, which is the whole reason to take a plan. */}
       {catalog.supportRolloverMonths > 0 && catalog.supportPlans.some((sp) => Number(sp.included_hours ?? 0) > 0) && (
