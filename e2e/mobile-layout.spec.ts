@@ -4,7 +4,9 @@ import { completeAnswers } from './helpers/onboarding';
 import { testEmail } from './fixtures';
 
 // Phones: no page may scroll sideways, and nothing in the header may sit on top of
-// anything else (the Web Studio badge and "Step 3 of 4" used to run into DE/EN).
+// anything else (the Web Studio badge and "Step 3 of 4" used to run into DE/EN). Card
+// grids use minmax(min(Npx,100%),1fr): a bare minmax(280px,1fr) pushed the whole
+// configurator off the right edge of narrow phones.
 
 async function expectFitsPhone(page: Page, where: string) {
   const report = await page.evaluate(() => {
@@ -40,7 +42,8 @@ async function expectFitsPhone(page: Page, where: string) {
   expect(report.headerHeight, `${where}: header is more than one row`).toBeLessThan(70);
 }
 
-for (const width of [360, 390]) {
+// 320px also stands in for a 360px phone with a larger system text size.
+for (const width of [320, 360, 390]) {
   test.describe(`at ${width}px`, () => {
     test.use({ viewport: { width, height: 800 } });
 

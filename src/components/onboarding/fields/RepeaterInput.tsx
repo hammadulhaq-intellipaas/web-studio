@@ -119,7 +119,7 @@ export function RepeaterInput({
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: wide ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))',
+                gridTemplateColumns: wide ? '1fr' : 'repeat(auto-fit, minmax(min(200px,100%),1fr))',
                 gap: 10,
               }}
             >

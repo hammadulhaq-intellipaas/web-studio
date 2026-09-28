@@ -668,7 +668,7 @@ export function ConfiguratorStep({ catalog }: { catalog: Catalog }) {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))',
+                gridTemplateColumns: 'repeat(auto-fit,minmax(min(180px,100%),1fr))',
                 gap: 12,
               }}
             >
@@ -740,7 +740,7 @@ export function ConfiguratorStep({ catalog }: { catalog: Catalog }) {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill,minmax(230px,1fr))',
+                gridTemplateColumns: 'repeat(auto-fill,minmax(min(230px,100%),1fr))',
                 gap: 9,
               }}
             >
@@ -822,7 +822,7 @@ export function ConfiguratorStep({ catalog }: { catalog: Catalog }) {
 
 const addonGridStyle: React.CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))',
+  gridTemplateColumns: 'repeat(auto-fill,minmax(min(280px,100%),1fr))',
   gap: 10,
 };
 
@@ -910,7 +910,7 @@ function CareSection({ catalog }: { catalog: Catalog }) {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))',
+          gridTemplateColumns: 'repeat(auto-fit,minmax(min(200px,100%),1fr))',
           gap: 12,
           marginBottom: 22,
         }}
@@ -949,7 +949,7 @@ function CareSection({ catalog }: { catalog: Catalog }) {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))',
+          gridTemplateColumns: 'repeat(auto-fit,minmax(min(200px,100%),1fr))',
           gap: 12,
           marginBottom: 22,
         }}
@@ -1004,7 +1004,7 @@ function CareSection({ catalog }: { catalog: Catalog }) {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))',
+          gridTemplateColumns: 'repeat(auto-fit,minmax(min(180px,100%),1fr))',
           gap: 12,
           marginBottom: 22,
         }}
