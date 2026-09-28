@@ -8,7 +8,7 @@ import { stripDashes } from '@/lib/onboarding/guardrails';
 import { textFor } from '@/lib/onboarding/texts';
 import { loc } from '@/lib/onboarding/types';
 import type { Answer, OnboardingBrief, OnboardingDefinition, OnboardingFormRecord } from '@/lib/onboarding/types';
-import { BODY, BORDER, gradButton, MUTED } from '@/components/funnel/ui';
+import { BODY, BORDER, gradButton } from '@/components/funnel/ui';
 import type { PublicFile } from '../fields/UploadInput';
 import { DANGER } from '../fields/styles';
 import { FollowupExchange } from './FollowupExchange';
@@ -16,6 +16,7 @@ import { ConfirmScreen } from './ConfirmScreen';
 import { UnderstoodStep } from './UnderstoodStep';
 import { DoneScreen } from './DoneScreen';
 import { IssueSummary, useReviewIssues, useServerFields } from './IssueSummary';
+import { PreparingFinalReview, Spinner, WorkingCard } from './Loaders';
 
 export interface ReviewFlowProps {
   definition: OnboardingDefinition;
@@ -106,9 +107,13 @@ function BriefLoader({ record, setRecord, setBrief }: ReviewFlowProps) {
   }, [record.id, setBrief, setRecord]);
   return (
     <section data-screen="onb-brief-loading" style={{ paddingBottom: 72 }}>
-      <div style={{ background: '#ffffff', border: `1px solid ${BORDER}`, borderRadius: 16, padding: 24, color: error ? DANGER : MUTED, fontSize: 14, fontWeight: 600 }}>
-        {error ? t('error') : t('writing')}
-      </div>
+      {error ? (
+        <div role="alert" style={{ background: '#ffffff', border: `1px solid ${BORDER}`, borderRadius: 16, padding: 24, color: DANGER, fontSize: 14, fontWeight: 600 }}>
+          {t('error')}
+        </div>
+      ) : (
+        <PreparingFinalReview />
+      )}
     </section>
   );
 }
@@ -236,11 +241,25 @@ function ReadyCheck({ definition, record, files, locale, onJumpToScreen, flush, 
           fontSize: 15.5,
           fontWeight: 700,
           boxShadow: '0 10px 22px -8px rgba(30,79,214,.5)',
-          opacity: starting ? 0.7 : 1,
+          opacity: starting ? 0.85 : 1,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 10,
         }}
       >
+        {starting && <Spinner onDark />}
         {starting ? t('checking') : ts('toReview')}
       </button>
+
+      {/* About ten seconds while the assistant reads the answers: say so, visibly. */}
+      {starting && (
+        <WorkingCard
+          testId="onb-review-working"
+          title={t('startingTitle')}
+          lines={[t('startingLine1'), t('startingLine2'), t('startingLine3')]}
+          patience={t('patience')}
+        />
+      )}
     </section>
   );
 }

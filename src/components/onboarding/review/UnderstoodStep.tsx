@@ -14,6 +14,7 @@ import { DANGER, inputStyle, pillStyle } from '../fields/styles';
 import type { PublicFile } from '../fields/UploadInput';
 import { errorText } from '../fields/errorText';
 import { IssueSummary, useReviewIssues } from './IssueSummary';
+import { PdfDownload } from './PdfDownload';
 import { ReportCard } from './ReportCard';
 
 const card = { background: '#ffffff', border: `1px solid ${BORDER}`, borderRadius: 16, padding: '22px 24px' } as const;
@@ -149,14 +150,13 @@ export function UnderstoodStep({
           <h2 style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.8, margin: '0 0 6px' }}>{t('answersTitle')}</h2>
           <p style={{ fontSize: 15, color: BODY, margin: 0, lineHeight: 1.5 }}>{t('answersHelp')}</p>
         </div>
-        <a
+        <PdfDownload
           href={`/api/onboarding/${record.id}/answers-pdf`}
-          data-testid="onb-answers-pdf"
-          className="hov-blue-border"
-          style={{ fontSize: 13.5, fontWeight: 700, color: BLUE, textDecoration: 'none', border: `1.5px solid ${BORDER}`, background: '#ffffff', borderRadius: 11, padding: '10px 16px', whiteSpace: 'nowrap' }}
-        >
-          ⤓ {t('downloadAnswers')}
-        </a>
+          label={t('downloadAnswers')}
+          fallbackName="answers.pdf"
+          variant="outline"
+          testId="onb-answers-pdf"
+        />
       </div>
 
       <IssueSummary

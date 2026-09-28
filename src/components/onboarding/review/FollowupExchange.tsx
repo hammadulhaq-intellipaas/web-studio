@@ -12,6 +12,7 @@ import { cap, loc } from '@/lib/onboarding/types';
 import type { OnboardingDefinition, OnboardingFormRecord, ReviewQuestion } from '@/lib/onboarding/types';
 import { BLUE, BODY, BORDER, gradButton, INK, MUTED } from '@/components/funnel/ui';
 import { DANGER, inputStyle, pillStyle } from '../fields/styles';
+import { PreparingFinalReview, Spinner } from './Loaders';
 
 /**
  * The guided exchange (spec §06, Job 2): one question at a time, quick replies where the
@@ -70,11 +71,13 @@ export function FollowupExchange({
             onClick={onContinue}
             disabled={continuing}
             className="hov-lift1"
-            style={{ ...gradButton, marginTop: 18, borderRadius: 12, padding: '14px 30px', fontSize: 15, fontWeight: 700, opacity: continuing ? 0.7 : 1 }}
+            style={{ ...gradButton, marginTop: 18, borderRadius: 12, padding: '14px 30px', fontSize: 15, fontWeight: 700, opacity: continuing ? 0.85 : 1, display: 'inline-flex', alignItems: 'center', gap: 10 }}
           >
-            {continuing ? t('checking') : t('toBrief')}
+            {continuing && <Spinner onDark />}
+            {t('toBrief')}
           </button>
         </div>
+        {continuing && <PreparingFinalReview />}
       </section>
     );
   }
@@ -124,11 +127,14 @@ function QuestionCard({
   const review = record.review;
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
+  // Which control was used, so the spinner shows where the client clicked.
+  const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState(false);
 
-  const send = async (answer: string | null) => {
+  const send = async (answer: string | null, via: string) => {
     if (busy) return;
     setBusy(true);
+    setPending(via);
     setError(false);
     try {
       const res = await fetch(`/api/onboarding/${record.id}/followups`, {
@@ -143,6 +149,7 @@ function QuestionCard({
       setError(true);
     } finally {
       setBusy(false);
+      setPending(null);
     }
   };
 
@@ -208,10 +215,11 @@ function QuestionCard({
                 type="button"
                 data-testid={`onb-reply-${reply.value}`}
                 disabled={busy}
-                onClick={() => void send(reply.value)}
+                onClick={() => void send(reply.value, `reply:${reply.value}`)}
                 className="hov-blue-border"
-                style={pillStyle(false)}
+                style={{ ...pillStyle(pending === `reply:${reply.value}`), display: 'inline-flex', alignItems: 'center', gap: 8 }}
               >
+                {pending === `reply:${reply.value}` && <Spinner size={13} onDark />}
                 {stripDashes(replyLabel(question, reply.value, locale, targetField))}
               </button>
             ))}
@@ -228,7 +236,7 @@ function QuestionCard({
               placeholder={t('answerPlaceholder')}
               onChange={(ev) => setText(ev.target.value)}
               onKeyDown={(ev) => {
-                if (ev.key === 'Enter' && (ev.metaKey || ev.ctrlKey) && text.trim()) void send(text.trim());
+                if (ev.key === 'Enter' && (ev.metaKey || ev.ctrlKey) && text.trim()) void send(text.trim(), 'text');
               }}
               style={inputStyle(false, { resize: 'vertical', lineHeight: 1.5 })}
             />
@@ -237,10 +245,11 @@ function QuestionCard({
                 type="button"
                 data-testid="onb-followup-send"
                 disabled={busy || !text.trim()}
-                onClick={() => void send(text.trim())}
+                onClick={() => void send(text.trim(), 'text')}
                 className="hov-lift1"
-                style={{ ...gradButton, borderRadius: 11, padding: '12px 22px', fontSize: 14.5, fontWeight: 700, opacity: busy || !text.trim() ? 0.6 : 1 }}
+                style={{ ...gradButton, borderRadius: 11, padding: '12px 22px', fontSize: 14.5, fontWeight: 700, opacity: busy || !text.trim() ? 0.6 : 1, display: 'inline-flex', alignItems: 'center', gap: 9 }}
               >
+                {pending === 'text' && <Spinner size={14} onDark />}
                 {t('send')}
               </button>
             </div>
@@ -259,10 +268,11 @@ function QuestionCard({
               type="button"
               data-testid="onb-followup-skip"
               disabled={busy}
-              onClick={() => void send(null)}
+              onClick={() => void send(null, 'skip')}
               className="hov-blue-text"
-              style={{ fontFamily: 'inherit', cursor: 'pointer', background: 'none', border: 'none', padding: 0, color: MUTED, fontSize: 13.5, fontWeight: 600 }}
+              style={{ fontFamily: 'inherit', cursor: 'pointer', background: 'none', border: 'none', padding: 0, color: MUTED, fontSize: 13.5, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 8 }}
             >
+              {pending === 'skip' && <Spinner size={13} />}
               {t('skip')} →
             </button>
           </div>

@@ -11,6 +11,7 @@ import { BLUE, BODY, BORDER, gradButton, INK, MUTED } from '@/components/funnel/
 import { DANGER, inputStyle, labelStyle } from '../fields/styles';
 import type { PublicFile } from '../fields/UploadInput';
 import { IssueSummary, useReviewIssues, useServerFields } from './IssueSummary';
+import { Spinner } from './Loaders';
 
 const HEADING = /^\*\*(.+?)\*\*\s*$/;
 
@@ -210,8 +211,9 @@ export function ConfirmScreen({
             onClick={() => void submit()}
             disabled={busy}
             className="hov-lift1"
-            style={{ ...gradButton, borderRadius: 12, padding: '15px 34px', fontSize: 15.5, fontWeight: 700, boxShadow: '0 10px 22px -8px rgba(30,79,214,.5)', opacity: busy ? 0.7 : 1 }}
+            style={{ ...gradButton, borderRadius: 12, padding: '15px 34px', fontSize: 15.5, fontWeight: 700, boxShadow: '0 10px 22px -8px rgba(30,79,214,.5)', opacity: busy ? 0.85 : 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}
           >
+            {busy && <Spinner onDark />}
             {busy ? t('submitting') : t('cta')}
           </button>
         </div>

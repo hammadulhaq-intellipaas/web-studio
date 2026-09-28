@@ -10,7 +10,8 @@ function weekdayInDays(n: number): string {
   const d = new Date();
   d.setDate(d.getDate() + n);
   while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
-  return d.toISOString().slice(0, 10);
+  // The local calendar date: toISOString() is UTC and can land on the day before.
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 test.describe('onboarding final review', () => {

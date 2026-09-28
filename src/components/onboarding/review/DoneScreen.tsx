@@ -6,12 +6,20 @@ import ReactMarkdown from 'react-markdown';
 import type { Locale } from '@/lib/types';
 import { understoodText } from '@/lib/onboarding/understood';
 import { stripDashes } from '@/lib/onboarding/guardrails';
+import { Typing } from './Loaders';
+import { PdfDownload } from './PdfDownload';
 import { textFor } from '@/lib/onboarding/texts';
 import type { OnboardingDefinition, OnboardingFormRecord } from '@/lib/onboarding/types';
-import { BLUE, BODY, BORDER, gradButton, MUTED } from '@/components/funnel/ui';
+import { BODY, BORDER, MUTED } from '@/components/funnel/ui';
 
 const POLL_MS = 3000;
 const POLL_MAX = 20;
+
+/** After confirming, "before you confirm, please read this" no longer applies: bullets only. */
+function confirmedReadBack(text: string): string {
+  const bullets = text.split('\n').filter((line) => /^\s*[-*]\s/.test(line));
+  return bullets.length ? bullets.join('\n') : text;
+}
 
 /**
  * "That's everything": PDF download, the emailed-copy note, what happens next, and the
@@ -87,26 +95,17 @@ export function DoneScreen({
           </div>
         )}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, marginTop: 24 }}>
-          <a
-            href={`/api/onboarding/${record.id}/pdf`}
-            data-testid="onb-download-pdf"
-            className="hov-lift1"
-            style={{ ...gradButton, display: 'inline-block', textDecoration: 'none', borderRadius: 12, padding: '14px 30px', fontSize: 15, fontWeight: 700, boxShadow: '0 10px 22px -8px rgba(30,79,214,.5)' }}
-          >
-            {t('downloadPdf')}
-          </a>
-          <a href={`/api/onboarding/${record.id}/answers-pdf`} data-testid="onb-done-answers-pdf" className="hov-blue-text" style={{ fontSize: 13.5, fontWeight: 700, color: BLUE, textDecoration: 'none' }}>
-            {t('downloadAnswers')}
-          </a>
+          <PdfDownload href={`/api/onboarding/${record.id}/pdf`} label={t('downloadPdf')} fallbackName="brief.pdf" variant="primary" testId="onb-download-pdf" />
+          <PdfDownload href={`/api/onboarding/${record.id}/answers-pdf`} label={t('downloadAnswers')} fallbackName="answers.pdf" variant="link" testId="onb-done-answers-pdf" />
           <span data-testid="onb-delivery" data-delivered={delivered ? 'true' : 'false'} style={{ fontSize: 12.5, color: MUTED }}>
-            {delivered || pollError ? (record.email ? t('emailed', { email: record.email }) : '') : t('pdfPending')}
+            {delivered || pollError ? record.email ? t('emailed', { email: record.email }) : '' : <Typing label={t('pdfPending')} />}
           </span>
         </div>
       </div>
 
       {/* What they confirmed, in their own words. The written brief goes to the team. */}
       <div data-testid="onb-done-understood" style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 26 }} className="onb-prose">
-        <ReactMarkdown>{understoodText(definition, record.answers, locale)}</ReactMarkdown>
+        <ReactMarkdown>{confirmedReadBack(understoodText(definition, record.answers, locale))}</ReactMarkdown>
       </div>
     </section>
   );

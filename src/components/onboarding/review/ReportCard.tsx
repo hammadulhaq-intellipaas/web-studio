@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import type { Locale } from '@/lib/types';
 import type { CompletenessReport, ReportItem } from '@/lib/onboarding/types';
 import { stripDashes } from '@/lib/onboarding/guardrails';
+import { Avatar, Typing } from './Loaders';
 import { BLUE, BODY, BORDER, GREEN, INK, MUTED } from '@/components/funnel/ui';
 
 /** One line per open point, in the words of whatever found it. */
@@ -25,51 +26,6 @@ function reason(item: ReportItem, t: ReturnType<typeof useTranslations>): string
     default:
       return '';
   }
-}
-
-function Avatar() {
-  return (
-    <div
-      aria-hidden="true"
-      style={{
-        flex: 'none',
-        width: 36,
-        height: 36,
-        borderRadius: '50%',
-        background: 'linear-gradient(135deg, #1E5EFF 0%, #22C3E6 100%)',
-        display: 'grid',
-        placeItems: 'center',
-        fontSize: 16,
-        boxShadow: '0 4px 12px -4px rgba(30,94,255,.5)',
-      }}
-    >
-      ✨
-    </div>
-  );
-}
-
-/** Three dots while the check runs, so the wait reads as the assistant thinking. */
-function Typing({ label }: { label: string }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 14, color: MUTED }}>
-      <span style={{ display: 'inline-flex', gap: 4 }}>
-        {[0, 1, 2].map((i) => (
-          <span
-            key={i}
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: '50%',
-              background: '#B6C2D6',
-              display: 'inline-block',
-              animation: `onbBlink 1.2s ${i * 0.18}s infinite ease-in-out`,
-            }}
-          />
-        ))}
-      </span>
-      {label}
-    </div>
-  );
 }
 
 const bubble = {
