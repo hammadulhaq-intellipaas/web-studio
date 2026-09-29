@@ -10,7 +10,7 @@ import { isRequiredNow, visibility, type FileCounts } from '@/lib/onboarding/log
 import { understoodText } from '@/lib/onboarding/understood';
 import { loc, type Answer, type CompletenessReport, type OnboardingDefinition, type OnboardingFormRecord } from '@/lib/onboarding/types';
 import { BLUE, BODY, BORDER, gradButton, INK, MUTED } from '@/components/funnel/ui';
-import { DANGER, inputStyle, pillStyle } from '../fields/styles';
+import { DANGER, inputStyle } from '../fields/styles';
 import type { PublicFile } from '../fields/UploadInput';
 import { errorText } from '../fields/errorText';
 import { IssueSummary, useReviewIssues } from './IssueSummary';
@@ -259,26 +259,81 @@ export function UnderstoodStep({
           <ReactMarkdown>{readBack}</ReactMarkdown>
         </div>
 
-        <div ref={verdictRef} tabIndex={-1} data-testid="onb-verdict" style={{ marginTop: 20, borderTop: `1px solid ${BORDER}`, paddingTop: 18, outline: 'none', scrollMarginTop: 90 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>
+        {/* A question the client has to answer, so it looks like one: set apart from the
+            read-back in its own panel, with three options that read as things to pick. */}
+        <div
+          ref={verdictRef}
+          tabIndex={-1}
+          data-testid="onb-verdict"
+          style={{
+            marginTop: 22,
+            background: '#F3F7FF',
+            border: `1.5px solid ${error && !verdict ? DANGER : '#CBD9EE'}`,
+            borderRadius: 14,
+            padding: '18px 18px 20px',
+            outline: 'none',
+            scrollMarginTop: 90,
+            transition: 'border-color .15s',
+          }}
+        >
+          <div style={{ fontSize: 17, fontWeight: 800, color: INK, letterSpacing: -0.2 }}>
             {t('understoodRight')}
             <span style={{ color: DANGER }}> *</span>
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {(['yes', 'mostly', 'no'] as const).map((value) => (
-              <button
-                key={value}
-                type="button"
-                data-testid={`onb-understood-${value}`}
-                onClick={() => {
-                  setError(false);
-                  onChange('understood_ok', { v: value });
-                }}
-                style={pillStyle(verdict === value)}
-              >
-                {t(value === 'yes' ? 'understoodYes' : value === 'mostly' ? 'understoodMostly' : 'understoodNo')}
-              </button>
-            ))}
+          <div style={{ fontSize: 13.5, color: BODY, margin: '3px 0 14px' }}>{t('understoodPick')}</div>
+          <div role="radiogroup" aria-label={t('understoodRight')} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(190px,100%),1fr))', gap: 10 }}>
+            {(['yes', 'mostly', 'no'] as const).map((value) => {
+              const on = verdict === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  data-testid={`onb-understood-${value}`}
+                  onClick={() => {
+                    setError(false);
+                    onChange('understood_ok', { v: value });
+                  }}
+                  className={on ? undefined : 'hov-blue-border'}
+                  style={{
+                    fontFamily: 'inherit',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 11,
+                    padding: '13px 14px',
+                    borderRadius: 12,
+                    border: `2px solid ${on ? BLUE : BORDER}`,
+                    background: on ? '#EDF3FF' : '#ffffff',
+                    boxShadow: on ? '0 6px 16px -10px rgba(30,79,214,.6)' : '0 1px 2px rgba(15,36,64,.06)',
+                    color: INK,
+                    fontSize: 14,
+                    fontWeight: on ? 700 : 600,
+                    lineHeight: 1.35,
+                    transition: 'all .15s',
+                  }}
+                >
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      flex: 'none',
+                      width: 20,
+                      height: 20,
+                      borderRadius: '50%',
+                      border: `2px solid ${on ? BLUE : '#B9C6DB'}`,
+                      background: '#ffffff',
+                      display: 'grid',
+                      placeItems: 'center',
+                    }}
+                  >
+                    {on && <span style={{ width: 10, height: 10, borderRadius: '50%', background: BLUE }} />}
+                  </span>
+                  {t(value === 'yes' ? 'understoodYes' : value === 'mostly' ? 'understoodMostly' : 'understoodNo')}
+                </button>
+              );
+            })}
           </div>
 
           {verdict && verdict !== 'yes' && (
@@ -305,7 +360,7 @@ export function UnderstoodStep({
 
           {error && (
             <div role="alert" data-testid="onb-understood-error" style={{ fontSize: 12.5, fontWeight: 600, color: DANGER, marginTop: 10 }}>
-              {verdict ? t('understoodRequired') : t('understoodRight')}
+              {verdict ? t('understoodRequired') : t('understoodPickError')}
             </div>
           )}
         </div>

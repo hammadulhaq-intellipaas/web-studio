@@ -671,7 +671,9 @@
       "preparingStep3": "Putting your answers together",
       "patience": "This can take up to a minute. Thank you for your patience.",
       "pdfPreparing": "Preparing your PDF…",
-      "pdfError": "The PDF could not be prepared just now. Please try again."
+      "pdfError": "The PDF could not be prepared just now. Please try again.",
+      "understoodPick": "Please choose one to continue.",
+      "understoodPickError": "Please choose one of the three options above."
     },
     "brief": {
       "title": "Your brief",

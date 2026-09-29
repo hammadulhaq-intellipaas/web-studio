@@ -671,7 +671,9 @@
       "preparingStep3": "Ihre Angaben werden zusammengestellt",
       "patience": "Das kann bis zu einer Minute dauern. Vielen Dank für Ihre Geduld.",
       "pdfPreparing": "Ihr PDF wird erstellt …",
-      "pdfError": "Das PDF konnte gerade nicht erstellt werden. Bitte versuchen Sie es noch einmal."
+      "pdfError": "Das PDF konnte gerade nicht erstellt werden. Bitte versuchen Sie es noch einmal.",
+      "understoodPick": "Bitte wählen Sie eine Antwort, um fortzufahren.",
+      "understoodPickError": "Bitte wählen Sie eine der drei Antworten oben."
     },
     "brief": {
       "title": "Ihr Briefing",
