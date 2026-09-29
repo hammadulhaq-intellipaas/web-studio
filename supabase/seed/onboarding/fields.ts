@@ -380,6 +380,42 @@ const design: OnbField[] = [
     placeholder_en: 'Fixed price agreed before we start. Thirty years in the same street. We never use subcontractors.',
     config: { rows: 4, min_chars: 30, ai_assist: true },
   }),
+  // Right after "why do customers choose you over your competitors?": the competitors
+  // themselves, and what the client wants to do differently from each one. Laid out like
+  // the accounts table, one row open and required, more added as they need.
+  field('competitors', 'design', 'repeater', 'Wer sind Ihre wichtigsten Mitbewerber?', 'Who are your main competitors?', {
+    required: true,
+    help_de: 'Einer reicht, zwei oder drei sind ideal. Bitte sagen Sie uns bei jedem, was Sie anders machen möchten.',
+    help_en: 'One is enough, two or three is ideal. For each one, please tell us what you want to do differently.',
+    config: {
+      min_rows: 1,
+      max_rows: 10,
+      initial_rows: 1,
+      add_label_de: 'Weiteren Mitbewerber hinzufügen',
+      add_label_en: 'Add another competitor',
+      fields: [
+        {
+          key: 'url',
+          type: 'url',
+          label_de: 'Website des Mitbewerbers',
+          label_en: 'Competitor website',
+          required: true,
+          placeholder_de: 'https://www.mitbewerber.de',
+          placeholder_en: 'https://www.competitor.com',
+        },
+        {
+          key: 'differently',
+          type: 'textarea',
+          label_de: 'Was möchten Sie anders machen?',
+          label_en: 'What would you do differently?',
+          required: true,
+          min_chars: 15,
+          placeholder_de: 'Dort stehen keine Preise, wir wollen unsere auf jeder Leistungsseite klar zeigen',
+          placeholder_en: 'Their prices are hidden, we want ours clear on every service page',
+        },
+      ],
+    },
+  }),
   field('tagline', 'design', 'textarea', 'Haben Sie einen Slogan, der auf die Seite soll?', 'Do you have a slogan or tagline you want on your site?', {
     placeholder_de: 'Bäder, die halten.',
     placeholder_en: 'Bathrooms built to last.',

@@ -11,7 +11,7 @@ const rows: Omit<OnbBriefSection, 'sort' | 'active'>[] = [
     title_de: 'Wer dieses Unternehmen ist – in eigenen Worten',
     title_en: 'Who this business is, in their own words',
     instructions:
-      'Describe the business from the answers only: legal name and form, where it works and which regions it serves, what it sells (catalogue), who the site is for, the ideal customer and anyone it should not attract, why customers choose it (usps), factual claims it wants shown, tagline if any. Keep the client\'s own wording for services.',
+      'Describe the business from the answers only: legal name and form, where it works and which regions it serves, what it sells (catalogue), who the site is for, the ideal customer and anyone it should not attract, why customers choose it (usps), the competitors it named and what it wants to do differently from each, factual claims it wants shown, tagline if any. Keep the client\'s own wording for services.',
     source_fields: [
       'contact_company',
       'legal_name',
@@ -25,6 +25,7 @@ const rows: Omit<OnbBriefSection, 'sort' | 'active'>[] = [
       'ideal_customer',
       'excluded_audience',
       'usps',
+      'competitors',
       'tagline',
       'catalogue',
       'proof_to_show',

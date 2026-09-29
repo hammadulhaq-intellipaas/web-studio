@@ -81,6 +81,16 @@ const rows: Omit<OnbFollowup, 'sort' | 'active'>[] = [
     raises: null,
   },
   {
+    id: 'fu_competitor_differently',
+    trigger: { field: 'competitors', when: 'lt_chars', value: 15, sub: 'differently' },
+    question_de: 'Was genau möchten Sie anders machen als dieser Mitbewerber: das Angebot, die Preise, den Auftritt oder die Art, wie er Kunden anspricht?',
+    question_en: 'What exactly do you want to do differently from this competitor: the offer, the prices, the look, or the way they speak to customers?',
+    quick_replies: [],
+    writes_to: 'competitors',
+    mode: 'set',
+    raises: null,
+  },
+  {
     id: 'fu_dont_know',
     trigger: { when: 'dont_know' },
     question_de:

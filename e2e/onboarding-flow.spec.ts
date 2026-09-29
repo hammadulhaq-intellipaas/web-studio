@@ -165,14 +165,24 @@ test.describe('onboarding review flow', () => {
     await expect(confirm).toContainText('3 Wochen');
     await expect(confirm).toContainText('5 Tagen');
 
-    await page.click('[data-testid=onb-confirm-submit]');
-    await expect(page.locator('[data-testid=onb-confirm-error]')).toBeVisible(); // checks missing
+    // The button stays greyed out, and says why, until every point is ticked.
+    const submit = page.locator('[data-testid=onb-confirm-submit]');
+    await expect(submit).toBeDisabled();
+    await expect(page.locator('[data-testid=onb-confirm-hint]')).toBeVisible();
     const checks = page.locator('[data-testid^=onb-check-]');
     const n = await checks.count();
     expect(n).toBeGreaterThanOrEqual(3);
-    for (let i = 0; i < n; i++) await checks.nth(i).check();
+    for (let i = 0; i < n - 1; i++) await checks.nth(i).check();
+    await expect(submit).toBeDisabled(); // one still open
+    await checks.nth(n - 1).check();
     await page.fill('[data-testid=onb-confirm-name]', 'Lena Hartmann');
-    await page.click('[data-testid=onb-confirm-submit]');
+    await expect(submit).toBeEnabled();
+    await expect(page.locator('[data-testid=onb-confirm-hint]')).toHaveCount(0);
+    // Clearing the prefilled name greys it out again rather than lighting up and complaining.
+    await page.fill('[data-testid=onb-confirm-name]', '');
+    await expect(submit).toBeDisabled();
+    await page.fill('[data-testid=onb-confirm-name]', 'Lena Hartmann');
+    await submit.click();
 
     await expect(page.locator('[data-screen=onb-done]')).toBeVisible({ timeout: 30_000 });
     await expect(page.locator('[data-testid=onb-confirmed-by]')).toContainText('Lena Hartmann');

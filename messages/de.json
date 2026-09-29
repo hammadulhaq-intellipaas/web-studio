@@ -705,7 +705,8 @@
       "error": "Die Bestätigung konnte nicht gespeichert werden. Bitte erneut versuchen.",
       "termsLead": "Das Wichtigste finden Sie unten. Öffnen Sie einen Abschnitt, um ihn vollständig zu lesen.",
       "checksOpen": "{n, plural, one {Eine Bestätigung fehlt noch.} other {# Bestätigungen fehlen noch.}}",
-      "incomplete": "Einige Angaben brauchen Ihre Aufmerksamkeit, bevor Sie bestätigen können."
+      "incomplete": "Einige Angaben brauchen Ihre Aufmerksamkeit, bevor Sie bestätigen können.",
+      "readyHint": "Bitte haken Sie oben jeden Punkt an, um zu bestätigen."
     },
     "done": {
       "downloadPdf": "Briefing als PDF herunterladen",

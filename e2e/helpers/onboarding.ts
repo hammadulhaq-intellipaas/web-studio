@@ -28,6 +28,9 @@ export function completeAnswers(email: string): Record<string, { v: unknown; dk?
     target_audience: a('Berufstätige zwischen 30 und 60, die seit Monaten Schmerzen haben.'),
     ideal_customer: a('Büroangestellte mit Rückenschmerzen, die eine feste Behandlungsserie buchen.'),
     usps: a('Termine innerhalb einer Woche, alle Kassen, barrierefreier Zugang, feste Therapeutin pro Patient.'),
+    competitors: a([
+      { _id: 'comp1', url: 'https://www.physio-mitte-frankfurt.de', differently: 'Dort stehen keine Preise, wir zeigen unsere klar auf jeder Seite.' },
+    ]),
     proof_to_show: a(['reviews', 'certifications']),
     factual_claims: a('Zertifikate: Manuelle Therapie seit 2015, bestätigt von Lena'),
     tone_scale: a(3),

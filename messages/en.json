@@ -705,7 +705,8 @@
       "error": "The confirmation could not be saved. Please try again.",
       "termsLead": "The essentials are below. Open any section to read it in full.",
       "checksOpen": "{n, plural, one {One confirmation is still open.} other {# confirmations are still open.}}",
-      "incomplete": "Some answers need your attention before you can confirm."
+      "incomplete": "Some answers need your attention before you can confirm.",
+      "readyHint": "Tick every point above to confirm."
     },
     "done": {
       "downloadPdf": "Download the brief as PDF",

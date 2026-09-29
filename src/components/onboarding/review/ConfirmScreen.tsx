@@ -71,6 +71,9 @@ export function ConfirmScreen({
   const issues = useReviewIssues(definition, record.answers, files, locale, serverFields);
   const today = new Date().toLocaleDateString(locale === 'de' ? 'de-DE' : 'en-GB', { year: 'numeric', month: 'long', day: 'numeric' });
   const open = checks.filter((_, i) => !ticked.has(i)).length;
+  // The button waits for every confirmation. The name is prefilled from the first screen, so
+  // in practice it is only the ticks; it is checked too so clearing it cannot light the button.
+  const ready = open === 0 && name.trim().length >= 2;
 
   const showIssues = () =>
     requestAnimationFrame(() => {
@@ -205,17 +208,29 @@ export function ConfirmScreen({
           >
             {ts('back')}
           </button>
-          <button
-            type="button"
-            data-testid="onb-confirm-submit"
-            onClick={() => void submit()}
-            disabled={busy}
-            className="hov-lift1"
-            style={{ ...gradButton, borderRadius: 12, padding: '15px 34px', fontSize: 15.5, fontWeight: 700, boxShadow: '0 10px 22px -8px rgba(30,79,214,.5)', opacity: busy ? 0.85 : 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}
-          >
-            {busy && <Spinner onDark />}
-            {busy ? t('submitting') : t('cta')}
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+            <button
+              type="button"
+              data-testid="onb-confirm-submit"
+              onClick={() => void submit()}
+              disabled={busy || !ready}
+              className={ready ? 'hov-lift1' : undefined}
+              style={
+                ready
+                  ? { ...gradButton, borderRadius: 12, padding: '15px 34px', fontSize: 15.5, fontWeight: 700, boxShadow: '0 10px 22px -8px rgba(30,79,214,.5)', opacity: busy ? 0.85 : 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 10 }
+                  : { fontFamily: 'inherit', cursor: 'not-allowed', background: '#EEF1F7', border: `1.5px solid ${BORDER}`, color: MUTED, borderRadius: 12, padding: '15px 34px', fontSize: 15.5, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 10 }
+              }
+            >
+              {busy && <Spinner onDark />}
+              {busy ? t('submitting') : t('cta')}
+            </button>
+            {/* Greyed out without a reason reads as broken, so it always says what is missing. */}
+            {!ready && !busy && (
+              <div data-testid="onb-confirm-hint" style={{ fontSize: 12.5, color: MUTED, textAlign: 'right' }}>
+                {open ? t('readyHint') : t('nameRequired')}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </section>

@@ -104,6 +104,15 @@ test.describe('onboarding form', () => {
     await page.fill('[data-testid=f-target_audience]', 'Berufstätige zwischen 30 und 60, die seit Monaten Schmerzen haben.');
     await page.fill('[data-testid=f-ideal_customer]', 'Büroangestellte mit Rückenschmerzen, die eine feste Behandlungsserie buchen.');
     await page.fill('[data-testid=f-usps]', 'Termine innerhalb einer Woche, alle Kassen, barrierefreier Zugang.');
+    // One competitor row is open from the start and required; more can be added.
+    await expect(page.locator('[data-testid=row-competitors-0]')).toBeVisible();
+    await expect(page.locator('[data-testid=row-competitors-1]')).toHaveCount(0);
+    await page.fill('[data-testid=f-competitors-0-url]', 'https://www.physio-mitte-frankfurt.de');
+    await page.fill('[data-testid=f-competitors-0-differently]', 'Dort stehen keine Preise, wir zeigen unsere klar auf jeder Seite.');
+    await page.click('[data-testid=add-competitors]');
+    await expect(page.locator('[data-testid=row-competitors-1]')).toBeVisible();
+    await page.fill('[data-testid=f-competitors-1-url]', 'https://www.physio-west.de');
+    await page.fill('[data-testid=f-competitors-1-differently]', 'Online-Termine statt nur telefonisch buchbar.');
     await page.click('[data-testid=opt-proof_to_show-reviews]');
     await expect(page.locator('[data-field=factual_claims]')).toBeVisible();
     await page.fill('[data-testid=f-factual_claims]', 'Bewertungen: 4,9 auf Google, bestätigt von Lena');
