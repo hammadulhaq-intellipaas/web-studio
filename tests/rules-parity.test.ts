@@ -12,6 +12,10 @@ const MIGRATION = readFileSync(
   join(process.cwd(), 'supabase/migrations/20260710000002_cms_rules_sessions_legal.sql'),
   'utf8',
 );
+/** Later migrations that add rules of their own. */
+const LATER_RULE_MIGRATIONS = ['supabase/migrations/20261001000018_quote_logic.sql'].map((f) =>
+  readFileSync(join(process.cwd(), f), 'utf8'),
+);
 
 /* ------------------------------------------------------------------ *
  * The pre-CMS implementation, kept verbatim as the parity oracle.
@@ -157,16 +161,19 @@ describe('CMS rules engine parity with the previous hardcoded logic', () => {
             const legacy = legacyRecSet(catalog, answers, personaId, bundleId, sourceUrl);
             checked++;
 
+            const expected = { ...legacy };
             if (answers.assets === 'ja') {
               // Change 3: the photo/logo package is suppressed even when a persona pre-selects it.
-              const expected = { ...legacy };
               delete expected.logo;
               delete expected.foto;
-              expect(next).toEqual(expected);
               if (legacy.foto || legacy.logo) divergences++;
-            } else {
-              expect(next).toEqual(legacy);
             }
+            // October 2026: Stripe at booking needs online booking too, so a stale "paid" from
+            // before switching back to "contact form only" no longer switches it on.
+            if (answers.fees === 'ja' && answers.contact !== 'booking') delete expected.bookpay;
+            // October 2026: Silver gets CMS setup as an add-on (Gold and Platinum include it).
+            if (bundleId === 'silver') expected.cms = true;
+            expect(next).toEqual(expected);
           }
         }
       }
@@ -236,11 +243,16 @@ describe('Change 4 — the SEO + GEO bundle is never double-priced', () => {
 });
 
 describe('rule fixtures stay in sync with the migration', () => {
+  const idsFrom = (sql: string, table: string): string[] => {
+    const start = sql.indexOf(`insert into ${table} (`);
+    if (start < 0) return [];
+    const end = sql.indexOf('on conflict', start);
+    return [...sql.slice(start, end).matchAll(/^\s*\('([a-z0-9_]+)'/gm)].map((m) => m[1]);
+  };
   const idsIn = (table: string): string[] => {
-    const start = MIGRATION.indexOf(`insert into ${table} (`);
-    expect(start).toBeGreaterThan(-1);
-    const end = MIGRATION.indexOf('on conflict', start);
-    return [...MIGRATION.slice(start, end).matchAll(/^\('([a-z0-9_]+)'/gm)].map((m) => m[1]);
+    const first = idsFrom(MIGRATION, table);
+    expect(first.length).toBeGreaterThan(0);
+    return [...first, ...LATER_RULE_MIGRATIONS.flatMap((sql) => idsFrom(sql, table))];
   };
 
   it('bundle_rules ids match', () => {

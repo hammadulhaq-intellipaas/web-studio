@@ -81,7 +81,7 @@ export function recSet(
 
   const matched = catalog.addonRules
     .filter((r) => r.active)
-    .filter((r) => ruleMatches(r.conditions, answers, sourceUrl));
+    .filter((r) => ruleMatches(r.conditions, answers, sourceUrl, bundleId));
 
   for (const rule of matched) rule.add_addon_ids.forEach(add);
   for (const rule of matched) rule.remove_addon_ids.forEach((id) => delete s[id]);

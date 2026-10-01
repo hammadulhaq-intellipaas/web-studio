@@ -131,7 +131,17 @@ const addonRule = (
 export const SEEDED_ADDON_RULES: AddonRule[] = [
   addonRule('always_cookie', [], ['cookie'], [], 10),
   addonRule('contact_booking', [{ key: 'contact', values: ['booking'] }], ['bookembed'], [], 20),
-  addonRule('fees_ja', [{ key: 'fees', values: ['ja'] }], ['bookpay'], [], 30),
+  // Payment intent: paid appointments with online booking (migration 20261001000018).
+  addonRule(
+    'fees_ja',
+    [
+      { key: 'fees', values: ['ja'] },
+      { key: 'contact', values: ['booking'] },
+    ],
+    ['bookpay'],
+    [],
+    30,
+  ),
   addonRule('shop_any', [{ key: 'shop', values: ['paar', 'shop'] }], ['ecom'], [], 40),
   addonRule('assets_nein', [{ key: 'assets', values: ['nein'] }], ['logo', 'foto'], [], 50),
   addonRule('assets_teil', [{ key: 'assets', values: ['teil'] }], ['foto'], [], 60),
@@ -144,6 +154,17 @@ export const SEEDED_ADDON_RULES: AddonRule[] = [
     ['dsgvocheck'],
     [],
     70,
+  ),
+  addonRule('silver_cms', [{ key: 'bundle', values: ['silver'] }], ['cms'], [], 120),
+  addonRule(
+    'silver_blog',
+    [
+      { key: 'bundle', values: ['silver'] },
+      { key: 'blog', values: ['ja'] },
+    ],
+    ['blogsetup'],
+    [],
+    130,
   ),
   addonRule(
     'byow_seo',

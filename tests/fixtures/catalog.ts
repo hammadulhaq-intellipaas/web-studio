@@ -88,6 +88,9 @@ export function makeCatalog(): Catalog {
         qty: { min: 1, max: 10, unit_de: 'Runden', unit_en: 'rounds' },
       }),
       addon('blogsetup', { price_now: 200, price_later: 350, included_in: ['gold', 'platinum'] }),
+      // CMS setup is part of Gold and Platinum; Silver gets it as an add-on.
+      addon('cms', { price_now: 490, price_later: 790, included_in: ['gold', 'platinum'] }),
+      addon('seolite', { category_id: 'seogeo_bundles', billing: 'monthly', price_now: 180 }),
       addon('blogabo', {
         category_id: 'blogabo',
         billing: 'monthly',
