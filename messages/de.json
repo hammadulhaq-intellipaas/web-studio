@@ -241,7 +241,9 @@
     "supIncluded": "Support inklusive",
     "supWorth": "Wert {amount}",
     "supDayRate": "Abrechnung {amount}/Tag",
-    "supRollover": "Nicht genutzte Stunden verfallen nicht, sie gelten noch {months} Monate"
+    "supRollover": "Nicht genutzte Stunden verfallen nicht, sie gelten noch {months} Monate",
+    "addonsClear": "Alle Zusatzleistungen entfernen",
+    "addonsRestore": "Empfohlene Zusatzleistungen wiederherstellen"
   },
   "reasons": {
     "byowChanges": "Da Sie noch Änderungen brauchen, werten wir Ihre selbst gebaute KI-Seite als Design-Konzept und bauen sie professionell fertig aus. Mit Gold erhalten Sie den vollen Neuaufbau — bis 8 Seiten, 2 Sprachen, Blog und SEO-Basis. „Bring Your Own Website\" bleibt weiterhin wählbar, wenn Sie doch nur live gehen möchten.",

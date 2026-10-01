@@ -241,7 +241,9 @@
     "supIncluded": "support included",
     "supWorth": "Worth {amount}",
     "supDayRate": "Billed at {amount}/day",
-    "supRollover": "Unused hours roll over for up to {months} months"
+    "supRollover": "Unused hours roll over for up to {months} months",
+    "addonsClear": "Remove all add-ons",
+    "addonsRestore": "Restore recommended add-ons"
   },
   "reasons": {
     "byowChanges": "Since you still need changes, we treat your self-built AI site as a design concept and professionally finish it. With Gold you get the full rebuild — up to 8 pages, 2 languages, blog and SEO basics. \"Bring Your Own Website\" remains selectable if you only want to go live after all.",

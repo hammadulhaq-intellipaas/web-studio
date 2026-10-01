@@ -88,6 +88,10 @@ interface FunnelState {
   toConfig: (catalog: Catalog) => void;
   pickBundle: (catalog: Catalog, bundleId: string) => void;
   toggleAddon: (id: string) => void;
+  /** Empties Extras & services. The package, care, hosting and support plans stay. */
+  clearAddons: () => void;
+  /** Puts back what the questionnaire recommended for the current package. */
+  restoreRecommended: () => void;
   setQty: (id: string, n: number) => void;
   setSubAddons: (addonId: string, ids: string[]) => void;
   setCare: (id: string) => void;
@@ -282,6 +286,10 @@ export const useFunnel = create<FunnelState>()(
       },
 
       toggleAddon: (id) => set({ sel: { ...get().sel, [id]: !get().sel[id] } }),
+      // Quantities and ticked sub-options go too, so a restored add-on starts from its
+      // default rather than from whatever was set before it was removed.
+      clearAddons: () => set({ sel: {}, qty: {}, selectedSubAddons: {}, aiBundle: false }),
+      restoreRecommended: () => set({ sel: { ...get().recSel }, qty: {}, selectedSubAddons: {} }),
       setQty: (id, n) => set({ qty: { ...get().qty, [id]: n } }),
       // Callers resolve the new list through `subAddonsOf` first; an empty list is
       // rejected here too so no path can price a selected add-on at zero.

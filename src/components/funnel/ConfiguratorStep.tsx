@@ -44,6 +44,50 @@ function singularUnit(unit: string, locale: 'de' | 'en'): string {
   return locale === 'de' ? unit.replace(/n$/, '') : unit.replace(/s$/, '');
 }
 
+/**
+ * "Remove all add-ons", and its way back.
+ *
+ * The questionnaire pre-selects what fits; this lets someone start from a clean slate in
+ * one click. Once everything is off it offers the recommended set again rather than
+ * vanishing, so a misclick costs nothing. The package and the care, hosting and support
+ * plans are not add-ons and are left alone.
+ */
+function AddonsResetButton() {
+  const t = useTranslations('configurator');
+  const sel = useFunnel((s) => s.sel);
+  const recSel = useFunnel((s) => s.recSel);
+  const aiBundle = useFunnel((s) => s.aiBundle);
+  const clearAddons = useFunnel((s) => s.clearAddons);
+  const restoreRecommended = useFunnel((s) => s.restoreRecommended);
+
+  const anySelected = aiBundle || Object.values(sel).some(Boolean);
+  const anyRecommended = Object.values(recSel).some(Boolean);
+  if (!anySelected && !anyRecommended) return null;
+
+  return (
+    <button
+      type="button"
+      onClick={anySelected ? clearAddons : restoreRecommended}
+      data-testid={anySelected ? 'addons-clear' : 'addons-restore'}
+      className="hov-blue-border"
+      style={{
+        fontFamily: 'inherit',
+        cursor: 'pointer',
+        background: '#ffffff',
+        border: `1.5px solid ${BORDER}`,
+        borderRadius: 10,
+        padding: '7px 13px',
+        fontSize: 12.5,
+        fontWeight: 700,
+        color: anySelected ? '#B4372E' : BLUE,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {anySelected ? t('addonsClear') : t('addonsRestore')}
+    </button>
+  );
+}
+
 /** "2.5" in English, "2,5" in German, and a bare "0" / "1" without a stray decimal. */
 function formatHours(hours: number, locale: Locale): string {
   return hours.toLocaleString(locale === 'de' ? 'de-DE' : 'en-GB', { maximumFractionDigits: 1 });
@@ -790,9 +834,10 @@ export function ConfiguratorStep({ catalog }: { catalog: Catalog }) {
           <div>
             <div style={{ ...sectionLabel, marginBottom: 6 }}>{t('extrasHeading')}</div>
             <p style={{ margin: '0 0 6px', fontSize: 13.5, color: MUTED }}>{t('extrasHeadingSub')}</p>
-            <p style={{ margin: '0 0 14px', fontSize: 12, fontWeight: 600, color: '#8A6D12' }}>
-              {t('extrasLaunch')}
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', margin: '0 0 14px' }}>
+              <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: '#8A6D12' }}>{t('extrasLaunch')}</p>
+              <AddonsResetButton />
+            </div>
             <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
               <span style={legendStyle}>
                 <span style={{ ...legendDot, background: '#5B6B85' }} />
