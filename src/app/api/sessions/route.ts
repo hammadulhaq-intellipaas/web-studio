@@ -1,12 +1,10 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getCatalog } from '@/lib/catalog';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { isValidSessionId } from '@/lib/session-id';
 import { currentActor, isTeam } from '@/lib/quotes/actor';
 import { isLocked, loadBoundLead } from '@/lib/quotes/binding';
 import { quotesSchemaReady } from '@/lib/quotes/schema';
-import { captureFromState, quoteIdleMs, shouldCaptureBoundary } from '@/lib/quotes/versions';
 
 /** Guards the anonymous write surface: a shared funnel state stays small. */
 const MAX_STATE_BYTES = 64 * 1024;
@@ -19,11 +17,9 @@ const bodySchema = z.object({
 /**
  * Upsert the funnel state behind a shareable link. Anonymous, service-role backed.
  *
- * When the session belongs to a submitted quote, the write also keeps the quote's history:
- * the state stored *before* this write is kept as a version whenever it closes a burst of
- * edits (the writer changed, or the previous write is older than the idle window), and
- * `won` / `lost` quotes refuse customer writes. All of that fails open — a history hiccup
- * never loses a save.
+ * Only for a visitor who has not enquired yet. Once the session belongs to a quote, this
+ * refuses the write: a quote is saved explicitly, through the leads endpoint, so the link,
+ * the lead and its versions can never disagree.
  */
 export async function POST(request: Request) {
   const json = await request.json().catch(() => null);
@@ -48,33 +44,10 @@ export async function POST(request: Request) {
       if (isLocked(bound) && !isTeam(actor)) {
         return NextResponse.json({ error: 'locked' }, { status: 403 });
       }
-      row.last_actor = actor;
-      try {
-        const { data: prev } = await supabase
-          .from('funnel_sessions')
-          .select('state, updated_at, last_actor')
-          .eq('id', id)
-          .maybeSingle();
-        if (prev) {
-          const reason = shouldCaptureBoundary(
-            { updatedAt: prev.updated_at, lastActor: prev.last_actor },
-            Date.now(),
-            actor,
-            await quoteIdleMs(),
-          );
-          if (reason) {
-            await captureFromState({
-              lead: { id: bound.id, locale: bound.locale, config: bound.config },
-              state: prev.state,
-              actor: prev.last_actor ?? 'customer',
-              reason,
-              catalog: await getCatalog(),
-            });
-          }
-        }
-      } catch (e) {
-        console.error('[sessions] history capture failed:', e);
-      }
+      // A quote only changes when someone presses "Save changes", which writes the link
+      // and the lead together. This is the old autosave (or a tab opened before that
+      // change): refuse it, so a stray click can never move a quote on its own.
+      return NextResponse.json({ error: 'save_required' }, { status: 409 });
     }
   }
 

@@ -69,6 +69,18 @@ export interface SessionState {
   fotoFiles: UploadedFile[];
 }
 
+/**
+ * Everything on a quote that someone could save, as one comparable string. Where you are in
+ * the funnel and a half-typed promo code are not part of the quote, so they never make it
+ * read as changed.
+ */
+export function quoteContent(s: SessionState): string {
+  const { step, promoInput, ...content } = toSessionState(s);
+  void step;
+  void promoInput;
+  return JSON.stringify(content);
+}
+
 export function toSessionState(s: SessionState): SessionState {
   return {
     // A shared link never drops the recipient into the finished screen.

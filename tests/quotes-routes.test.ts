@@ -258,7 +258,7 @@ describe('POST /api/leads — team mode', () => {
   });
 });
 
-describe('POST /api/sessions — history on the customer link', () => {
+describe('POST /api/sessions: autosave stops at the quote', () => {
   const save = (id: string, s: Record<string, unknown>) => postSession(json('/api/sessions', { id, state: s }));
 
   it('is a plain upsert for sessions without a quote', async () => {
@@ -268,38 +268,54 @@ describe('POST /api/sessions — history on the customer link', () => {
     expect(fake.db.rows('lead_versions')).toHaveLength(0);
   });
 
-  it('keeps the previous state as a version when the idle window has passed or the writer changed', async () => {
+  // A quote is only ever written by "Save changes", so the old autosave is refused outright:
+  // a stray click must never move a customer's link, and no version is taken behind anyone's back.
+  it('refuses autosave writes to a quote, from the customer and the team alike', async () => {
     await submit(payload('h@example.com'));
+    const before = JSON.stringify(fake.db.rows('funnel_sessions').find((s) => s.id === SID)!.state);
     expect(fake.db.rows('lead_versions')).toHaveLength(1);
 
-    // Same actor, quick follow-up write: no version.
-    await save(SID, sessionState({ sel: { cookie: true } }));
-    expect(fake.db.rows('lead_versions')).toHaveLength(1);
-    expect(fake.db.rows('funnel_sessions').find((s) => s.id === SID)!.last_actor).toBe('customer');
+    const customer = await save(SID, sessionState({ sel: { cookie: true, widgets: true } }));
+    expect(customer.status).toBe(409);
+    expect(((await customer.json()) as { error: string }).error).toBe('save_required');
 
-    // The stored state is 30 minutes old → the next write closes that burst.
-    const row = fake.db.rows('funnel_sessions').find((s) => s.id === SID)!;
-    row.updated_at = new Date(Date.now() - 30 * 60_000).toISOString();
-    await save(SID, sessionState({ sel: { cookie: true, widgets: true } }));
-    const versions = fake.db.rows('lead_versions');
-    expect(versions).toHaveLength(2);
-    expect(versions[1]).toMatchObject({ version: 2, reason: 'idle', actor: 'customer' });
-    expect((versions[1].config as { addons: { id: string }[] }).addons.map((a) => a.id)).toEqual(['cookie']);
-
-    // A different writer closes the burst immediately.
     state.actor = 'team:matt@intellipaas.io';
-    await save(SID, sessionState({ sel: { cookie: true, widgets: true }, care: 'pro' }));
-    expect(fake.db.rows('lead_versions')).toHaveLength(3);
-    expect(fake.db.rows('lead_versions')[2].reason).toBe('actor_change');
-    expect(fake.db.rows('funnel_sessions').find((s) => s.id === SID)!.last_actor).toBe('team:matt@intellipaas.io');
+    expect((await save(SID, sessionState({ sel: {} }))).status).toBe(409);
+
+    expect(JSON.stringify(fake.db.rows('funnel_sessions').find((s) => s.id === SID)!.state)).toBe(before);
+    expect(fake.db.rows('lead_versions')).toHaveLength(1);
   });
 
-  it('refuses customer writes on a closed quote but lets the team through', async () => {
+  it('still refuses customer writes on a closed quote first', async () => {
     await submit(payload('l@example.com'));
     fake.db.rows('leads')[0].status = 'lost';
     expect((await save(SID, sessionState({ sel: { cookie: true } }))).status).toBe(403);
-    state.actor = 'team:matt@intellipaas.io';
-    expect((await save(SID, sessionState({ sel: { cookie: true } }))).status).toBe(200);
+  });
+
+  // Typing into the enquiry form keeps resetting the autosave timer, so the link must not
+  // depend on it: the first submit writes exactly what was submitted.
+  it('the first submit puts the submitted quote on the link', async () => {
+    const submitted = sessionState({ sel: { cookie: true, widgets: true } });
+    const res = await submit({ ...payload('f@example.com'), sessionState: submitted });
+    expect(res.status).toBe(200);
+    expect(fake.db.rows('funnel_sessions').find((s) => s.id === SID)!.state).toEqual(submitted);
+  });
+
+  it('saving moves the link, the lead and its versions together', async () => {
+    await submit(payload('s@example.com'));
+    const saved = sessionState({ sel: { cookie: true, widgets: true }, care: 'pro' });
+    const body = payload('s@example.com') as { selection: Record<string, unknown> };
+    // A real change: one more add-on and a different care plan, as on screen.
+    const selection = { ...body.selection, selectedAddons: { ...(body.selection.selectedAddons as object), widgets: true }, care: 'pro' };
+    const res = await submit({ ...body, selection, sessionState: saved });
+    expect(res.status).toBe(200);
+
+    const link = fake.db.rows('funnel_sessions').find((s) => s.id === SID)!;
+    expect(link.state).toEqual(saved);
+    expect(link.last_actor).toBe('customer');
+    const versions = fake.db.rows('lead_versions');
+    expect(versions).toHaveLength(2);
+    expect(versions[1]).toMatchObject({ version: 2, reason: 'submit' });
   });
 });
 

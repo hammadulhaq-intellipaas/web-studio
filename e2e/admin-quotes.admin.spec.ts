@@ -35,18 +35,23 @@ test.describe.serial('admin — quotes pipeline', () => {
     await page.goto(href!);
     await expect(page.getByTestId('quote-banner')).toContainText('Team-Modus');
     await expect(page.getByTestId('rec-name')).toBeVisible();
+    // Nothing is saved until the team saves it: the save bar says so the moment anything changes.
+    await expect(page.getByTestId('unsaved-bar')).toHaveCount(0);
     await page.getByTestId('addon-newsletter').click();
-    await page.getByTestId('quote-send').click();
-    await expect(page.getByTestId('lead-heading')).toHaveText('Angebot speichern');
-    await expect(page.getByTestId('lead-consent')).toHaveCount(0);
-    await expect(page.getByTestId('s2-section-unternehmen')).toHaveCount(0); // not on a quote page
+    await expect(page.getByTestId('unsaved-bar')).toBeVisible();
+    await page.getByTestId('unsaved-save').click();
+    await expect(page.getByTestId('unsaved-bar')).toHaveCount(0, { timeout: 30_000 });
+    await expect(page.getByTestId('quote-banner')).toContainText('Gespeichert als neue Version');
 
-    await page.getByTestId('lead-submit').click();
-    await expect(page.getByTestId('done-title')).toHaveText('Angebot gespeichert.');
-    await page.getByTestId('done-back-to-admin').click();
-
+    await page.getByTestId('quote-back-to-admin').click();
     await expect(page).toHaveURL(new RegExp(`/admin/leads/${leadId}$`));
     await expect(page.getByTestId('lead-versions')).toContainText('v2');
+    // The newest version is marked as the one the link shows; the earlier one is history.
+    await expect(page.getByTestId('version-current-2')).toBeVisible();
+    await expect(page.getByTestId('version-current-1')).toHaveCount(0);
+    // A save in the quote is the version now, so there is nothing to "save now" from here.
+    await expect(page.getByTestId('lead-save-version')).toHaveCount(0);
+    await expect(page.getByTestId('lead-live-differs')).toHaveCount(0);
     await expect(page.getByTestId('lead-status')).toHaveValue('draft');
     const { data: lead } = await db.from('leads').select('source, status, consent_at, telefon').eq('id', leadId).single();
     expect(lead?.source).toBe('team');

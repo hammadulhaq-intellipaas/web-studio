@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import {
   archiveLeads,
   createCustomerLink,
-  saveVersionNow,
   sendQuoteToCustomer,
   type ActionResult,
 } from '@/app/admin/leads/actions';
@@ -26,7 +25,7 @@ export interface LeadToolbarProps {
   onboardingCustomerLink: string | null;
 }
 
-/** Copy link · open configurator · send to customer · save version · onboarding · remove. */
+/** Copy link · open configurator · send to customer · onboarding · remove. */
 export function LeadToolbar(p: LeadToolbarProps) {
   const router = useRouter();
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -73,11 +72,6 @@ export function LeadToolbar(p: LeadToolbarProps) {
       {p.ready && p.customerLink && (
         <button type="button" disabled={pending} onClick={() => run('Sent', () => sendQuoteToCustomer(p.leadId))} className={p.status === 'draft' ? primary : btn} data-testid="lead-send-quote">
           {p.status === 'draft' ? 'Send quote to customer' : 'Send link to customer'}
-        </button>
-      )}
-      {p.ready && p.customerLink && (
-        <button type="button" disabled={pending} onClick={() => run('Saved', () => saveVersionNow(p.leadId))} className={btn} data-testid="lead-save-version">
-          Save version now
         </button>
       )}
       {p.onboardingFormHref && (

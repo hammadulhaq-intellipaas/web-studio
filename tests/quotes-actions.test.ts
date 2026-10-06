@@ -158,18 +158,6 @@ describe('status, agreed amount, manual version, send', () => {
     await expect(actions.updateLeadStatus(LEAD_ID, 'bogus')).rejects.toThrow('Invalid status');
   });
 
-  it('"Save version now" reprices the live session and skips duplicates', async () => {
-    seedLead();
-    await actions.createCustomerLink(LEAD_ID);
-    const session = fake.db.rows('funnel_sessions')[0];
-    expect(await actions.saveVersionNow(LEAD_ID)).toMatchObject({ ok: true, message: 'Unchanged since v1' });
-    (session.state as { sel: Record<string, boolean> }).sel = { cookie: true, widgets: true };
-    expect(await actions.saveVersionNow(LEAD_ID)).toMatchObject({ ok: true, message: 'Saved as v2' });
-    const v2 = fake.db.rows('lead_versions')[1];
-    expect(v2).toMatchObject({ version: 2, reason: 'manual' });
-    expect((v2.config as { addons: { id: string }[] }).addons.map((a) => a.id).sort()).toEqual(['cookie', 'widgets']);
-  });
-
   it('sends the quote to the customer and moves a draft to contacted', async () => {
     seedLead({ status: 'draft', source: 'team' });
     await actions.createCustomerLink(LEAD_ID);

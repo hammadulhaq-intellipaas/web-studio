@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { isValidSessionId } from '@/lib/session-id';
-import { useFunnel, toSessionState, type QuoteMeta, type SessionState } from '@/stores/funnel';
+import { useFunnel, quoteContent, toSessionState, type QuoteMeta, type SessionState } from '@/stores/funnel';
 
 const SAVE_DEBOUNCE_MS = 2000;
 
@@ -59,9 +59,9 @@ async function restoreSession(id: string): Promise<RestoredSession | null | 'err
  * from the admin meanwhile). A dead link starts fresh and says so — it never adopts the id,
  * which used to re-create the row from blank state.
  *
- * Afterwards every state change is written back, debounced — except the very first write
- * of a new session, which is flushed immediately so uploads (which require the session
- * row to exist) can't race it. A closed quote (`won` / `lost`) stops saving.
+ * Afterwards every state change is written back, debounced, until a quote exists: from
+ * then on only "Save changes" writes it. The very first write of a new session is flushed
+ * immediately so uploads (which require the session row to exist) can't race it.
  */
 export function useSessionSync() {
   const [ready, setReady] = useState(false);
@@ -96,7 +96,14 @@ export function useSessionSync() {
         }
         restoringRef.current = false;
       } else if (hasLink) {
-        if (store.quote || store.leadId) {
+        const unsaved =
+          !!store.quote && !!store.savedSnapshot && quoteContent(store) !== store.savedSnapshot;
+        if (unsaved) {
+          // Edits that were never saved live only in this browser. Pulling the saved copy
+          // over them would silently throw them away (a language switch reloads the page),
+          // so they stay, and the save bar keeps asking.
+          writeSessionIdToUrl(store.sessionId!);
+        } else if (store.quote || store.leadId) {
           // A bound quote can change from the admin (team mode) while this tab is closed:
           // the server copy wins over localStorage.
           restoringRef.current = true;
@@ -115,12 +122,11 @@ export function useSessionSync() {
           // writes are debounced, so never pull the (possibly older) server copy back.
           writeSessionIdToUrl(store.sessionId!);
         }
-      } else if (store.sessionId && store.quote) {
-        // A submitted quote stays reachable: put its link back instead of starting over.
-        writeSessionIdToUrl(store.sessionId);
       } else if (store.sessionId) {
-        // Visiting the site without a link is a new visit, not a resume: the previous run
-        // stays reachable through its own `?c=` link, but this one starts at the intro.
+        // Visiting the site without a link is a new visit, not a resume, even when the
+        // browser remembers a quote: a team member opening the homepage to start a new
+        // quote was dropped into the last customer's and edited it without noticing. Any
+        // quote stays reachable through its own `?c=` link.
         restoringRef.current = true;
         store.restart();
         restoringRef.current = false;
@@ -141,8 +147,10 @@ export function useSessionSync() {
 
     const save = (state: ReturnType<typeof useFunnel.getState>) => {
       if (!state.sessionId || restoringRef.current) return;
-      // A closed quote is read-only for the customer; the team still edits it.
-      if (state.quote?.locked && !state.teamMode) return;
+      // Once a quote exists it is only written by "Save changes", never on its own, so
+      // the link, the CMS and the versions always show the same thing. Before that, a
+      // visitor's run is still kept as they go so they can come back to it.
+      if (state.quote) return;
       const payload = toSessionState(state);
       const serialized = JSON.stringify(payload);
       if (serialized === lastSavedRef.current) return;

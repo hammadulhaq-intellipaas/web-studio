@@ -17,6 +17,46 @@ body {
   40% { opacity: 1; transform: translateY(-2px); }
 }
 
+/* The save bar: slides up when a quote first has unsaved changes, and keeps signalling. */
+@keyframes unsavedSlide {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes unsavedPulse {
+  0% { box-shadow: 0 0 0 0 rgba(245, 165, 36, .65); }
+  70% { box-shadow: 0 0 0 12px rgba(245, 165, 36, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(245, 165, 36, 0); }
+}
+.unsaved-bar {
+  animation: unsavedSlide .28s ease-out both;
+}
+.unsaved-dot {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #F5A524;
+  animation: unsavedPulse 1.6s ease-out infinite;
+}
+.unsaved-save {
+  animation: unsavedPulse 1.6s ease-out 3;
+}
+.unsaved-save:hover {
+  filter: brightness(1.05);
+}
+/* Room for the bar, so it never sits on top of the sidebar's own button. */
+html[data-unsaved] [data-funnel-root] {
+  padding-bottom: 82px;
+}
+@media (max-width: 640px) {
+  html[data-unsaved] [data-funnel-root] {
+    padding-bottom: 136px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .unsaved-bar, .unsaved-dot, .unsaved-save { animation: none; }
+}
+
 @keyframes ipFade {
   from {
     opacity: 0;

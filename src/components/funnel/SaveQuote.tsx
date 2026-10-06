@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useFunnel } from '@/stores/funnel';
 import { BORDER, INK, MUTED, gradButton } from './ui';
+import { useSaveChanges, useUnsavedChanges } from './useSaveChanges';
 
 export interface AcceptResult {
   ok?: boolean;
@@ -23,10 +24,15 @@ export function useSaveQuote() {
   const quote = store.quote;
   const [state, setState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
   const [result, setResult] = useState<AcceptResult | null>(null);
+  const { dirty } = useUnsavedChanges();
+  const { save: saveChanges } = useSaveChanges();
 
   const save = async () => {
     setState('sending');
     try {
+      // Accepting fixes the quote as saved. Anything still unsaved on screen is saved
+      // first, or they would accept a price that is not the one in front of them.
+      if (dirty && !(await saveChanges())) throw new Error('save before accept failed');
       const res = await fetch(`/api/sessions/${store.sessionId}/accept`, { method: 'POST' });
       const body = (await res.json()) as AcceptResult;
       if (!res.ok || !body.ok || !body.link) throw new Error('accept failed');

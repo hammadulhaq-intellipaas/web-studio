@@ -10,6 +10,7 @@ import { generateSessionId } from '@/lib/session-id';
 import {
   INITIAL_LEAD_FORM,
   currentBundle,
+  quoteContent,
   toSessionState,
   type FileKind,
   type FunnelStep,
@@ -20,7 +21,7 @@ import {
 } from '@/lib/funnel/state';
 
 // The data shapes live in a React-free module so server code can share them.
-export { currentBundle, toSessionState };
+export { currentBundle, quoteContent, toSessionState };
 export type { FileKind, FunnelStep, LeadForm, QuoteMeta, SessionState, UploadedFile };
 
 /** Transient notices shown on the intro (never persisted). */
@@ -58,6 +59,13 @@ interface FunnelState {
   leadId: string | null;
   /** Set when this session is bound to a submitted (or team-created) quote. */
   quote: QuoteMeta | null;
+  /**
+   * The quote as last saved (`quoteContent`), for a bound quote. Edits only reach the link
+   * when someone saves, so anything that differs from this is unsaved.
+   */
+  savedSnapshot: string | null;
+  /** Shared by the save bar and the banner, so a save from either is confirmed in both. */
+  saveStatus: 'idle' | 'saving' | 'saved' | 'error';
   /** True right after a submit in this tab: shows the booking panel once, never restored. */
   justSubmitted: boolean;
   /** A signed-in team member editing a customer's quote (server-verified, never persisted). */
@@ -77,6 +85,11 @@ interface FunnelState {
   setSessionId: (id: string) => void;
   hydrateFromSession: (state: Partial<SessionState> & { sessionId?: string }, quote?: QuoteMeta | null) => void;
   setQuote: (quote: QuoteMeta | null) => void;
+  /** Records the current quote as the saved one (after a save, a submit or a restore). */
+  markSaved: () => void;
+  setSaveStatus: (s: 'idle' | 'saving' | 'saved' | 'error') => void;
+  /** Throws away unsaved edits: back to the quote as last saved. */
+  discardChanges: () => void;
   setJustSubmitted: (v: boolean) => void;
   setTeamMode: (v: boolean) => void;
   setNotice: (n: FunnelNotice) => void;
@@ -145,6 +158,8 @@ function freshState() {
     leadErr: {},
     leadId: null,
     quote: null,
+    savedSnapshot: null,
+    saveStatus: 'idle' as const,
     justSubmitted: false,
     teamMode: false,
     notice: null as FunnelNotice,
@@ -187,6 +202,8 @@ export const useFunnel = create<FunnelState>()(
       leadErr: {},
       leadId: null,
       quote: null,
+      savedSnapshot: null,
+      saveStatus: 'idle',
       justSubmitted: false,
       teamMode: false,
       notice: null,
@@ -224,6 +241,15 @@ export const useFunnel = create<FunnelState>()(
           // they had a quote at all: their link looked broken.
           ...(quote && step !== 'config' ? { step: 'config' as FunnelStep } : {}),
         });
+        // What the server holds is, by definition, what was last saved.
+        set({ savedSnapshot: quote ? quoteContent(get()) : null });
+      },
+      markSaved: () => set({ savedSnapshot: get().quote ? quoteContent(get()) : null }),
+      setSaveStatus: (saveStatus) => set({ saveStatus }),
+      discardChanges: () => {
+        const snapshot = get().savedSnapshot;
+        if (!snapshot) return;
+        set({ ...(JSON.parse(snapshot) as Partial<FunnelState>) });
       },
       setQuote: (quote) => set({ quote, leadId: quote?.leadId ?? get().leadId }),
       setJustSubmitted: (v) => set({ justSubmitted: v }),
@@ -337,7 +363,8 @@ export const useFunnel = create<FunnelState>()(
       // v4: added sessionId/siteNotes/siteFiles and removed the stage2 step.
       name: 'ipaas-konfigurator-v4',
       partialize: (state) => {
-        const { leadErr, teamMode, notice, justSubmitted, doneVariant, ...rest } = state;
+        const { leadErr, teamMode, notice, justSubmitted, doneVariant, saveStatus, ...rest } = state;
+        void saveStatus;
         void leadErr;
         void teamMode;
         void notice;

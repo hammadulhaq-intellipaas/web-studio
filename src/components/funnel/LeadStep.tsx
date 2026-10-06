@@ -9,7 +9,7 @@ import { fmt, mon } from '@/lib/format';
 import { calcTotals } from '@/lib/pricing/engine';
 import { buildReceipt } from '@/lib/pricing/summary';
 import { Link } from '@/i18n/navigation';
-import { useFunnel, type LeadForm } from '@/stores/funnel';
+import { useFunnel, toSessionState, type LeadForm } from '@/stores/funnel';
 import { useAppLocale, useSelection, useSummaryLabels } from './hooks';
 import { PromoBox } from './PriceSidebar';
 import { SaveQuotePanel, WelcomeOnboard, useSaveQuote } from './SaveQuote';
@@ -167,6 +167,8 @@ export function LeadStep({ catalog }: { catalog: Catalog }) {
           // Optional intake, collected in the collapsed sections of this same form.
           stage2: { fields: store.s2, goal: store.goal, driveLink: store.drive },
           team: teamMode,
+          // Saving an existing quote moves its link to exactly this, in the same request.
+          sessionState: toSessionState(useFunnel.getState()),
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -182,6 +184,8 @@ export function LeadStep({ catalog }: { catalog: Catalog }) {
       if (!res.ok || !data.id) throw new Error('submit failed');
       store.setLeadId(data.id);
       if (data.quote) store.setQuote(data.quote);
+      // From here the quote only changes when someone saves it: this is the saved version.
+      store.markSaved();
       if (teamMode) {
         store.setDoneVariant('team');
         store.go('done');

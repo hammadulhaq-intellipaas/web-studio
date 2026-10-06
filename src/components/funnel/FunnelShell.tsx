@@ -14,6 +14,7 @@ import { ConfiguratorStep } from './ConfiguratorStep';
 import { LeadStep } from './LeadStep';
 import { DoneScreen } from './DoneScreen';
 import { QuoteBanner } from './QuoteBanner';
+import { UnsavedChangesBar } from './UnsavedChangesBar';
 
 export function FunnelShell({ catalog, teamEmail = null }: { catalog: Catalog; teamEmail?: string | null }) {
   const step = useFunnel((s) => s.step);
@@ -63,6 +64,7 @@ export function FunnelShell({ catalog, teamEmail = null }: { catalog: Catalog; t
         )}
       </main>
       <Footer />
+      {hydrated && <UnsavedChangesBar />}
     </div>
     </CatalogProvider>
   );

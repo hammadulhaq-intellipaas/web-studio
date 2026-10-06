@@ -80,7 +80,31 @@ const bodySchema = z.object({
   stage2: stage2Schema.optional(),
   /** A signed-in team member saving a customer's quote (verified server-side). */
   team: z.boolean().optional(),
+  /**
+   * The whole quote as shown, when saving an existing one. It becomes what the customer's
+   * link holds, in the same request as the lead and its new version, so the two can never
+   * disagree. Bounded like the session endpoint.
+   */
+  sessionState: z.record(z.string(), z.unknown()).optional(),
 });
+
+const MAX_SESSION_STATE_BYTES = 64 * 1024;
+
+/** Moves a quote's link to the state that was just saved. A failure is logged, never fatal. */
+async function writeLinkState(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  sessionId: string,
+  state: Record<string, unknown> | undefined,
+  actor: string,
+  now: string,
+) {
+  if (!state || JSON.stringify(state).length > MAX_SESSION_STATE_BYTES) return;
+  const { error } = await supabase
+    .from('funnel_sessions')
+    .update({ state, last_actor: actor, updated_at: now })
+    .eq('id', sessionId);
+  if (error) console.error('[leads] link update failed:', error);
+}
 
 type ExistingLead = Pick<
   Lead,
@@ -210,6 +234,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'update_failed' }, { status: 500 });
     }
 
+    // The link follows the save. It no longer saves on its own, so this is the only place an
+    // existing quote's link changes from the funnel.
+    if (sessionId) await writeLinkState(supabase, sessionId, parsed.data.sessionState, actor, now);
+
     // Files uploaded since the last submit still hang off the session.
     await supabase.from('lead_files').update({ lead_id: existing.id }).eq('session_id', sessionId!).is('lead_id', null);
     if (voucherId && voucherChanged) await bumpRedemption(voucherId);
@@ -309,6 +337,11 @@ export async function POST(request: Request) {
     }
     inserted = data;
   }
+
+  // The link starts out as exactly what was submitted. It used to catch up through a
+  // debounced autosave, but typing into this form keeps resetting that timer, and once the
+  // quote exists autosave stops, so the link could be left holding a half-built quote.
+  if (boundSessionId) await writeLinkState(supabase, boundSessionId, parsed.data.sessionState, actor, now);
 
   // Files were uploaded against the funnel session before the lead existed: adopt them.
   // The session itself stays — it is the customer's permanent link.

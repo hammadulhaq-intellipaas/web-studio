@@ -13,7 +13,7 @@ import { sendQuoteToCustomerEmail } from '@/lib/quotes/emails';
 import { customerLink } from '@/lib/quotes/links';
 import { hashSelection, priceSelection } from '@/lib/quotes/price';
 import { quotesSchemaReady } from '@/lib/quotes/schema';
-import { normalizeSessionState, selectionFromLeadConfig, selectionFromState, stateFromLead } from '@/lib/quotes/selection';
+import { selectionFromLeadConfig, stateFromLead } from '@/lib/quotes/selection';
 import { insertVersion } from '@/lib/quotes/versions';
 
 export type ActionResult = { ok: true; message?: string; url?: string } | { ok: false; error: string };
@@ -179,40 +179,6 @@ export async function markAgreed(leadId: string, versionId: string, override?: {
     });
     revalidateLead(leadId);
     return { ok: true, message: `v${v.version} marked as agreed` };
-  } catch (e) {
-    return fail(e);
-  }
-}
-
-export async function saveVersionNow(leadId: string): Promise<ActionResult> {
-  try {
-    const email = await requireAdmin();
-    await requireReady();
-    const lead = await loadLead(leadId);
-    if (!lead.session_id) return { ok: false, error: 'This lead has no customer link yet' };
-    const admin = createSupabaseAdminClient();
-    const { data: session } = await admin.from('funnel_sessions').select('state').eq('id', lead.session_id).maybeSingle();
-    if (!session) return { ok: false, error: 'Session not found' };
-    const catalog = await getCatalog();
-    const state = normalizeSessionState(session.state);
-    const selection = selectionFromState(state, catalog);
-    if (selection.voucher && lead.config.voucher && selection.voucher.code.toUpperCase() === lead.config.voucher.code.toUpperCase()) {
-      selection.voucher = lead.config.voucher;
-    } else selection.voucher = null;
-    const priced = priceSelection(catalog, selection, lead.locale, { siteNotes: state.siteNotes });
-    const result = await insertVersion({
-      leadId,
-      locale: lead.locale,
-      state,
-      priced,
-      hash: hashSelection(selection),
-      actor: `team:${email}`,
-      reason: 'manual',
-      eurToUsdRate: catalog.eurToUsdRate,
-    });
-    revalidateLead(leadId);
-    if (!result) return { ok: false, error: 'Could not save a version' };
-    return { ok: true, message: result.inserted ? `Saved as v${result.version}` : `Unchanged since v${result.version}` };
   } catch (e) {
     return fail(e);
   }

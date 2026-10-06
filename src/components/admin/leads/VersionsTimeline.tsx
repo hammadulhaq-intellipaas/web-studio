@@ -91,6 +91,8 @@ export function VersionsTimeline({ leadId, versions, agreedVersionId, ready }: {
       {msg && <li className="text-sm font-semibold text-emerald-700">{msg}</li>}
       {versions.map((v) => {
         const agreed = v.id === agreedVersionId;
+        // The newest version is what the customer's link shows; the rest are history.
+        const current = v.version === Math.max(...versions.map((x) => x.version));
         const expanded = open === v.id;
         return (
           <li key={v.id} className={`rounded-xl border ${agreed ? 'border-violet-300 bg-violet-50/60' : 'border-slate-200 bg-white'}`} data-testid={`version-${v.version}`}>
@@ -102,6 +104,11 @@ export function VersionsTimeline({ leadId, versions, agreedVersionId, ready }: {
               <span className="text-xs text-slate-400">
                 <LocalTime iso={v.createdAt} />
               </span>
+              {current && (
+                <span data-testid={`version-current-${v.version}`} className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                  current
+                </span>
+              )}
               {agreed && <span className="rounded-full bg-violet-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">agreed</span>}
               <span className="ml-auto whitespace-nowrap font-semibold">
                 {eur(v.oneTime)} · {eur(v.monthly)}/mo.

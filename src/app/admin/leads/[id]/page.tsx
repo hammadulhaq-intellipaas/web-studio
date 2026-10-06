@@ -15,7 +15,7 @@ import { ActivityPanel } from '@/components/admin/leads/ActivityPanel';
 import { LeadToolbar } from '@/components/admin/leads/LeadToolbar';
 import { MigrationNotice } from '@/components/admin/leads/MigrationNotice';
 import { OwnerSelect } from '@/components/admin/leads/OwnerSelect';
-import { ChangeList, VersionsTimeline, type VersionRow } from '@/components/admin/leads/VersionsTimeline';
+import { VersionsTimeline, type VersionRow } from '@/components/admin/leads/VersionsTimeline';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,7 +47,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
   // A removed lead is out of the CMS: its row lives on in the database, but nothing here
   // opens it again.
   if (!detail || detail.lead.archived_at) notFound();
-  const { ready, lead, catalog, files, appointments, plans, versions, activity, live, onboardingForms, adminUsers } = detail;
+  const { ready, lead, catalog, files, appointments, plans, versions, activity, onboardingForms, adminUsers } = detail;
   const config = lead.config;
   const link = lead.session_id ? customerLink(lead.session_id, lead.locale) : null;
   const persona = catalog.personas.find((p) => p.id === lead.persona_id);
@@ -198,24 +198,6 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                 </span>
               </div>
             </div>
-            {live?.differs && (
-              <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3" data-testid="lead-live-differs">
-                <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2 text-sm">
-                  <span className="font-bold text-amber-900">Live configuration differs from the submitted quote</span>
-                  <span className="text-xs text-amber-800">
-                    {live.lastActor?.startsWith('team:') ? live.lastActor.slice(5) : 'Customer'} · <LocalTime iso={live.updatedAt} /> · now{' '}
-                    {eur(live.priced.totals.oneTimeEffective)} + {eur(live.priced.totals.monthlyEffective)}/mo.
-                  </span>
-                </div>
-                <ChangeList changes={live.changes} />
-                <p className="mt-2 text-xs text-amber-800">Not submitted yet. It is saved as a version automatically when the editing pauses, or with “Save version now”.</p>
-              </div>
-            )}
-            {live && !live.differs && lead.session_id && (
-              <p className="mt-3 text-xs text-slate-400">
-                Live configuration matches the submitted quote · last opened <LocalTime iso={live.updatedAt} />
-              </p>
-            )}
           </Section>
 
           <Section title={`Versions (${versions.length})`} testId="lead-versions-section">

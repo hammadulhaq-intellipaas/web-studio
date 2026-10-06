@@ -4,9 +4,8 @@ import { useTranslations } from 'next-intl';
 import type { Catalog } from '@/lib/types';
 import { fmt, mon } from '@/lib/format';
 import { useFunnel } from '@/stores/funnel';
-import { quoteFingerprint } from '@/lib/quotes/canonical';
-import { useAppLocale, useSelection } from './hooks';
-import { useSendChanges } from './useSendChanges';
+import { useAppLocale } from './hooks';
+import { useSaveChanges, useUnsavedChanges } from './useSaveChanges';
 import { BLUE, BORDER, BODY, GREEN, INK, MUTED } from './tokens';
 
 /**
@@ -24,14 +23,10 @@ export function QuoteBanner({ catalog }: { catalog: Catalog }) {
   const go = useFunnel((s) => s.go);
   const restart = useFunnel((s) => s.restart);
   const bundle = useFunnel((s) => s.bundle);
-  const selection = useSelection();
-  const { state: sendState, send } = useSendChanges();
+  const { state: saveState, save } = useSaveChanges();
+  const { saveable, dirty } = useUnsavedChanges();
 
   if (!quote || step === 'intro' || step === 'done') return null;
-
-  // There is nothing to send until they have actually changed the configuration. Compared
-  // by fingerprint rather than by price, because two different quotes can cost the same.
-  const changed = !quote.submitted || quoteFingerprint(selection) !== quote.submitted;
 
   const date = quote.submittedAt
     ? new Date(quote.submittedAt).toLocaleDateString(locale === 'de' ? 'de-DE' : 'en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -69,7 +64,7 @@ export function QuoteBanner({ catalog }: { catalog: Catalog }) {
       onClick={onClick}
       disabled={disabled}
       data-testid={testId}
-      title={disabled ? t('sendNothing') : undefined}
+      title={disabled ? t('saveNothing') : undefined}
       className={disabled ? undefined : primary ? 'hov-lift1' : 'hov-blue-text'}
       style={{
         fontFamily: 'inherit',
@@ -132,15 +127,19 @@ export function QuoteBanner({ catalog }: { catalog: Catalog }) {
           <div style={{ fontSize: 12.5, color: teamBar ? '#C7D4EA' : locked ? (accepted ? '#1E6E44' : '#9A3412') : BODY, marginTop: 4, lineHeight: 1.45 }}>
             {locked
               ? lockedSub
-              : teamBar
-                ? t('teamSaveHint')
-                : quote.draft
-                  ? t('bannerDraftSub')
-                  : sendState === 'sent'
-                    ? t('sentSub')
-                    : sendState === 'error'
-                      ? t('sendError')
-                      : t('bannerSub')}
+              : saveState === 'saved'
+                ? teamBar
+                  ? t('teamSavedSub')
+                  : t('savedSub')
+                : saveState === 'error'
+                  ? t('saveError')
+                  : dirty
+                    ? t('unsavedSub')
+                    : teamBar
+                      ? t('teamSaveHint')
+                      : quote.draft
+                        ? t('bannerDraftSub')
+                        : t('bannerSub')}
           </div>
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
@@ -156,30 +155,26 @@ export function QuoteBanner({ catalog }: { catalog: Catalog }) {
           {step !== 'config' && step !== 'lead' && (bundle || teamBar) && linkButton(t('toConfig'), () => go('config'))}
           {!locked &&
             step === 'config' &&
-            // In team mode nothing goes to the customer: the next screen saves a version.
-            // For a customer this only sends changes, so it waits until there are some;
-            // "Continue to inquiry" in the sidebar is the way on when there are none.
-            linkButton(
-              teamBar
-                ? t('teamSave')
-                : quote.draft
-                  ? t('sendDraft')
-                  : sendState === 'sending'
-                    ? t('sending')
-                    : sendState === 'sent'
-                      ? t('sent')
-                      : t('send'),
-              // The team still walks to the next screen, which saves a version. A customer
-              // has nothing left to fill in, so their edits go from here.
-              teamBar || quote.draft ? () => go('lead') : () => void send(),
-              true,
-              'quote-send',
-              !teamBar && !quote.draft && (!changed || sendState === 'sending'),
-            )}
+            (saveable
+              ? // Saves straight from here, for customers and the team alike. Nothing to save
+                // until something changed; "Continue to inquiry" is the way on otherwise.
+                linkButton(
+                  saveState === 'saving' ? t('saving') : saveState === 'saved' && !dirty ? t('saved') : t('save'),
+                  () => void save(),
+                  true,
+                  'quote-send',
+                  !dirty || saveState === 'saving',
+                )
+              : // A team draft the customer has not enquired on yet: the enquiry form first.
+                linkButton(t('sendDraft'), () => go('lead'), true, 'quote-send'))}
           {!teamBar && step === 'config' && (
             <button
               type="button"
-              onClick={() => restart()}
+              onClick={() => {
+                // Starting over would drop unsaved edits without a trace, so it asks first.
+                if (dirty && !window.confirm(t('discardConfirm'))) return;
+                restart();
+              }}
               className="hov-blue-text"
               style={{ fontFamily: 'inherit', cursor: 'pointer', background: 'none', border: 'none', color: MUTED, fontSize: 12.5, fontWeight: 600 }}
             >

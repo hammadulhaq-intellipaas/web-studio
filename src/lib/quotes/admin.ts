@@ -4,10 +4,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { OPEN_LEAD_STATUSES, type Appointment, type Catalog, type Lead, type LeadActivity, type LeadVersion } from '@/lib/types';
 import type { PlanRow } from '@/components/admin/PlanPanel';
 import { latestActivityFor, loadActivity } from './activity';
-import { diffConfigs, type QuoteChange } from './diff';
-import { hashSelection, priceSelection, type PricedQuote } from './price';
 import { quotesSchemaReady } from './schema';
-import { normalizeSessionState, selectionFromLeadConfig, selectionFromState } from './selection';
 import { loadVersions } from './versions';
 
 /* ------------------------------------------------------------------ list */
@@ -112,15 +109,6 @@ export async function loadLeadList(filter: LeadListFilter, q: string | undefined
 
 /* ------------------------------------------------------------------ detail */
 
-export interface LiveQuote {
-  priced: PricedQuote;
-  hash: string;
-  updatedAt: string;
-  lastActor: string | null;
-  /** True when the live configuration differs from the latest submitted snapshot. */
-  differs: boolean;
-  changes: QuoteChange[];
-}
 
 export interface LinkedOnboardingForm {
   id: string;
@@ -139,7 +127,6 @@ export interface LeadDetail {
   plans: PlanRow[];
   versions: LeadVersion[];
   activity: LeadActivity[];
-  live: LiveQuote | null;
   onboardingForms: LinkedOnboardingForm[];
   adminUsers: string[];
 }
@@ -165,7 +152,7 @@ export async function loadLeadDetail(id: string): Promise<LeadDetail | null> {
     ? admin.from('lead_files').select('*').or(`lead_id.eq.${id},session_id.eq.${lead.session_id}`).order('created_at')
     : admin.from('lead_files').select('*').eq('lead_id', id).order('created_at');
 
-  const [catalog, { data: filesData }, { data: apptsData }, { data: plansData }, versions, activity, { data: onbData }, session] =
+  const [catalog, { data: filesData }, { data: apptsData }, { data: plansData }, versions, activity, { data: onbData }] =
     await Promise.all([
       getCatalog(),
       filesQuery,
@@ -174,9 +161,6 @@ export async function loadLeadDetail(id: string): Promise<LeadDetail | null> {
       ready ? loadVersions(id) : Promise.resolve([] as LeadVersion[]),
       ready ? loadActivity(id) : Promise.resolve([] as LeadActivity[]),
       admin.from('onboarding_forms').select('id, status, locale, company, created_at').eq('lead_id', id).order('created_at', { ascending: false }),
-      lead.session_id
-        ? admin.from('funnel_sessions').select('state, updated_at, last_actor').eq('id', lead.session_id).maybeSingle()
-        : Promise.resolve({ data: null }),
     ]);
 
   // Signed URLs for the private bucket (1 hour). A customer-supplied SVG can carry script,
@@ -190,34 +174,6 @@ export async function loadLeadDetail(id: string): Promise<LeadDetail | null> {
       return { ...f, url: data?.signedUrl ?? null };
     }),
   );
-
-  let live: LiveQuote | null = null;
-  if (session?.data?.state) {
-    try {
-      const state = normalizeSessionState(session.data.state);
-      const selection = selectionFromState(state, catalog);
-      // Price with the voucher as validated at the last submit (same code), never the client's numbers.
-      if (selection.voucher && lead.config?.voucher && selection.voucher.code.toUpperCase() === lead.config.voucher.code.toUpperCase()) {
-        selection.voucher = lead.config.voucher;
-      } else if (selection.voucher) {
-        selection.voucher = null;
-      }
-      const priced = priceSelection(catalog, selection, lead.locale, { siteNotes: state.siteNotes });
-      const hash = hashSelection(selection);
-      const submittedHash = hashSelection(selectionFromLeadConfig(lead.config, lead, catalog));
-      const differs = hash !== submittedHash;
-      live = {
-        priced,
-        hash,
-        updatedAt: session.data.updated_at,
-        lastActor: session.data.last_actor ?? null,
-        differs,
-        changes: differs ? diffConfigs(lead.config, priced.config) : [],
-      };
-    } catch (e) {
-      console.error('[quotes] live quote pricing failed:', e);
-    }
-  }
 
   let adminUsers: string[] = [];
   try {
@@ -236,7 +192,6 @@ export async function loadLeadDetail(id: string): Promise<LeadDetail | null> {
     plans: (plansData ?? []) as PlanRow[],
     versions,
     activity,
-    live,
     onboardingForms: (onbData ?? []) as LinkedOnboardingForm[],
     adminUsers,
   };
