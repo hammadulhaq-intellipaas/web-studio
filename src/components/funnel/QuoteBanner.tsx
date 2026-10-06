@@ -5,7 +5,7 @@ import type { Catalog } from '@/lib/types';
 import { fmt, mon } from '@/lib/format';
 import { useFunnel } from '@/stores/funnel';
 import { useAppLocale } from './hooks';
-import { useSaveChanges, useUnsavedChanges } from './useSaveChanges';
+import { useUnsavedChanges } from './useSaveChanges';
 import { BLUE, BORDER, BODY, GREEN, INK, MUTED } from './tokens';
 
 /**
@@ -23,7 +23,7 @@ export function QuoteBanner({ catalog }: { catalog: Catalog }) {
   const go = useFunnel((s) => s.go);
   const restart = useFunnel((s) => s.restart);
   const bundle = useFunnel((s) => s.bundle);
-  const { state: saveState, save } = useSaveChanges();
+  const saveState = useFunnel((s) => s.saveStatus);
   const { saveable, dirty } = useUnsavedChanges();
 
   if (!quote || step === 'intro' || step === 'done') return null;
@@ -131,11 +131,7 @@ export function QuoteBanner({ catalog }: { catalog: Catalog }) {
                 ? teamBar
                   ? t('teamSavedSub')
                   : t('savedSub')
-                : saveState === 'error'
-                  ? t('saveError')
-                  : dirty
-                    ? t('unsavedSub')
-                    : teamBar
+                : teamBar
                       ? t('teamSaveHint')
                       : quote.draft
                         ? t('bannerDraftSub')
@@ -153,20 +149,10 @@ export function QuoteBanner({ catalog }: { catalog: Catalog }) {
             </a>
           )}
           {step !== 'config' && step !== 'lead' && (bundle || teamBar) && linkButton(t('toConfig'), () => go('config'))}
-          {!locked &&
-            step === 'config' &&
-            (saveable
-              ? // Saves straight from here, for customers and the team alike. Nothing to save
-                // until something changed; "Continue to inquiry" is the way on otherwise.
-                linkButton(
-                  saveState === 'saving' ? t('saving') : saveState === 'saved' && !dirty ? t('saved') : t('save'),
-                  () => void save(),
-                  true,
-                  'quote-send',
-                  !dirty || saveState === 'saving',
-                )
-              : // A team draft the customer has not enquired on yet: the enquiry form first.
-                linkButton(t('sendDraft'), () => go('lead'), true, 'quote-send'))}
+          {/* Saving lives in one place, the save bar at the bottom, which appears the moment
+              something changes. A second Save up here only made people wonder which to press.
+              A team draft the customer has not enquired on yet still goes through the form. */}
+          {!locked && step === 'config' && !saveable && linkButton(t('sendDraft'), () => go('lead'), true, 'quote-send')}
           {!teamBar && step === 'config' && (
             <button
               type="button"

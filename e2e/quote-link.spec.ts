@@ -44,14 +44,14 @@ test.describe('public funnel — permanent quote link', () => {
     await expect(restored.getByTestId('sum-once')).toHaveText(GASTRO.sumOnceDe);
 
     // Nothing changed yet, so there is nothing to save, and no save bar.
-    await expect(restored.getByTestId('quote-send')).toBeDisabled();
     await expect(restored.getByTestId('unsaved-bar')).toHaveCount(0);
 
     // A change only lives on this screen until it is saved: the bar says so at once...
     await restored.getByTestId('addon-newsletter').click();
     await expect(restored.getByTestId('sum-once')).toHaveText('€4.850');
     await expect(restored.getByTestId('unsaved-bar')).toBeVisible();
-    await expect(restored.getByTestId('quote-send')).toBeEnabled();
+    // One place to save, not two: the banner has no Save button of its own.
+    await expect(restored.getByTestId('quote-send')).toHaveCount(0);
 
     // ...and the link itself has not moved: someone else opening it still sees the saved quote.
     const third = await page.context().browser()!.newContext();
@@ -64,7 +64,6 @@ test.describe('public funnel — permanent quote link', () => {
     await restored.getByTestId('unsaved-save').click();
     await expect(restored.getByTestId('unsaved-bar')).toHaveCount(0, { timeout: 30_000 });
     await expect(restored.getByTestId('quote-banner')).toContainText('Gespeichert');
-    await expect(restored.getByTestId('quote-send')).toBeDisabled();
     await peek.reload();
     await expect(peek.getByTestId('sum-once')).toHaveText('€4.850');
     await third.close();
@@ -156,14 +155,30 @@ test.describe('public funnel — permanent quote link', () => {
     await expect(cust.getByTestId('unsaved-bar')).toHaveCount(0);
     await expect(cust.getByTestId('sum-once')).toHaveText(GASTRO.sumOnceDe);
 
-    // Leaving with something unsaved asks first.
+    // A language switch is moving around inside the page: unsaved edits come along.
     await cust.getByTestId('addon-newsletter').click();
+    await expect(cust.getByTestId('sum-once')).toHaveText('€4.850');
     await expect(cust.getByTestId('unsaved-bar')).toBeVisible();
+    await cust.getByTestId('language-toggle').getByRole('button', { name: 'English' }).click();
+    await cust.waitForURL(/\/en(\/|\?)/);
+    await expect(cust.getByTestId('unsaved-bar')).toBeVisible({ timeout: 20_000 });
+    await expect(cust.getByTestId('addon-newsletter')).toBeVisible();
+    await cust.getByTestId('language-toggle').getByRole('button', { name: 'Deutsch' }).click();
+    await cust.waitForURL((u) => !u.pathname.startsWith('/en'));
+    await expect(cust.getByTestId('sum-once')).toHaveText('€4.850', { timeout: 20_000 });
+
+    // Leaving with something unsaved asks first.
     const dialog = cust.waitForEvent('dialog');
     await cust.close({ runBeforeUnload: true });
     const d = await dialog;
     expect(d.type()).toBe('beforeunload');
-    await d.dismiss();
+    await d.accept();
+
+    // Opening the link again is a new page: it shows the quote as saved, not the leftovers.
+    const reopened = await other.newPage();
+    await reopened.goto(link);
+    await expect(reopened.getByTestId('sum-once')).toHaveText(GASTRO.sumOnceDe, { timeout: 30_000 });
+    await expect(reopened.getByTestId('unsaved-bar')).toHaveCount(0);
 
     // This browser remembers the quote, but the homepage without a link starts a new one:
     // that is how a team member ended up editing another customer's quote.

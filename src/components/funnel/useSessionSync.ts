@@ -6,6 +6,13 @@ import { useFunnel, quoteContent, toSessionState, type QuoteMeta, type SessionSt
 
 const SAVE_DEBOUNCE_MS = 2000;
 
+/**
+ * Whether the funnel has already mounted once since this page was loaded. Module state, so
+ * it survives moving around inside the page (switching language remounts the funnel) but
+ * not closing the tab, reloading or opening the link fresh, which all start a new page.
+ */
+let mountedSincePageLoad = false;
+
 /** `?c=<id>` — the shareable handle for a funnel session. */
 export const SESSION_PARAM = 'c';
 
@@ -76,6 +83,8 @@ export function useSessionSync() {
       const store = useFunnel.getState();
       const paramId = new URLSearchParams(window.location.search).get(SESSION_PARAM);
       const hasLink = !!paramId && isValidSessionId(paramId);
+      const freshPage = !mountedSincePageLoad;
+      mountedSincePageLoad = true;
 
       if (hasLink && paramId !== store.sessionId) {
         // A link from elsewhere (or another device): the server holds its state.
@@ -98,10 +107,11 @@ export function useSessionSync() {
       } else if (hasLink) {
         const unsaved =
           !!store.quote && !!store.savedSnapshot && quoteContent(store) !== store.savedSnapshot;
-        if (unsaved) {
-          // Edits that were never saved live only in this browser. Pulling the saved copy
-          // over them would silently throw them away (a language switch reloads the page),
-          // so they stay, and the save bar keeps asking.
+        if (unsaved && !freshPage) {
+          // Unsaved edits survive moving around inside the open page, such as a language
+          // switch, and the save bar keeps asking. Closing the tab or opening the link
+          // again starts a new page: those always show the quote as it was last saved
+          // (handled below), because what was never saved was never part of the quote.
           writeSessionIdToUrl(store.sessionId!);
         } else if (store.quote || store.leadId) {
           // A bound quote can change from the admin (team mode) while this tab is closed:
