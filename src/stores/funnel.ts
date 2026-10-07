@@ -10,6 +10,7 @@ import { generateSessionId } from '@/lib/session-id';
 import {
   INITIAL_LEAD_FORM,
   currentBundle,
+  hasUnsavedChanges,
   quoteContent,
   toSessionState,
   type FileKind,
@@ -21,7 +22,7 @@ import {
 } from '@/lib/funnel/state';
 
 // The data shapes live in a React-free module so server code can share them.
-export { currentBundle, quoteContent, toSessionState };
+export { currentBundle, hasUnsavedChanges, quoteContent, toSessionState };
 export type { FileKind, FunnelStep, LeadForm, QuoteMeta, SessionState, UploadedFile };
 
 /** Transient notices shown on the intro (never persisted). */
@@ -311,7 +312,12 @@ export const useFunnel = create<FunnelState>()(
         set({ bundle: bundleId, sel: { ...recommendedSet, ...keep }, recSel: recommendedSet });
       },
 
-      toggleAddon: (id) => set({ sel: { ...get().sel, [id]: !get().sel[id] } }),
+      // Switching an add-on off removes it rather than storing `false`, so picking one and
+      // unpicking it again leaves the quote exactly as it was.
+      toggleAddon: (id) => {
+        const { [id]: on, ...rest } = get().sel;
+        set({ sel: on ? rest : { ...rest, [id]: true } });
+      },
       // Quantities and ticked sub-options go too, so a restored add-on starts from its
       // default rather than from whatever was set before it was removed.
       clearAddons: () => set({ sel: {}, qty: {}, selectedSubAddons: {}, aiBundle: false }),

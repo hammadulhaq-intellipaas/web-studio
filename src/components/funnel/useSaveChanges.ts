@@ -1,6 +1,7 @@
 'use client';
 
-import { useFunnel, quoteContent, toSessionState } from '@/stores/funnel';
+import { useFunnel, hasUnsavedChanges, toSessionState } from '@/stores/funnel';
+import { useCatalog } from './CatalogContext';
 import type { QuoteMeta } from '@/lib/funnel/state';
 import { useAppLocale, useSelection } from './hooks';
 
@@ -13,9 +14,10 @@ import { useAppLocale, useSelection } from './hooks';
  */
 export function useUnsavedChanges(): { saveable: boolean; dirty: boolean } {
   const state = useFunnel();
+  const catalog = useCatalog();
   const quote = state.quote;
   const saveable = !!quote && (state.teamMode || (!quote.locked && !quote.draft));
-  const dirty = saveable && !!state.savedSnapshot && quoteContent(state) !== state.savedSnapshot;
+  const dirty = saveable && hasUnsavedChanges(state, state.savedSnapshot, catalog);
   return { saveable, dirty };
 }
 

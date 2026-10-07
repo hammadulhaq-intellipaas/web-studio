@@ -155,6 +155,13 @@ test.describe('public funnel — permanent quote link', () => {
     await expect(cust.getByTestId('unsaved-bar')).toHaveCount(0);
     await expect(cust.getByTestId('sum-once')).toHaveText(GASTRO.sumOnceDe);
 
+    // Picking an add-on and unpicking it again leaves nothing to save.
+    await cust.getByTestId('addon-newsletter').click();
+    await expect(cust.getByTestId('unsaved-bar')).toBeVisible();
+    await cust.getByTestId('addon-newsletter').click();
+    await expect(cust.getByTestId('unsaved-bar')).toHaveCount(0);
+    await expect(cust.getByTestId('sum-once')).toHaveText(GASTRO.sumOnceDe);
+
     // A language switch is moving around inside the page: unsaved edits come along.
     await cust.getByTestId('addon-newsletter').click();
     await expect(cust.getByTestId('sum-once')).toHaveText('€4.850');

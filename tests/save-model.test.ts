@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { useFunnel, quoteContent } from '@/stores/funnel';
+import { useFunnel, hasUnsavedChanges } from '@/stores/funnel';
 import type { QuoteMeta } from '@/lib/funnel/state';
+import { makeCatalog } from './fixtures/catalog';
 
 /**
  * A quote only changes when someone saves it. The store keeps the last saved version, so it
@@ -20,9 +21,10 @@ const QUOTE: QuoteMeta = {
   locale: 'de',
 };
 
+const catalog = makeCatalog();
 const unsaved = () => {
   const s = useFunnel.getState();
-  return !!s.savedSnapshot && quoteContent(s) !== s.savedSnapshot;
+  return hasUnsavedChanges(s, s.savedSnapshot, catalog);
 };
 
 beforeEach(() => {
@@ -53,6 +55,41 @@ describe('what is saved', () => {
     useFunnel.getState().toggleAddon('cookie');
     useFunnel.getState().toggleAddon('cookie');
     expect(unsaved()).toBe(false);
+  });
+
+  // The case from the live audit: an add-on the quote never had, picked and unpicked.
+  it('picking an add-on and unpicking it again is not a change', () => {
+    useFunnel.getState().toggleAddon('foto');
+    expect(unsaved()).toBe(true);
+    useFunnel.getState().toggleAddon('foto');
+    expect(unsaved()).toBe(false);
+  });
+
+  it('several add-ons undone in a different order is not a change', () => {
+    useFunnel.getState().toggleAddon('cookie');
+    useFunnel.getState().toggleAddon('foto');
+    useFunnel.getState().toggleAddon('cookie');
+    useFunnel.getState().toggleAddon('foto');
+    expect(unsaved()).toBe(false);
+  });
+
+  it('a quantity stepped up and back down is not a change', () => {
+    useFunnel.getState().setQty('page', 2);
+    expect(unsaved()).toBe(true);
+    useFunnel.getState().setQty('page', 1);
+    expect(unsaved()).toBe(false);
+  });
+
+  it('sub-options ticked back to how they were is not a change', () => {
+    useFunnel.getState().setSubAddons('widgets', ['whatsapp', 'reviews']);
+    expect(unsaved()).toBe(true);
+    useFunnel.getState().setSubAddons('widgets', ['whatsapp']);
+    expect(unsaved()).toBe(false);
+  });
+
+  it('a different quantity is still a change', () => {
+    useFunnel.getState().setQty('page', 3);
+    expect(unsaved()).toBe(true);
   });
 
   // Moving between steps or typing half a promo code is not a change to the quote.

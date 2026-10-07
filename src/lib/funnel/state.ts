@@ -1,5 +1,6 @@
 import type { Answers, Catalog, Voucher } from '@/lib/types';
 import { recommend } from '@/lib/pricing/recommend';
+import { qtyOf, subAddonsOf } from '@/lib/pricing/engine';
 
 /**
  * The funnel's data shapes, kept free of React/zustand so server code (the quotes
@@ -79,6 +80,58 @@ export function quoteContent(s: SessionState): string {
   void step;
   void promoInput;
   return JSON.stringify(content);
+}
+
+/** JSON with every object's keys sorted, so the order things were clicked in never counts. */
+function stableStringify(v: unknown): string {
+  if (Array.isArray(v)) return `[${v.map(stableStringify).join(',')}]`;
+  if (v && typeof v === 'object') {
+    const o = v as Record<string, unknown>;
+    return `{${Object.keys(o)
+      .filter((k) => o[k] !== undefined)
+      .sort()
+      .map((k) => `${JSON.stringify(k)}:${stableStringify(o[k])}`)
+      .join(',')}}`;
+  }
+  return JSON.stringify(v);
+}
+
+/**
+ * A quote reduced to what it means rather than how it got there: an add-on switched off
+ * reads the same as one never picked, a quantity or sub-option left at its default the same
+ * as one never touched, and the order things were picked in does not matter. Without the
+ * catalog only the first and last apply.
+ */
+function canonicalQuote(content: string, catalog?: Catalog): string {
+  const c = JSON.parse(content) as Partial<SessionState>;
+  const truthy = (m?: Record<string, boolean>) =>
+    Object.fromEntries(Object.entries(m ?? {}).filter(([, on]) => on));
+  const addon = (id: string) => catalog?.addons.find((a) => a.id === id);
+  const qty = Object.fromEntries(
+    Object.entries(c.qty ?? {}).filter(([id, n]) => {
+      const a = addon(id);
+      return !a || n !== qtyOf(a, {});
+    }),
+  );
+  const subs = Object.fromEntries(
+    Object.entries(c.selectedSubAddons ?? {}).flatMap(([id, picked]) => {
+      const a = addon(id);
+      if (!a) return [[id, [...picked].sort()]];
+      const resolved = subAddonsOf(a, { [id]: picked });
+      const dflt = subAddonsOf(a, {});
+      return resolved.join() === dflt.join() ? [] : [[id, resolved]];
+    }),
+  );
+  return stableStringify({ ...c, sel: truthy(c.sel), recSel: truthy(c.recSel), qty, selectedSubAddons: subs });
+}
+
+/**
+ * Does the quote on screen differ, in a way anyone would notice, from the one last saved?
+ * Picking an add-on and then unpicking it again is not a change.
+ */
+export function hasUnsavedChanges(s: SessionState, savedSnapshot: string | null, catalog?: Catalog): boolean {
+  if (!savedSnapshot) return false;
+  return canonicalQuote(quoteContent(s), catalog) !== canonicalQuote(savedSnapshot, catalog);
 }
 
 export function toSessionState(s: SessionState): SessionState {

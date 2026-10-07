@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { isValidSessionId } from '@/lib/session-id';
-import { useFunnel, quoteContent, toSessionState, type QuoteMeta, type SessionState } from '@/stores/funnel';
+import { useFunnel, hasUnsavedChanges, toSessionState, type QuoteMeta, type SessionState } from '@/stores/funnel';
 
 const SAVE_DEBOUNCE_MS = 2000;
 
@@ -105,8 +105,7 @@ export function useSessionSync() {
         }
         restoringRef.current = false;
       } else if (hasLink) {
-        const unsaved =
-          !!store.quote && !!store.savedSnapshot && quoteContent(store) !== store.savedSnapshot;
+        const unsaved = !!store.quote && hasUnsavedChanges(store, store.savedSnapshot);
         if (unsaved && !freshPage) {
           // Unsaved edits survive moving around inside the open page, such as a language
           // switch, and the save bar keeps asking. Closing the tab or opening the link
