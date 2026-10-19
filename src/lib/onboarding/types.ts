@@ -284,6 +284,10 @@ export interface OnboardingSettings {
   examplesUrl: string;
   folderHelpUrl: string;
   teamEmail: string;
+  /** `customer_email_cc`: copied on the client's brief mail. */
+  customerCc: string;
+  /** `team_notify_skip`: test addresses, which never copy anyone. */
+  testAddresses: string;
 }
 
 /** Everything the public form needs, loaded once per request. */

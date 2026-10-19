@@ -1,5 +1,6 @@
 import 'server-only';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import { customerCcRecipients } from '@/lib/emails';
 import { getOnboardingDefinition } from './definition';
 import { sendBriefEmails } from './emails';
 import { pdfFileName, renderBriefPdf } from './pdf/render';
@@ -84,6 +85,7 @@ export async function deliverConfirmedForm(formId: string): Promise<DeliveryStat
       name: record.name,
       company: record.company,
       teamEmailSetting: definition.settings.teamEmail,
+      cc: customerCcRecipients(definition.settings.customerCc, record.email, definition.settings.testAddresses),
       pdf: pdf ? { filename: pdfFileName(record, brief.version), content: pdf.buffer } : null,
       confirmedAt: record.confirmed?.at ?? new Date().toISOString(),
     });

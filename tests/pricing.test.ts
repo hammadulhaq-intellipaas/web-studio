@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Answers } from '@/lib/types';
 import { addonCost, calcTotals, isByow, qtyOf, stepQty, subAddonsOf } from '@/lib/pricing/engine';
 import { buildReceipt, subAddonText, type SummaryLabels } from '@/lib/pricing/summary';
-import { recommend, recSet } from '@/lib/pricing/recommend';
+import { baseBundleFor, recommend, recSet } from '@/lib/pricing/recommend';
 import { EMPTY_ANSWERS } from '@/lib/questions';
 import { makeCatalog, makeSelection } from './fixtures/catalog';
 
@@ -166,6 +166,14 @@ describe('recommend', () => {
     expect(recommend(catalog, answers({ pages: '14', langs: '2' }))).toMatchObject({ bundle: 'gold', whyKeys: ['twoLangs'] });
     expect(recommend(catalog, answers({ pages: '58', langs: '3' }))).toMatchObject({ bundle: 'platinum', whyKeys: ['threeLangs'] });
     expect(recommend(catalog, answers({ pages: '14', shop: 'shop' })).bundle).toBe('platinum');
+  });
+
+  it('names the package each page band points to, before any upgrade', () => {
+    const name = (pages: string, extra: Partial<Answers> = {}) => baseBundleFor(catalog, answers({ pages, ...extra }))?.id;
+    expect(['14', '58', '912', '12p'].map((p) => name(p))).toEqual(['silver', 'gold', 'platinum', 'platinum']);
+    // Upgrades from later questions don't move the label: it is what the pages alone mean.
+    expect(name('14', { blog: 'ja', langs: '3' })).toBe('silver');
+    expect(baseBundleFor(catalog, answers({}))).toBeNull();
   });
 
   it('handles the BYOW paths', () => {

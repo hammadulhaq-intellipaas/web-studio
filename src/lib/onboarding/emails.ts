@@ -100,6 +100,8 @@ export interface BriefEmailInput {
   name: string | null;
   company: string | null;
   teamEmailSetting: string;
+  /** Copied on the client's mail, PDF included (see `customerCcRecipients`). */
+  cc?: string[];
   pdf: Attachment | null;
   /** When the client confirmed (ISO); the team letter says it in German time. */
   confirmedAt: string;
@@ -140,6 +142,7 @@ export async function sendBriefEmails(input: BriefEmailInput): Promise<{ client:
       ? c.resend.emails.send({
           from: c.from,
           to: input.to,
+          ...(input.cc?.length ? { cc: input.cc } : {}),
           subject: clientMail.subject,
           html: clientMail.html,
           text: clientMail.text,

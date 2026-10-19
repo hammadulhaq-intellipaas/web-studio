@@ -216,12 +216,28 @@ export function teamRecipients(teamEmailSetting = ''): string[] {
     .filter(Boolean);
 }
 
+/**
+ * Addresses copied on the customer's own mails (`customer_email_cc`), so someone on the
+ * team sees exactly what the customer got without opening the admin. Never the customer
+ * themselves, and nobody at all for a test lead.
+ */
+export function customerCcRecipients(ccSetting = '', customerEmail?: string | null, testSetting = ''): string[] {
+  if (isTestLeadAddress(customerEmail, testSetting)) return [];
+  const own = (customerEmail ?? '').trim().toLowerCase();
+  return ccSetting
+    .split(',')
+    .map((address) => address.trim())
+    .filter((address) => address && address.toLowerCase() !== own);
+}
+
 export interface SendLeadEmailsOptions {
   /** Skip the customer copy (team-only notifications). */
   customer?: boolean;
   /** Skip the team copy (e.g. a quote the team sends to the customer). */
   team?: boolean;
   teamExtras?: TeamEmailExtras;
+  /** Copied on the customer mail (see `customerCcRecipients`). */
+  customerCc?: string[];
 }
 
 export interface SendLeadEmailsResult {
@@ -254,7 +270,13 @@ export async function sendLeadEmails(
 
   const results = await Promise.allSettled([
     sendCustomer
-      ? resend.emails.send({ from, to: ctx.lead.email, subject: customer.subject, html: customer.html })
+      ? resend.emails.send({
+          from,
+          to: ctx.lead.email,
+          ...(options.customerCc?.length ? { cc: options.customerCc } : {}),
+          subject: customer.subject,
+          html: customer.html,
+        })
       : Promise.resolve(null),
     sendTeam
       ? resend.emails.send({ from, to: team, subject: teamMail.subject, html: teamMail.html })

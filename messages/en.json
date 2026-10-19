@@ -94,7 +94,8 @@
         "58": "5–8",
         "912": "9–12",
         "12p": "More than 12"
-      }
+      },
+      "package": "{name} package"
     },
     "langs": {
       "title": "In how many languages?",

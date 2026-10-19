@@ -1,6 +1,6 @@
 import 'server-only';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
-import { isTestLeadAddress, sendLeadEmails, type CustomerEmailVariant, type EmailContext } from '@/lib/emails';
+import { customerCcRecipients, isTestLeadAddress, sendLeadEmails, type CustomerEmailVariant, type EmailContext } from '@/lib/emails';
 import { pickLocale, type Catalog, type Lead, type LeadConfig, type Locale } from '@/lib/types';
 import { logActivity } from './activity';
 import { diffConfigs, type QuoteChange } from './diff';
@@ -18,6 +18,8 @@ async function setting(key: string): Promise<string> {
 
 const teamEmailSetting = () => setting('team_email');
 const testAddressSetting = () => setting('team_notify_skip');
+const customerCc = async (email: string) =>
+  customerCcRecipients(await setting('customer_email_cc'), email, await testAddressSetting());
 
 type LeadForEmail = Pick<Lead, 'id' | 'locale' | 'vorname' | 'nachname' | 'firma' | 'email' | 'telefon' | 'ziel' | 'persona_id'>;
 
@@ -68,9 +70,10 @@ export function describeChanges(changes: QuoteChange[]): string[] {
 /** First submit: customer confirmation (with link) + team notification. Never throws. */
 export async function sendSubmitEmails(lead: LeadForEmail, priced: PricedQuote, catalog: Catalog, sessionId: string | null) {
   try {
-    const [team, testAddresses] = await Promise.all([teamEmailSetting(), testAddressSetting()]);
+    const [team, testAddresses, cc] = await Promise.all([teamEmailSetting(), testAddressSetting(), customerCc(lead.email)]);
     await sendLeadEmails(emailContext(lead, priced, catalog, { sessionId, variant: 'new' }), team, {
       team: !isTestLeadAddress(lead.email, testAddresses),
+      customerCc: cc,
     });
   } catch (e) {
     console.error('[quotes] submit emails failed:', e);
@@ -108,6 +111,7 @@ export async function sendResubmitEmails(
     const changes = describeChanges(diffConfigs(previous, priced.config));
     await sendLeadEmails(emailContext(lead, priced, catalog, { sessionId, variant: 'updated' }), await teamEmailSetting(), {
       team: notifyTeam,
+      customerCc: await customerCc(lead.email),
       teamExtras: { updated: { version, changes, actor: actor === 'customer' ? 'the customer' : actor.replace(/^team:/, '') } },
     });
     if (notifyTeam) {
@@ -125,6 +129,9 @@ export async function sendQuoteToCustomerEmail(
   catalog: Catalog,
   sessionId: string,
 ): Promise<boolean> {
-  const result = await sendLeadEmails(emailContext(lead, priced, catalog, { sessionId, variant: 'quote' }), '', { team: false });
+  const result = await sendLeadEmails(emailContext(lead, priced, catalog, { sessionId, variant: 'quote' }), '', {
+    team: false,
+    customerCc: await customerCc(lead.email),
+  });
   return result.customer;
 }

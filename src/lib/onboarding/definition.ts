@@ -40,6 +40,8 @@ export function parseOnboardingSettings(settingsMap: Record<string, unknown>): O
     examplesUrl: str('onb_examples_url', ''),
     folderHelpUrl: str('onb_folder_help_url', ''),
     teamEmail: str('onb_team_email', '') || str('team_email', ''),
+    customerCc: str('customer_email_cc', ''),
+    testAddresses: str('team_notify_skip', ''),
   };
 }
 

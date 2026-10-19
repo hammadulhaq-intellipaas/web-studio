@@ -55,6 +55,19 @@ export function recommend(catalog: Catalog, answers: Answers, sourceUrl = ''): R
 }
 
 /**
+ * The bundle the base rules alone point to for these answers, before any upgrade: what the
+ * pages question shows next to each band ("5–8 · Gold"). Null when no base rule matches, so
+ * an option never shows a package the rules don't actually name.
+ */
+export function baseBundleFor(catalog: Catalog, answers: Answers, sourceUrl = ''): Catalog['bundles'][number] | null {
+  const base = [...catalog.bundleRules]
+    .filter((r) => r.active && r.rule_kind === 'base' && bundleExists(catalog, r.result_bundle))
+    .sort((a, b) => b.priority - a.priority)
+    .find((r) => ruleMatches(r.conditions, answers, sourceUrl));
+  return base ? (catalog.bundles.find((b) => b.id === base.result_bundle) ?? null) : null;
+}
+
+/**
  * Recommended add-on pre-selection, driven entirely by the `addon_rules` CMS table.
  *
  * Additive rules (plus the persona's `preselect_addons`) run first, then every matching

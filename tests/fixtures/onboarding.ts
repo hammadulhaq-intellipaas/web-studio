@@ -27,6 +27,8 @@ export const SETTINGS: OnboardingSettings = {
   examplesUrl: '',
   folderHelpUrl: 'https://example.com/help',
   teamEmail: 'team@example.com',
+  customerCc: '',
+  testAddresses: '',
 };
 
 /** The seed content as the runtime would load it from Supabase. */

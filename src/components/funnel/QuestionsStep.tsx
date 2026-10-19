@@ -4,6 +4,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import type { Catalog, Locale } from '@/lib/types';
 import { buildQuestions } from '@/lib/questions';
 import { isByow } from '@/lib/pricing/engine';
+import { baseBundleFor } from '@/lib/pricing/recommend';
 import { useFunnel } from '@/stores/funnel';
 import { UploadZone } from './UploadZone';
 import { backButton, BLUE, BODY, BORDER, gradButton, INK, MUTED } from './ui';
@@ -116,6 +117,8 @@ export function QuestionsStep({ catalog }: { catalog: Catalog }) {
                   const selected = q.multi
                     ? Array.isArray(cur) && cur.includes(val)
                     : cur === val;
+                  // The page band alone already points to a package (bundle_rules); name it, no price.
+                  const pkg = q.id === 'pages' ? baseBundleFor(catalog, { ...answers, pages: val }, url) : null;
                   return (
                     <button
                       key={val}
@@ -140,6 +143,21 @@ export function QuestionsStep({ catalog }: { catalog: Catalog }) {
                     >
                       {q.multi && selected && <span style={{ fontWeight: 800 }}>✓</span>}
                       {t(`${q.id}.opts.${val}`)}
+                      {pkg && (
+                        <span
+                          data-testid={`opt-pkg-${val}`}
+                          style={{
+                            fontSize: 11.5,
+                            fontWeight: 700,
+                            padding: '2px 8px',
+                            borderRadius: 999,
+                            background: selected ? 'rgba(255,255,255,.2)' : '#EDF3FF',
+                            color: selected ? '#ffffff' : BLUE,
+                          }}
+                        >
+                          {t('pages.package', { name: pkg.name })}
+                        </span>
+                      )}
                     </button>
                   );
                 })}

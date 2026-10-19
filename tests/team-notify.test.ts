@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isTestLeadAddress, teamRecipients } from '@/lib/emails';
+import { customerCcRecipients, isTestLeadAddress, teamRecipients } from '@/lib/emails';
 
 /**
  * Walking the customer flow should not put a mail in three people's inboxes. The list is a
@@ -38,5 +38,25 @@ describe('test leads do not notify the team', () => {
       'matt@intellipaas.io',
     ]);
     expect(teamRecipients('')).toEqual([]);
+  });
+});
+
+describe('CC on customer emails', () => {
+  const SKIP = '@example.com';
+
+  it('copies every address in the setting', () => {
+    expect(customerCcRecipients('boss@intellipaas.io, sales@intellipaas.io', 'client@acme.de', SKIP)).toEqual([
+      'boss@intellipaas.io',
+      'sales@intellipaas.io',
+    ]);
+  });
+
+  it('never copies the customer on their own mail, and copies nobody for a test lead', () => {
+    expect(customerCcRecipients('Boss@IntelliPaaS.io', 'boss@intellipaas.io', SKIP)).toEqual([]);
+    expect(customerCcRecipients('boss@intellipaas.io', 'e2e-1@example.com', SKIP)).toEqual([]);
+  });
+
+  it('is empty when the setting is', () => {
+    expect(customerCcRecipients('', 'client@acme.de', SKIP)).toEqual([]);
   });
 });
