@@ -25,14 +25,16 @@ export default async function AdminDashboard() {
       .limit(5),
     visible(supabase.from('leads').select('id', { count: 'exact', head: true })),
     visible(supabase.from('leads').select('id', { count: 'exact', head: true })).eq('status', 'new'),
-    supabase.from('onboarding_forms').select('id, status').not('email', 'is', null),
+    supabase.from('onboarding_forms').select('id, status').not('email', 'is', null).is('archived_at', null),
   ]);
 
   const leads = (leadsRes.data ?? []) as Lead[];
   const appts = (apptsRes.data ?? []) as Appointment[];
   const total = countRes.count ?? 0;
   const newCount = newRes.count ?? 0;
-  const onboarding = (onbRes.data ?? []) as { id: string; status: string }[];
+  // Removed forms do not count; before migration 20261019000019 there is nothing removed yet.
+  const onbRows = onbRes.error ? (await supabase.from('onboarding_forms').select('id, status').not('email', 'is', null)).data : onbRes.data;
+  const onboarding = (onbRows ?? []) as { id: string; status: string }[];
   const onboardingOpen = onboarding.filter((f) => f.status !== 'confirmed').length;
 
   return (
