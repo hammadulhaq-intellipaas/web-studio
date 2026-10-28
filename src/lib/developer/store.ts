@@ -8,9 +8,31 @@ export interface DeveloperProject {
   lead_id: string;
   internal_notes: string;
   dev_instructions: string;
+  /** The client part of every draft link: /drafts/<draft_slug>/<version>. */
+  draft_slug: string | null;
+  approved_version_id: string | null;
+  approved_at: string | null;
+  approved_by: string | null;
+  drafts_offline: boolean;
+  live_url: string;
+  cms_url: string;
   updated_at: string | null;
   updated_by: string | null;
 }
+
+const EMPTY_PROJECT: Omit<DeveloperProject, 'lead_id'> = {
+  internal_notes: '',
+  dev_instructions: '',
+  draft_slug: null,
+  approved_version_id: null,
+  approved_at: null,
+  approved_by: null,
+  drafts_offline: false,
+  live_url: '',
+  cms_url: '',
+  updated_at: null,
+  updated_by: null,
+};
 
 export interface StoredPrompt {
   id: string;
@@ -19,15 +41,17 @@ export interface StoredPrompt {
   kind: PromptKind;
   proposal: Proposal | null;
   reference_slug: string | null;
+  /** The design version a revision prompt is about. */
+  design_version_id: string | null;
   content: string;
   model: string;
   created_by: string | null;
   created_at: string;
 }
 
-/** Missing table (migration 20261028000021 not run yet) as PostgREST and Postgres report it. */
+/** Missing table or column (a migration not run yet) as PostgREST and Postgres report it. */
 function missingTable(error: { code?: string } | null): boolean {
-  return error?.code === 'PGRST205' || error?.code === '42P01';
+  return error?.code === 'PGRST205' || error?.code === '42P01' || error?.code === 'PGRST204' || error?.code === '42703';
 }
 
 /** Whether the Developers tables exist. Before the migration the page explains what to run. */
@@ -36,14 +60,20 @@ export async function developerSchemaReady(): Promise<boolean> {
   return !missingTable(error);
 }
 
+/** Whether migration 20261028000022 (design versions, build and handover) has run. */
+export async function designsSchemaReady(): Promise<boolean> {
+  const { error } = await createSupabaseAdminClient().from('developer_design_versions').select('id').limit(1);
+  return !missingTable(error);
+}
+
 export async function loadProject(leadId: string): Promise<DeveloperProject> {
   const { data } = await createSupabaseAdminClient().from('developer_projects').select('*').eq('lead_id', leadId).maybeSingle();
-  return (data as DeveloperProject | null) ?? { lead_id: leadId, internal_notes: '', dev_instructions: '', updated_at: null, updated_by: null };
+  return { ...EMPTY_PROJECT, lead_id: leadId, ...((data as Partial<DeveloperProject> | null) ?? {}) };
 }
 
 export async function saveProject(
   leadId: string,
-  patch: Partial<Pick<DeveloperProject, 'internal_notes' | 'dev_instructions'>>,
+  patch: Partial<Pick<DeveloperProject, 'internal_notes' | 'dev_instructions' | 'live_url' | 'cms_url'>>,
   by: string | null,
 ): Promise<void> {
   const { error } = await createSupabaseAdminClient()
@@ -64,7 +94,11 @@ export async function loadPrompts(leadId: string, kind: PromptKind): Promise<Sto
   return (data ?? []) as StoredPrompt[];
 }
 
-export async function insertPrompts(rows: Omit<StoredPrompt, 'id' | 'created_at'>[]): Promise<void> {
-  const { error } = await createSupabaseAdminClient().from('developer_prompts').insert(rows);
+type NewPrompt = Omit<StoredPrompt, 'id' | 'created_at' | 'design_version_id'> & { design_version_id?: string | null };
+
+export async function insertPrompts(rows: NewPrompt[]): Promise<void> {
+  // design_version_id is only sent when set, so design prompts still save before migration 022.
+  const clean = rows.map(({ design_version_id, ...rest }) => (design_version_id ? { ...rest, design_version_id } : rest));
+  const { error } = await createSupabaseAdminClient().from('developer_prompts').insert(clean);
   if (error) throw new Error(`Saving the prompts failed: ${error.message}`);
 }

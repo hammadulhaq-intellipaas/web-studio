@@ -27,6 +27,8 @@ interface Props {
   formReady: boolean;
   /** Migration 20261028000021 has run. */
   schemaReady: boolean;
+  /** A design version is approved: no new design prompts until it is reopened. */
+  locked: boolean;
   notes: string;
   choices: ReferenceChoice[];
   defaults: { A: string | null; B: string | null };
@@ -78,11 +80,11 @@ function NotesEditor({ leadId, initial, disabled }: { leadId: string; initial: s
   );
 }
 
-export function DesignPromptsPanel({ leadId, formReady, schemaReady, notes, choices, defaults, prompts }: Props) {
+export function DesignPromptsPanel({ leadId, formReady, schemaReady, locked, notes, choices, defaults, prompts }: Props) {
   const [refs, setRefs] = useState({ A: defaults.A ?? NONE, B: defaults.B ?? NONE });
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
-  const canGenerate = formReady && schemaReady && !pending;
+  const canGenerate = formReady && schemaReady && !locked && !pending;
   const nameOf = (slug: string | null) => (slug ? choices.find((c) => c.value === slug)?.label ?? slug : "the client's answers");
 
   const generate = () =>
@@ -138,7 +140,9 @@ export function DesignPromptsPanel({ leadId, formReady, schemaReady, notes, choi
             ? 'Writing both proposals. This takes a minute or two.'
             : !formReady
               ? 'Available once the client has confirmed the onboarding form.'
-              : 'Generates Proposal A and Proposal B together.'}
+              : locked
+                ? 'The design is approved and locked. Reopen it below to generate again.'
+                : 'Generates Proposal A and Proposal B together.'}
         </span>
       </div>
       {error && (

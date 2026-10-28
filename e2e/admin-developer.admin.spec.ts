@@ -28,16 +28,41 @@ test.describe.serial('admin — developers', () => {
     await expect(page.getByTestId(`dev-card-${leadId}`)).toHaveCount(0);
   });
 
+  // Until migration 20261028000022 has run, each tab says so instead of showing its panel.
   test('the client page has the three tabs', async ({ page }) => {
     await page.goto(`/admin/developer/${leadId}`);
     await expect(page.getByTestId('dev-title')).toBeVisible();
     await expect(page.getByTestId('dev-panel-design')).toBeVisible();
+    const versions = page.getByTestId('dev-versions-card');
+    await expect(versions).toBeVisible();
+    if (!(await page.getByTestId('dev-designs-migration-notice').count())) {
+      // No confirmed form yet: nothing can be uploaded.
+      await expect(page.getByTestId('dev-upload-submit')).toBeDisabled();
+    }
 
     await page.getByTestId('dev-tab-build').click();
     await expect(page.getByTestId('dev-panel-build')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Generate the prompt for Claude Code to build' })).toBeDisabled();
+    if (!(await page.getByTestId('dev-build-migration-notice').count())) {
+      await expect(page.getByTestId('dev-build-locked')).toBeVisible();
+      await expect(page.getByTestId('dev-generate-build')).toBeDisabled();
+      await expect(page.getByTestId('dev-setup')).toContainText('gh repo create');
+    }
 
     await page.getByTestId('dev-tab-handover').click();
     await expect(page.getByTestId('dev-panel-handover')).toBeVisible();
+    if (!(await page.getByTestId('dev-handover-migration-notice').count())) {
+      await expect(page.getByTestId('dev-generate-handover')).toBeDisabled();
+      // No design uploaded, so there are no draft links to take offline.
+      await expect(page.getByTestId('dev-drafts-toggle')).toHaveCount(0);
+    }
   });
+});
+
+test('an unknown draft link is a sandboxed, unindexed 404', async ({ request }) => {
+  for (const path of ['/drafts/no-such-client/v1-a', '/drafts/no-such-client/v1-a/index.html', '/drafts/no-such-client/not-a-version']) {
+    const res = await request.get(path, { maxRedirects: 0 });
+    expect(res.status(), path).toBe(404);
+    expect(res.headers()['x-robots-tag']).toContain('noindex');
+    expect(res.headers()['content-security-policy']).toMatch(/^sandbox /);
+  }
 });

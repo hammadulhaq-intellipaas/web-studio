@@ -1,5 +1,5 @@
 import type { OnbPrompt } from '../../../src/lib/onboarding/types.ts';
-import { DEV_DESIGN_PROMPT } from '../../../src/lib/developer/prompt-defaults.ts';
+import { DEV_BUILD_PROMPT, DEV_DESIGN_PROMPT, DEV_HANDOVER_PROMPT, DEV_REVISION_PROMPT } from '../../../src/lib/developer/prompt-defaults.ts';
 
 /**
  * The "training" (spec §06): four editable texts, no fine-tuning. `system` is prepended to
@@ -87,5 +87,20 @@ Rules, in order of importance:
     id: 'dev_design',
     note: 'Developers page: writes the Claude Design prompt for one design proposal from the confirmed form, a reference website spec and the team notes.',
     content: DEV_DESIGN_PROMPT,
+  },
+  {
+    id: 'dev_revision',
+    note: "Developers page: turns the client's feedback on one design version into a revision prompt for the same Claude Design project.",
+    content: DEV_REVISION_PROMPT,
+  },
+  {
+    id: 'dev_build',
+    note: 'Developers page: writes the Claude Code prompt that builds the real website from the approved design, the form and the developer instructions.',
+    content: DEV_BUILD_PROMPT,
+  },
+  {
+    id: 'dev_handover',
+    note: 'Developers page: writes the handover document the client receives with the finished website.',
+    content: DEV_HANDOVER_PROMPT,
   },
 ];

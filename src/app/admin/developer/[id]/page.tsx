@@ -1,22 +1,32 @@
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { LocalTime } from '@/components/admin/LocalTime';
 import { ONB_STATUS_COLORS, STATUS_COLORS } from '@/lib/admin/format';
 import { loadDeveloperClient, type DeveloperOnboarding } from '@/lib/developer/clients';
 import { buildPromptContext, REFERENCE_FIELD, type PromptContext } from '@/lib/developer/context';
+import { loadVersions, type DesignVersion } from '@/lib/developer/designs';
+import { slugify } from '@/lib/developer/drafts';
 import { defaultReferences } from '@/lib/developer/messages';
-import { developerSchemaReady, loadProject, loadPrompts } from '@/lib/developer/store';
+import { cmsBooked, setupCommands } from '@/lib/developer/setup';
+import { designsSchemaReady, developerSchemaReady, loadProject, loadPrompts, type DeveloperProject, type StoredPrompt } from '@/lib/developer/store';
+import type { Lead } from '@/lib/types';
 import { getOnboardingDefinition } from '@/lib/onboarding/definition';
+import { BuildPanel } from '@/components/admin/developer/BuildPanel';
 import { DesignPromptsPanel, type DesignPromptRow, type ReferenceChoice } from '@/components/admin/developer/DesignPromptsPanel';
+import { DesignVersionsPanel } from '@/components/admin/developer/DesignVersionsPanel';
+import { HandoverPanel } from '@/components/admin/developer/HandoverPanel';
+import type { GeneratedRow } from '@/components/admin/developer/PromptView';
 import { DEVELOPER_TABS, parseTab, promptsReady, type DeveloperTab } from '@/lib/developer/filters';
 
 export const dynamic = 'force-dynamic';
-// Generating both design proposals is two long model calls.
+// Generating both design proposals is two long model calls; unpacking an upload stores every file.
 export const maxDuration = 300;
 
 interface DesignData {
   formReady: boolean;
   schemaReady: boolean;
+  locked: boolean;
   notes: string;
   choices: ReferenceChoice[];
   defaults: { A: string | null; B: string | null };
@@ -34,17 +44,17 @@ function Card({ title, children, testId }: { title: string; children: React.Reac
   );
 }
 
-/** A Phase 1 action that is planned but not wired up yet: shown, never clickable. */
-function PendingAction({ label, note }: { label: string; note: string }) {
-  return (
-    <div className="flex flex-wrap items-center gap-3">
-      <button type="button" disabled className="cursor-not-allowed rounded-lg bg-slate-200 px-4 py-2 text-sm font-bold text-slate-500">
-        {label}
-      </button>
-      <span className="text-xs text-slate-500">{note}</span>
-    </div>
-  );
+/** What every tab needs once the Developers tables exist. */
+interface Workspace {
+  formReady: boolean;
+  designsReady: boolean;
+  project: DeveloperProject;
+  versions: DesignVersion[];
+  draftBase: string | null;
 }
+
+const generated = (rows: StoredPrompt[]): GeneratedRow[] =>
+  rows.map((p) => ({ id: p.id, content: p.content, model: p.model, created_by: p.created_by, created_at: p.created_at }));
 
 function OnboardingStatus({ onboarding }: { onboarding: DeveloperOnboarding | null }) {
   if (!onboarding) {
@@ -159,12 +169,17 @@ function DesignTab({
   onboarding,
   context,
   data,
+  workspace,
+  revisions,
 }: {
   leadId: string;
   onboarding: DeveloperOnboarding | null;
   context: PromptContext | null;
   data: DesignData | null;
+  workspace: Workspace | null;
+  revisions: StoredPrompt[];
 }) {
+  const project = workspace?.project;
   return (
     <div className="space-y-4" data-testid="dev-panel-design">
       <Card title="Onboarding form" testId="dev-onboarding">
@@ -183,43 +198,115 @@ function DesignTab({
           <p className="text-sm text-slate-500">Prompts are generated once the client has an onboarding form.</p>
         )}
       </Card>
-      <Card title="Design versions">
-        <p className="text-sm text-slate-600">
-          Uploaded Claude Design exports (HTML) appear here, each version with its own link, until one is approved.
-        </p>
+      <Card title="Design versions" testId="dev-versions-card">
+        {workspace && project ? (
+          <DesignVersionsPanel
+            leadId={leadId}
+            schemaReady={workspace.designsReady}
+            formReady={workspace.formReady}
+            draftBase={workspace.draftBase}
+            versions={workspace.versions.map((v) => ({
+              id: v.id,
+              proposal: v.proposal,
+              label: v.label,
+              status: v.status,
+              error: v.error,
+              file_count: v.file_count,
+              size_bytes: v.size_bytes,
+              original_name: v.original_name,
+              uploaded_by: v.uploaded_by,
+              created_at: v.created_at,
+            }))}
+            approved={project.approved_version_id ? { id: project.approved_version_id, at: project.approved_at, by: project.approved_by } : null}
+            offline={project.drafts_offline}
+            revisions={revisions.map((r) => ({ ...generated([r])[0], design_version_id: r.design_version_id }))}
+          />
+        ) : (
+          <p className="text-sm text-slate-600">
+            Uploaded Claude Design exports appear here, each version with its own link, until one is approved.
+          </p>
+        )}
       </Card>
     </div>
   );
 }
 
-function BuildTab() {
+/** Shown on Build and Handover while the Developers tables from migration 021 are missing. */
+function MigrationNotice() {
+  return (
+    <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+      This tab needs migrations <code>20261028000021</code> and <code>20261028000022</code> to be run in Supabase first.
+    </p>
+  );
+}
+
+function BuildTab({ lead, company, workspace, prompts }: { lead: Lead; company: string; workspace: Workspace | null; prompts: StoredPrompt[] }) {
+  const project = workspace?.project;
+  const approved = workspace?.versions.find((v) => v.id === project?.approved_version_id);
+  const name = project?.draft_slug ?? slugify(company);
+  const cms = cmsBooked(lead.config);
   return (
     <div className="space-y-4" data-testid="dev-panel-build">
-      <Card title="Developer instructions">
-        <textarea
-          disabled
-          rows={4}
-          placeholder="Tech stack and anything else Claude Code needs to know."
-          className="mb-4 w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
-        />
-        <PendingAction label="Generate the prompt for Claude Code to build" note="Not available yet: unlocks once a design is approved." />
+      <Card title="Build with Claude Code">
+        {workspace && project ? (
+          <BuildPanel
+            leadId={lead.id}
+            schemaReady={workspace.designsReady}
+            formReady={workspace.formReady}
+            approved={approved ? { label: approved.label, proposal: approved.proposal } : null}
+            instructions={project.dev_instructions}
+            project={name}
+            cms={cms}
+            setup={setupCommands(name, cms)}
+            prompts={generated(prompts)}
+          />
+        ) : (
+          <MigrationNotice />
+        )}
       </Card>
     </div>
   );
 }
 
-function HandoverTab() {
+function HandoverTab({ lead, company, workspace, docs }: { lead: Lead; company: string; workspace: Workspace | null; docs: StoredPrompt[] }) {
+  const project = workspace?.project;
+  const cms = cmsBooked(lead.config);
   return (
     <div className="space-y-4" data-testid="dev-panel-handover">
       <Card title="Handover document">
-        <p className="mb-4 text-sm text-slate-600">
-          Add the live website link (and the CMS link, if there is one) to generate a handover document that walks the client through the
-          website and the CMS.
-        </p>
-        <PendingAction label="Generate the handover document" note="Not available yet: unlocks once the website is live." />
+        {workspace && project ? (
+          <>
+            <p className="mb-4 text-sm text-slate-600">
+              Add the live website link{cms ? ' and the CMS link' : ''}, then generate the document that walks the client through their
+              website{cms ? ' and the CMS' : ''}.
+            </p>
+            <HandoverPanel
+              leadId={lead.id}
+              schemaReady={workspace.designsReady}
+              formReady={workspace.formReady}
+              liveUrl={project.live_url}
+              cmsUrl={project.cms_url}
+              cms={cms}
+              offline={project.drafts_offline}
+              hasDrafts={workspace.versions.length > 0}
+              fileName={`${slugify(company)}-handover.md`}
+              docs={generated(docs)}
+            />
+          </>
+        ) : (
+          <MigrationNotice />
+        )}
       </Card>
     </div>
   );
+}
+
+/** The site's own origin, for full draft links to copy and send. */
+async function siteOrigin(): Promise<string> {
+  const h = await headers();
+  const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'web-studio.intellipaas.io';
+  const proto = h.get('x-forwarded-proto') ?? (host.startsWith('localhost') ? 'http' : 'https');
+  return `${proto}://${host}`;
 }
 
 export default async function DeveloperClientPage({
@@ -236,17 +323,31 @@ export default async function DeveloperClientPage({
   const { lead, onboarding } = client;
   const tab = parseTab(rawTab);
   const name = [lead.vorname, lead.nachname].filter(Boolean).join(' ');
+  const company = lead.firma || name || 'client';
+  const formReady = Boolean(onboarding && promptsReady(onboarding.status));
+
+  let workspace: Workspace | null = null;
+  const schemaReady = await developerSchemaReady();
+  if (schemaReady) {
+    const [project, designsReady] = await Promise.all([loadProject(lead.id), designsSchemaReady()]);
+    const versions = designsReady ? await loadVersions(lead.id) : [];
+    const draftBase = project.draft_slug ? `${await siteOrigin()}/drafts/${project.draft_slug}` : null;
+    workspace = { formReady, designsReady, project, versions, draftBase };
+  }
+  const kindFor: Record<DeveloperTab, 'revision' | 'build' | 'handover'> = { design: 'revision', build: 'build', handover: 'handover' };
+  const tabPrompts = workspace ? await loadPrompts(lead.id, kindFor[tab]) : [];
+
   const context = tab === 'design' && onboarding ? await buildPromptContext(lead, onboarding.id) : null;
   let design: DesignData | null = null;
   if (context && onboarding) {
-    const [schemaReady, definition] = await Promise.all([developerSchemaReady(), getOnboardingDefinition()]);
-    const [project, prompts] = schemaReady
-      ? await Promise.all([loadProject(lead.id), loadPrompts(lead.id, 'design')])
-      : [null, []];
+    const definition = await getOnboardingDefinition();
+    const project = workspace?.project ?? null;
+    const prompts = schemaReady ? await loadPrompts(lead.id, 'design') : [];
     const picks = context.referenceSites.map((r) => r.slug);
     design = {
-      formReady: promptsReady(onboarding.status),
+      formReady,
       schemaReady,
+      locked: Boolean(project?.approved_version_id),
       notes: project?.internal_notes ?? '',
       choices: (definition.fields.find((f) => f.id === REFERENCE_FIELD)?.options ?? []).map((o) => ({
         value: o.value,
@@ -329,9 +430,11 @@ export default async function DeveloperClientPage({
         ))}
       </nav>
 
-      {tab === 'design' && <DesignTab leadId={lead.id} onboarding={onboarding} context={context} data={design} />}
-      {tab === 'build' && <BuildTab />}
-      {tab === 'handover' && <HandoverTab />}
+      {tab === 'design' && (
+        <DesignTab leadId={lead.id} onboarding={onboarding} context={context} data={design} workspace={workspace} revisions={tabPrompts} />
+      )}
+      {tab === 'build' && <BuildTab lead={lead} company={company} workspace={workspace} prompts={tabPrompts} />}
+      {tab === 'handover' && <HandoverTab lead={lead} company={company} workspace={workspace} docs={tabPrompts} />}
     </div>
   );
 }

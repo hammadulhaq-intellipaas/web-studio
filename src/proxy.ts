@@ -116,6 +116,10 @@ export async function proxy(request: NextRequest) {
   if (pathname.startsWith('/admin')) {
     return handleAdmin(request);
   }
+  // Design drafts are uploaded exports served as they are: no locale prefix, no session.
+  if (pathname === '/drafts' || pathname.startsWith('/drafts/')) {
+    return NextResponse.next();
+  }
   if (isGatedPath(pathname)) {
     return handleOnboarding(request);
   }
