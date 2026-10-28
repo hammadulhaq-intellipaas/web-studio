@@ -7,6 +7,11 @@ const nextConfig: NextConfig = {
   // The onboarding brief PDF is rendered server-side with @react-pdf/renderer, which ships
   // its own layout engine and must not be bundled by the app compiler.
   serverExternalPackages: ['@react-pdf/renderer'],
+  // The Developers pages read the reference websites' layout specs from the repo at runtime.
+  outputFileTracingIncludes: {
+    '/admin/developer/**': ['./docs/reference-specs/**/*'],
+    '/api/developer/**': ['./docs/reference-specs/**/*'],
+  },
 };
 
 export default withNextIntl(nextConfig);

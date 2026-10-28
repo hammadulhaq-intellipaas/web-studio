@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { LocalTime } from '@/components/admin/LocalTime';
 import { ONB_STATUS_COLORS, STATUS_COLORS } from '@/lib/admin/format';
 import { loadDeveloperClient, type DeveloperOnboarding } from '@/lib/developer/clients';
+import { buildPromptContext, type PromptContext } from '@/lib/developer/context';
 import { DEVELOPER_TABS, parseTab, promptsReady, type DeveloperTab } from '@/lib/developer/filters';
 
 export const dynamic = 'force-dynamic';
@@ -66,12 +67,86 @@ function OnboardingStatus({ onboarding }: { onboarding: DeveloperOnboarding | nu
   );
 }
 
-function DesignTab({ onboarding }: { onboarding: DeveloperOnboarding | null }) {
+/** The context the prompts are built from, as a readable summary for a final review. */
+function FormDataCard({ context }: { context: PromptContext }) {
+  const count = context.sections.reduce((n, s) => n + s.answers.length, 0);
+  return (
+    <Card title="Form data" testId="dev-form-data">
+      <p className="mb-3 text-sm text-slate-600">
+        {count} answers from the onboarding form{context.confirmedAt ? '' : ' (not confirmed yet, so they can still change)'}. The design
+        prompts are built from exactly this.
+      </p>
+      <div className="mb-4 grid gap-1 text-sm sm:grid-cols-[120px_1fr]">
+        <span className="font-semibold text-slate-500">Package</span>
+        <span>{context.quote.package ?? <span className="text-slate-400">Not chosen</span>}</span>
+        <span className="font-semibold text-slate-500">Add-ons</span>
+        <span>{context.quote.addons.length ? context.quote.addons.join(', ') : <span className="text-slate-400">None</span>}</span>
+      </div>
+      {count === 0 ? (
+        <p className="text-sm text-slate-500">The client has not answered anything yet.</p>
+      ) : (
+        <div className="space-y-2">
+          {context.sections.map((s) => (
+            <details key={s.screen} className="rounded-lg border border-slate-200" data-testid={`dev-section-${s.screen}`}>
+              <summary className="cursor-pointer px-4 py-2.5 text-sm font-semibold">
+                {s.title} <span className="font-normal text-slate-400">· {s.answers.length}</span>
+              </summary>
+              <dl className="space-y-3 border-t border-slate-100 px-4 py-3">
+                {s.answers.map((a) => (
+                  <div key={a.key}>
+                    <dt className="text-xs font-semibold text-slate-500">{a.question}</dt>
+                    <dd className="mt-0.5 whitespace-pre-wrap break-words text-sm text-slate-800">{a.answer}</dd>
+                  </div>
+                ))}
+              </dl>
+            </details>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function ReferencesCard({ context }: { context: PromptContext }) {
+  return (
+    <Card title="Reference websites" testId="dev-references">
+      {context.referenceSites.length === 0 ? (
+        <p className="text-sm text-slate-600">
+          The client did not pick any of our example websites. Their own references, if any, are in the form data above.
+        </p>
+      ) : (
+        <ul className="space-y-2">
+          {context.referenceSites.map((r) => (
+            <li key={r.slug} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+              <span className="font-semibold">{r.name}</span>
+              {r.url && (
+                <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:underline">
+                  {r.url.replace(/^https:\/\/(www\.)?/, '').replace(/\/$/, '')}
+                </a>
+              )}
+              {r.spec ? (
+                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-700">
+                  Layout spec ready · {r.spec.split('\n').length} lines
+                </span>
+              ) : (
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-700">No layout spec</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
+function DesignTab({ onboarding, context }: { onboarding: DeveloperOnboarding | null; context: PromptContext | null }) {
   return (
     <div className="space-y-4" data-testid="dev-panel-design">
       <Card title="Onboarding form" testId="dev-onboarding">
         <OnboardingStatus onboarding={onboarding} />
       </Card>
+      {context && <FormDataCard context={context} />}
+      {context && <ReferencesCard context={context} />}
       <Card title="Design prompts">
         <p className="mb-4 text-sm text-slate-600">
           Review the form data, then generate two Claude Design prompts (Proposal A and Proposal B) built from the client&apos;s chosen
@@ -132,6 +207,7 @@ export default async function DeveloperClientPage({
   const { lead, onboarding } = client;
   const tab = parseTab(rawTab);
   const name = [lead.vorname, lead.nachname].filter(Boolean).join(' ');
+  const context = tab === 'design' && onboarding ? await buildPromptContext(lead, onboarding.id) : null;
 
   return (
     <div>
@@ -196,7 +272,7 @@ export default async function DeveloperClientPage({
         ))}
       </nav>
 
-      {tab === 'design' && <DesignTab onboarding={onboarding} />}
+      {tab === 'design' && <DesignTab onboarding={onboarding} context={context} />}
       {tab === 'build' && <BuildTab />}
       {tab === 'handover' && <HandoverTab />}
     </div>
