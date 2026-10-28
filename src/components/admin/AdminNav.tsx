@@ -9,6 +9,7 @@ const LINKS = [
   { href: '/admin', label: 'Dashboard', exact: true },
   { href: '/admin/leads', label: 'Leads' },
   { href: '/admin/onboarding', label: 'Onboarding' },
+  { href: '/admin/developer', label: 'Developers' },
   { href: '/admin/calendar', label: 'Calendar' },
   { href: '/admin/catalog', label: 'Catalog' },
   { href: '/admin/vouchers', label: 'Vouchers' },
