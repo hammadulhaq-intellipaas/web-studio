@@ -49,6 +49,11 @@ export interface FieldOption {
   /** Numeric range an option stands for (page bands). */
   min?: number | null;
   max?: number | null;
+  /** Card options (`display: 'cards'`): a link to the site, a screenshot and a group heading. */
+  url?: string | null;
+  image?: string | null;
+  group_de?: string | null;
+  group_en?: string | null;
 }
 
 export type RepeaterSubType = 'text' | 'textarea' | 'url' | 'email' | 'tel' | 'number' | 'select';
@@ -116,6 +121,8 @@ export interface FieldConfig {
   max_checked?: number;
   /** Option values that clear every other tick when chosen ("none of these"). */
   exclusive?: string[];
+  /** `cards`: each option is a card with a screenshot and a link (the reference-site picker). */
+  display?: 'cards';
   // upload
   accept?: string[];
   max_files?: number;

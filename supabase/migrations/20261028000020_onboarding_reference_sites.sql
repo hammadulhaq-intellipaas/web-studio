@@ -1,0 +1,32 @@
+-- Reference-site picker on the "How your site should look" screen (website automation, Phase 1).
+-- A multi-select shown as cards: our reference websites, each with a screenshot, a link and a
+-- layout spec in docs/reference-specs/<value>.md. "Which websites do you like?" becomes "Are there
+-- other websites you like?", and either question satisfies the other.
+--
+-- Deploy the code first: older code would show the picker as plain option pills.
+-- Safe to run more than once; text edits made in the CMS since are left alone.
+
+insert into onb_fields (id, screen_id, sort, type, label_de, label_en, help_de, help_en, placeholder_de, placeholder_en, required, allow_dont_know, ai_check, options, config, show_when, active) values
+  ('reference_sites', 'design', 365, 'checkboxes', 'Welche dieser Websites gefallen Ihnen optisch?', 'Which of these websites do you like the look of?', 'Wählen Sie so viele, wie Sie möchten. Wir nehmen sie als Ausgangspunkt für Aufbau und Wirkung Ihrer Seite, Ihre Inhalte, Farben und Ihr Branding haben dabei Vorrang. Weitere Websites können Sie unten ergänzen.', 'Pick as many as you like. We use them as a starting point for the layout and feel of your site, while your own content, colours and branding come first. You can add other websites below.', null, null, true, false, false, '[{"value":"atha-hot-yoga","label_de":"Atha Hot Yoga","label_en":"Atha Hot Yoga","url":"https://www.athahotyoga.com/","image":"/onboarding/reference-sites/atha-hot-yoga.jpg","hint_de":"Ruhig, luftig, elegante Serifenschrift","hint_en":"Calm and airy, elegant serif headings","group_de":"Gesundheit & Yoga","group_en":"Health & Yoga"},{"value":"biograph","label_de":"Biograph","label_en":"Biograph","url":"https://www.biograph.com/","image":"/onboarding/reference-sites/biograph.jpg","hint_de":"Dunkel und hochwertig, Architekturfotos","hint_en":"Dark and premium, architectural photography","group_de":"Gesundheit & Yoga","group_en":"Health & Yoga"},{"value":"pure-sports-medicine","label_de":"Pure Sports Medicine","label_en":"Pure Sports Medicine","url":"https://puresportsmed.com/","image":"/onboarding/reference-sites/pure-sports-medicine.jpg","hint_de":"Moderne Praxis, Buchung gleich vorne","hint_en":"Modern clinic, booking right up front","group_de":"Gesundheit & Yoga","group_en":"Health & Yoga"},{"value":"lanserhof","label_de":"Lanserhof","label_en":"Lanserhof","url":"https://lanserhof.com/en","image":"/onboarding/reference-sites/lanserhof.jpg","hint_de":"Stiller Luxus, Landschaftsfotos","hint_en":"Quiet luxury, landscape photography","group_de":"Gesundheit & Yoga","group_en":"Health & Yoga"},{"value":"neko-health","label_de":"Neko Health","label_en":"Neko Health","url":"https://www.nekohealth.com/gb/en","image":"/onboarding/reference-sites/neko-health.jpg","hint_de":"Klar und zukunftsweisend, große Schrift","hint_en":"Clean and futuristic, big statement type","group_de":"Gesundheit & Yoga","group_en":"Health & Yoga"},{"value":"conductlaw","label_de":"ConductLaw","label_en":"ConductLaw","url":"https://www.conductlaw.com/","image":"/onboarding/reference-sites/conductlaw.jpg","hint_de":"Klassisch und vertrauenswürdig, Navy und Grün","hint_en":"Classic and trustworthy, navy and green","group_de":"Minimalistisch & seriös","group_en":"Minimal & Corporate"},{"value":"cote-et-ciel","label_de":"Côte&Ciel","label_en":"Côte&Ciel","url":"https://www.coteetciel.com/","image":"/onboarding/reference-sites/cote-et-ciel.jpg","hint_de":"Puristisch, Schwarz-Weiß, produktorientiert","hint_en":"Sleek black and white, product-led","group_de":"Minimalistisch & seriös","group_en":"Minimal & Corporate"},{"value":"rivian","label_de":"Rivian","label_en":"Rivian","url":"https://rivian.com/","image":"/onboarding/reference-sites/rivian.jpg","hint_de":"Starke Scroll-Animationen, große Bilder","hint_en":"Bold scroll animations, big imagery","group_de":"Verspielt & animiert","group_en":"Fun & Animated"},{"value":"graza","label_de":"Graza","label_en":"Graza","url":"https://www.graza.co/","image":"/onboarding/reference-sites/graza.jpg","hint_de":"Verspielte Illustrationen, warme Farben","hint_en":"Playful illustrations, warm colours","group_de":"Verspielt & animiert","group_en":"Fun & Animated"},{"value":"25hours-hotels","label_de":"25hours Hotels","label_en":"25hours Hotels","url":"https://25hours-hotels.com/","image":"/onboarding/reference-sites/25hours-hotels.jpg","hint_de":"Schräger Collage-Stil, kräftige Farben","hint_en":"Quirky collage style, bold colours","group_de":"Verspielt & animiert","group_en":"Fun & Animated"},{"value":"devol","label_de":"deVOL Kitchens","label_en":"deVOL Kitchens","url":"https://www.devolkitchens.co.uk/","image":"/onboarding/reference-sites/devol.jpg","hint_de":"Warm und handwerklich, klassische Serifenschrift","hint_en":"Warm and crafted, classic serif","group_de":"Warm & einladend","group_en":"Warm & Friendly"}]'::jsonb, '{"display":"cards","required_unless":"references"}'::jsonb, '[]'::jsonb, true)
+on conflict (id) do nothing;
+
+update onb_fields set
+  label_de = 'Gibt es weitere Websites, die Ihnen gefallen?',
+  label_en = 'Are there other websites you like?',
+  help_de = 'Optional, wenn Sie oben eine gewählt haben. Bitte sagen Sie uns, welcher Teil Ihnen gefällt, nicht die ganze Seite.',
+  help_en = 'Optional if you picked one above. Please tell us the part you like, not the whole site.',
+  config = config || '{"required_unless":"reference_sites"}'::jsonb
+where id = 'references';
+
+update onb_brief_sections set
+  source_fields = array_append(source_fields, 'reference_sites'),
+  instructions = replace(instructions, 'where they gave one. List each reference site', 'where they gave one. Name the example websites they picked from our list. List each reference site')
+where id = 'look' and not ('reference_sites' = any(source_fields));
+
+update onb_texts set content_markdown = replace(content_markdown, '- **A website you like:**', E'- **Websites we will use as a starting point:** {reference_sites}
+- **A website you like:**')
+where key = 'understood' and locale = 'en' and position('{reference_sites}' in content_markdown) = 0;
+
+update onb_texts set content_markdown = replace(content_markdown, '- **Eine Website, die Ihnen gefällt:**', E'- **Websites, an denen wir uns orientieren:** {reference_sites}
+- **Eine Website, die Ihnen gefällt:**')
+where key = 'understood' and locale = 'de' and position('{reference_sites}' in content_markdown) = 0;

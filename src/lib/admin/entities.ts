@@ -277,10 +277,10 @@ export const ENTITIES: Record<string, EntityDef> = {
       bool('allow_dont_know', 'Offer "I don\'t know"'),
       bool('ai_check', 'AI checks this answer for specificity'),
       bool('active', 'Active'),
-      json('options', 'Options (JSON [{value,label_de,label_en,hint_de?,hint_en?,min?,max?}]) — radio, checkboxes, select, ranking items'),
+      json('options', 'Options (JSON [{value,label_de,label_en,hint_de?,hint_en?,min?,max?}]) — radio, checkboxes, select, ranking items. Card checkboxes also take {url,image,group_de,group_en}'),
       json(
         'config',
-        'Config (JSON) — per type: text {min_chars,max_chars,min_lines,rows} · number {min,max} · date {min_date} · slider {min,max,step,captions:[{de,en}],examples:[{de,en}]} · ranking {buckets:[{value,label_de,label_en,min?,max?,default?}]} · repeater {fields:[{key,type,label_de,label_en,required?,min_chars?,options?}],min_rows,max_rows,initial_rows,add_label_de,add_label_en} · checkboxes {min_checked,max_checked,exclusive:[...]} · upload {accept,max_files,max_mb,max_total_mb} · notice {text_key,tone} · any {required_unless,link_setting,link_label_de,link_label_en}',
+        'Config (JSON) — per type: text {min_chars,max_chars,min_lines,rows} · number {min,max} · date {min_date} · slider {min,max,step,captions:[{de,en}],examples:[{de,en}]} · ranking {buckets:[{value,label_de,label_en,min?,max?,default?}]} · repeater {fields:[{key,type,label_de,label_en,required?,min_chars?,options?}],min_rows,max_rows,initial_rows,add_label_de,add_label_en} · checkboxes {min_checked,max_checked,exclusive:[...],display:"cards"} · upload {accept,max_files,max_mb,max_total_mb} · notice {text_key,tone} · any {required_unless,link_setting,link_label_de,link_label_en}',
       ),
       json(
         'show_when',

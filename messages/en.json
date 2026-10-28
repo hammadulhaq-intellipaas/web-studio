@@ -602,6 +602,7 @@
         "upload_failed": "{name}: upload failed. Please try again."
       },
       "selectPlaceholder": "Please select",
+      "viewSite": "View website",
       "otherPlaceholder": "Please describe",
       "charsLeft": "{n} characters left",
       "redacted": "We removed something that looked like a password. We exchange credentials later through a secure channel."

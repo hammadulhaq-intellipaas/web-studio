@@ -45,6 +45,31 @@ const whenNot = (key: string, ...values: string[]): RuleCondition[] => [{ key, v
 const YES_NO = [opt('yes', 'Ja', 'Yes'), opt('no', 'Nein', 'No')];
 const YES_NO_UNSURE = [...YES_NO, opt('unsure', 'Nicht sicher', 'Not sure')];
 
+/**
+ * The reference websites the client can pick from. `value` is the slug of the site's layout
+ * spec in docs/reference-specs/, and `image` its card screenshot in public/.
+ */
+const GROUP_HEALTH = { group_de: 'Gesundheit & Yoga', group_en: 'Health & Yoga' };
+const GROUP_CORPORATE = { group_de: 'Minimalistisch & seriös', group_en: 'Minimal & Corporate' };
+const GROUP_FUN = { group_de: 'Verspielt & animiert', group_en: 'Fun & Animated' };
+const GROUP_WARM = { group_de: 'Warm & einladend', group_en: 'Warm & Friendly' };
+const site = (value: string, name: string, url: string, hint_de: string, hint_en: string, group: typeof GROUP_HEALTH) =>
+  opt(value, name, name, { url, image: `/onboarding/reference-sites/${value}.jpg`, hint_de, hint_en, ...group });
+
+export const REFERENCE_SITES = [
+  site('atha-hot-yoga', 'Atha Hot Yoga', 'https://www.athahotyoga.com/', 'Ruhig, luftig, elegante Serifenschrift', 'Calm and airy, elegant serif headings', GROUP_HEALTH),
+  site('biograph', 'Biograph', 'https://www.biograph.com/', 'Dunkel und hochwertig, Architekturfotos', 'Dark and premium, architectural photography', GROUP_HEALTH),
+  site('pure-sports-medicine', 'Pure Sports Medicine', 'https://puresportsmed.com/', 'Moderne Praxis, Buchung gleich vorne', 'Modern clinic, booking right up front', GROUP_HEALTH),
+  site('lanserhof', 'Lanserhof', 'https://lanserhof.com/en', 'Stiller Luxus, Landschaftsfotos', 'Quiet luxury, landscape photography', GROUP_HEALTH),
+  site('neko-health', 'Neko Health', 'https://www.nekohealth.com/gb/en', 'Klar und zukunftsweisend, große Schrift', 'Clean and futuristic, big statement type', GROUP_HEALTH),
+  site('conductlaw', 'ConductLaw', 'https://www.conductlaw.com/', 'Klassisch und vertrauenswürdig, Navy und Grün', 'Classic and trustworthy, navy and green', GROUP_CORPORATE),
+  site('cote-et-ciel', 'Côte&Ciel', 'https://www.coteetciel.com/', 'Puristisch, Schwarz-Weiß, produktorientiert', 'Sleek black and white, product-led', GROUP_CORPORATE),
+  site('rivian', 'Rivian', 'https://rivian.com/', 'Starke Scroll-Animationen, große Bilder', 'Bold scroll animations, big imagery', GROUP_FUN),
+  site('graza', 'Graza', 'https://www.graza.co/', 'Verspielte Illustrationen, warme Farben', 'Playful illustrations, warm colours', GROUP_FUN),
+  site('25hours-hotels', '25hours Hotels', 'https://25hours-hotels.com/', 'Schräger Collage-Stil, kräftige Farben', 'Quirky collage style, bold colours', GROUP_FUN),
+  site('devol', 'deVOL Kitchens', 'https://www.devolkitchens.co.uk/', 'Warm und handwerklich, klassische Serifenschrift', 'Warm and crafted, classic serif', GROUP_WARM),
+];
+
 /** "Nothing comes to mind" / "we do not have one": silence is never left ambiguous. */
 const noneTick = (de: string, en: string) => ({ none_label_de: de, none_label_en: en });
 
@@ -503,11 +528,21 @@ const design: OnbField[] = [
     help_en: 'Optional. For example a feeling, a brand or a website you had in mind.',
     config: { rows: 2 },
   }),
-  field('references', 'design', 'repeater', 'Welche Websites gefallen Ihnen?', 'Which websites do you like?', {
+  field('reference_sites', 'design', 'checkboxes', 'Welche dieser Websites gefallen Ihnen optisch?', 'Which of these websites do you like the look of?', {
     required: true,
-    help_de: 'Eine reicht, drei sind ideal. Bitte sagen Sie uns, welcher Teil Ihnen gefällt, nicht die ganze Seite.',
-    help_en: 'One is enough, three is ideal. Please tell us the part you like, not the whole site.',
+    help_de:
+      'Wählen Sie so viele, wie Sie möchten. Wir nehmen sie als Ausgangspunkt für Aufbau und Wirkung Ihrer Seite, Ihre Inhalte, Farben und Ihr Branding haben dabei Vorrang. Weitere Websites können Sie unten ergänzen.',
+    help_en:
+      'Pick as many as you like. We use them as a starting point for the layout and feel of your site, while your own content, colours and branding come first. You can add other websites below.',
+    config: { display: 'cards', required_unless: 'references' },
+    options: REFERENCE_SITES,
+  }),
+  field('references', 'design', 'repeater', 'Gibt es weitere Websites, die Ihnen gefallen?', 'Are there other websites you like?', {
+    required: true,
+    help_de: 'Optional, wenn Sie oben eine gewählt haben. Bitte sagen Sie uns, welcher Teil Ihnen gefällt, nicht die ganze Seite.',
+    help_en: 'Optional if you picked one above. Please tell us the part you like, not the whole site.',
     config: {
+      required_unless: 'reference_sites',
       min_rows: 1,
       max_rows: 3,
       initial_rows: 1,

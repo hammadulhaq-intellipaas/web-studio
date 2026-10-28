@@ -190,6 +190,7 @@ A copy of everything you have told us is on its way to you.`,
 - **Fotos:** {photo_subjects}
 - **Ganz oben auf der Startseite:** {hero_intent}
 - **Umfang der Startseite:** {homepage_density}
+- **Websites, an denen wir uns orientieren:** {reference_sites}
 - **Eine Website, die Ihnen gefällt:** {reference_1_link}, wegen: {reference_1_likes}
 - **Bitte vermeiden:** {do_not_want}
 - **Das stellen wir nach vorne:** {proof_to_show}`,
@@ -211,6 +212,7 @@ A copy of everything you have told us is on its way to you.`,
 - **Photos:** {photo_subjects}
 - **Top of the homepage:** {hero_intent}
 - **How much the homepage says:** {homepage_density}
+- **Websites we will use as a starting point:** {reference_sites}
 - **A website you like:** {reference_1_link}, for: {reference_1_likes}
 - **Please avoid:** {do_not_want}
 - **What we will lead with:** {proof_to_show}`,

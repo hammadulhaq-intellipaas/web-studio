@@ -602,6 +602,7 @@
         "upload_failed": "{name}: Upload fehlgeschlagen. Bitte erneut versuchen."
       },
       "selectPlaceholder": "Bitte wählen",
+      "viewSite": "Website ansehen",
       "otherPlaceholder": "Bitte beschreiben",
       "charsLeft": "{n} Zeichen übrig",
       "redacted": "Wir haben etwas entfernt, das wie ein Passwort aussah. Zugangsdaten tauschen wir später über einen sicheren Weg aus."

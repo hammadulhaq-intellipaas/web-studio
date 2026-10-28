@@ -69,6 +69,7 @@ export function understoodTokens(definition: OnboardingDefinition, answers: Answ
     photo_subjects: picks('photo_subjects'),
     hero_intent: pick('hero_intent'),
     homepage_density: pick('homepage_density'),
+    reference_sites: picks('reference_sites'),
     reference_1_link: String(firstReference?.url ?? ''),
     reference_1_likes: inline(String(firstReference?.likes ?? '')),
     do_not_want: avoid,

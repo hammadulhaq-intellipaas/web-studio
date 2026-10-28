@@ -12,6 +12,7 @@ import { FieldShell } from './FieldShell';
 import { PageCounter } from './PageCounter';
 import { Notice } from './Notice';
 import { RankingInput } from './RankingInput';
+import { ReferenceCards } from './ReferenceCards';
 import { initialRows, RepeaterInput } from './RepeaterInput';
 import { SliderInput } from './SliderInput';
 import { UploadInput, type PublicFile } from './UploadInput';
@@ -104,6 +105,17 @@ export function FieldRenderer(props: FieldRendererProps) {
           <SelectInput field={field} locale={locale} invalid={invalid} inputId={inputId} value={typeof answer?.v === 'string' ? answer.v : null} onChange={set} />
         );
       case 'checkboxes':
+        if (field.config.display === 'cards') {
+          return (
+            <ReferenceCards
+              field={field}
+              locale={locale}
+              invalid={invalid}
+              value={Array.isArray(answer?.v) && typeof answer.v[0] !== 'object' ? (answer.v as string[]) : []}
+              onChange={(v) => (v.length ? set(v) : onChange(null))}
+            />
+          );
+        }
         return (
           <CheckboxPills
             field={field}

@@ -71,12 +71,13 @@ const rows: Omit<OnbBriefSection, 'sort' | 'active'>[] = [
     title_de: 'Wie sie aussehen und sich anfühlen soll',
     title_en: 'What it should look and feel like',
     instructions:
-      'Give both slider values WITH their captions, and the note the client added to each where they gave one. List each reference site with what the client liked and disliked about it, verbatim where possible. Include brand colours, brand guideline availability and the "do not want" list. Mention premises photos and screenshots only if files were provided.',
+      'Give both slider values WITH their captions, and the note the client added to each where they gave one. Name the example websites they picked from our list. List each reference site with what the client liked and disliked about it, verbatim where possible. Include brand colours, brand guideline availability and the "do not want" list. Mention premises photos and screenshots only if files were provided.',
     source_fields: [
       'tone_scale',
       'tone_note',
       'personality_scale',
       'personality_note',
+      'reference_sites',
       'references',
       'reference_screenshots',
       'avoid',
