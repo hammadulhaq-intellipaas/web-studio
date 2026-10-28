@@ -68,7 +68,7 @@ export default async function DeveloperListPage({
             : 'No quotes found.'}
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-testid="dev-cards">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" data-testid="dev-cards">
           {cards.map((c) => {
             const ready = promptsReady(c.onboardingStatus);
             return (
