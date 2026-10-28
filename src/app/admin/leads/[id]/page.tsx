@@ -10,7 +10,6 @@ import { ensureOnboardingForm } from '@/lib/onboarding/ensure-form';
 import { pickLocale } from '@/lib/types';
 import { LocalTime } from '@/components/admin/LocalTime';
 import { StatusSelect } from '@/components/admin/StatusSelect';
-import { PlanPanel } from '@/components/admin/PlanPanel';
 import { ActivityPanel } from '@/components/admin/leads/ActivityPanel';
 import { LeadToolbar } from '@/components/admin/leads/LeadToolbar';
 import { MigrationNotice } from '@/components/admin/leads/MigrationNotice';
@@ -47,7 +46,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
   // A removed lead is out of the CMS: its row lives on in the database, but nothing here
   // opens it again.
   if (!detail || detail.lead.archived_at) notFound();
-  const { ready, lead, catalog, files, appointments, plans, versions, activity, onboardingForms, adminUsers } = detail;
+  const { ready, lead, catalog, files, appointments, versions, activity, onboardingForms, adminUsers } = detail;
   const config = lead.config;
   const link = lead.session_id ? customerLink(lead.session_id, lead.locale) : null;
   const persona = catalog.personas.find((p) => p.id === lead.persona_id);
@@ -320,13 +319,6 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
           </Section>
         </div>
       </div>
-
-      <details open className="mt-8 rounded-xl border border-slate-200 bg-white" data-testid="lead-plan-details">
-        <summary className="cursor-pointer px-5 py-4 text-sm font-bold uppercase tracking-wide text-slate-500">Suggested build plan</summary>
-        <div className="border-t border-slate-100 p-5">
-          <PlanPanel leadId={lead.id} plans={plans} />
-        </div>
-      </details>
     </div>
   );
 }

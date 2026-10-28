@@ -293,14 +293,6 @@ export interface Stage2Data {
   driveLink: string;
 }
 
-export interface SuggestedPlanPhase {
-  key: string;
-  title: string;
-  tool: 'claude_design' | 'claude_code';
-  prompt_markdown: string;
-  inputs: string[];
-}
-
 /**
  * Pipeline: `draft` = created by the team, not sent yet · `new` = submitted by the customer
  * · `contacted` · `agreed` = a quote version was marked as agreed · `won` / `lost` (closed:

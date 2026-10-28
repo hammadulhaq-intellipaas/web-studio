@@ -2,7 +2,6 @@ import 'server-only';
 import { getCatalog } from '@/lib/catalog';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { OPEN_LEAD_STATUSES, type Appointment, type Catalog, type Lead, type LeadActivity, type LeadVersion } from '@/lib/types';
-import type { PlanRow } from '@/components/admin/PlanPanel';
 import { latestActivityFor, loadActivity } from './activity';
 import { quotesSchemaReady } from './schema';
 import { loadVersions } from './versions';
@@ -124,7 +123,6 @@ export interface LeadDetail {
   catalog: Catalog;
   files: { id: string; kind: string; file_name: string; size_bytes: number; mime_type: string; storage_path: string; url: string | null }[];
   appointments: Appointment[];
-  plans: PlanRow[];
   versions: LeadVersion[];
   activity: LeadActivity[];
   onboardingForms: LinkedOnboardingForm[];
@@ -152,12 +150,11 @@ export async function loadLeadDetail(id: string): Promise<LeadDetail | null> {
     ? admin.from('lead_files').select('*').or(`lead_id.eq.${id},session_id.eq.${lead.session_id}`).order('created_at')
     : admin.from('lead_files').select('*').eq('lead_id', id).order('created_at');
 
-  const [catalog, { data: filesData }, { data: apptsData }, { data: plansData }, versions, activity, { data: onbData }] =
+  const [catalog, { data: filesData }, { data: apptsData }, versions, activity, { data: onbData }] =
     await Promise.all([
       getCatalog(),
       filesQuery,
       admin.from('appointments').select('*').eq('lead_id', id).order('start_time'),
-      admin.from('suggested_plans').select('*').eq('lead_id', id).order('version', { ascending: false }),
       ready ? loadVersions(id) : Promise.resolve([] as LeadVersion[]),
       ready ? loadActivity(id) : Promise.resolve([] as LeadActivity[]),
       admin.from('onboarding_forms').select('id, status, locale, company, created_at').eq('lead_id', id).order('created_at', { ascending: false }),
@@ -189,7 +186,6 @@ export async function loadLeadDetail(id: string): Promise<LeadDetail | null> {
     catalog,
     files,
     appointments: (apptsData ?? []) as Appointment[],
-    plans: (plansData ?? []) as PlanRow[],
     versions,
     activity,
     onboardingForms: (onbData ?? []) as LinkedOnboardingForm[],

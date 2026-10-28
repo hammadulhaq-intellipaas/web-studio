@@ -2,10 +2,10 @@ import { expect, test } from '@playwright/test';
 import { createLeadViaApi } from './helpers/api';
 import { LEAD, SEEDED_VOUCHER, testEmail } from './fixtures';
 
-// Suite H — admin leads & the (real) OpenAI plan generator. Uses the stored admin
-// session. Seeds its own lead via the API so it never depends on funnel specs.
+// Suite H — admin leads. Uses the stored admin session. Seeds its own lead via the API
+// so it never depends on funnel specs.
 
-test.describe.serial('admin — leads & plan', () => {
+test.describe.serial('admin — leads', () => {
   const email = testEmail('adminlead');
   const fullName = `${LEAD.vorname} ${LEAD.nachname}`;
   let leadId: string;
@@ -17,7 +17,6 @@ test.describe.serial('admin — leads & plan', () => {
     await expect(page.getByTestId('lead-totals')).toContainText('€');
     // The voucher shows on the quote card (and again in the versions timeline).
     await expect(page.getByTestId('lead-quote').getByText(SEEDED_VOUCHER.code)).toBeVisible();
-    await expect(page.getByTestId('generate-plan')).toBeVisible();
   });
 
   test('search finds the lead and status can be changed', async ({ page }) => {
@@ -33,14 +32,5 @@ test.describe.serial('admin — leads & plan', () => {
     await expect(page.getByTestId('lead-status')).toHaveValue('contacted');
     await page.reload();
     await expect(page.getByTestId('lead-status')).toHaveValue('contacted');
-  });
-
-  test('@integration generates a real suggested plan', async ({ page }) => {
-    test.setTimeout(120_000);
-    await page.goto(`/admin/leads/${leadId}`);
-    await page.getByTestId('generate-plan').click();
-    // Real OpenAI call — content is nondeterministic, so assert structure, not text.
-    await expect(page.locator('[data-testid^="phase-"]').first()).toBeVisible({ timeout: 90_000 });
-    await expect(page.getByText(/Run in Claude (Design|Code)/).first()).toBeVisible();
   });
 });

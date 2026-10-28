@@ -120,18 +120,15 @@ run for a clean state, or click **Restart** on the Done screen.
 
 ---
 
-## Suite H — Admin: Leads & AI plan generator (OpenAI)
+## Suite H — Admin: Leads
 
 | # | Action | Expected |
 |---|--------|----------|
 | H1 | Open **Leads** | Searchable list of captured leads. |
 | H2 | Open a lead detail | Full config snapshot, questionnaire, totals, Stage-2 content, uploaded files, source URL, persona. |
 | H3 | Change the lead **status** (`lead-status`: draft, new, contacted, agreed, won, lost) | Persists; reflected in the list; logged in the activity timeline. Setting *agreed* without picking a version takes the latest one. |
-| H4 | Click **Generate plan** (`generate-plan`) | Calls OpenAI (via `OPENAI_API_KEY`, model `gpt-4o`); returns a phased **Claude Design → Claude Code** prompt chain as phase cards. |
-| H5 | **Copy prompt** on a phase | Copies markdown to clipboard ("Copied ✓"). |
-| H6 | **Edit** a phase prompt, **Save** | Persists; plan version marked "edited". |
-| H7 | Click **Regenerate (new version)** | Creates a new version; version selector switches between v1/v2… |
-| H8 | If `OPENAI_API_KEY` missing/invalid | Red error surfaced in the panel — expected failure mode. |
+
+The lead page's "Suggested build plan" generator was removed on 24 Oct 2026; prompt generation moves to the Developers page.
 
 ---
 
