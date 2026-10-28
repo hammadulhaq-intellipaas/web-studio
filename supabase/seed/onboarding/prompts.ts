@@ -1,4 +1,5 @@
 import type { OnbPrompt } from '../../../src/lib/onboarding/types.ts';
+import { DEV_DESIGN_PROMPT } from '../../../src/lib/developer/prompt-defaults.ts';
 
 /**
  * The "training" (spec §06): four editable texts, no fine-tuning. `system` is prepended to
@@ -81,5 +82,10 @@ Rules, in order of importance:
 - In German write natural, elegant German with "Sie", never a word-for-word translation of English marketing phrases.
 - Do not address the client, do not ask them a question, do not explain what you changed.
 - Return the rewritten answer only: prose, no markdown, no surrounding quotation marks.`,
+  },
+  {
+    id: 'dev_design',
+    note: 'Developers page: writes the Claude Design prompt for one design proposal from the confirmed form, a reference website spec and the team notes.',
+    content: DEV_DESIGN_PROMPT,
   },
 ];

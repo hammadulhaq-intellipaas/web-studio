@@ -262,7 +262,7 @@ export interface OnbText {
   content_markdown: string;
 }
 
-export type PromptId = 'system' | 'completeness' | 'brief' | 'rewrite' | 'assist';
+export type PromptId = 'system' | 'completeness' | 'brief' | 'rewrite' | 'assist' | 'dev_design';
 
 export interface OnbPrompt {
   id: PromptId;

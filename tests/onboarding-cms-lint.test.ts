@@ -283,8 +283,8 @@ describe('texts, prompts, examples', () => {
     }
   });
 
-  it('the five prompts exist and the system prompt carries the hard rules', () => {
-    expect(prompts.map((p) => p.id).sort()).toEqual(['assist', 'brief', 'completeness', 'rewrite', 'system']);
+  it('the six prompts exist and the system prompt carries the hard rules', () => {
+    expect(prompts.map((p) => p.id).sort()).toEqual(['assist', 'brief', 'completeness', 'dev_design', 'rewrite', 'system']);
     const system = prompts.find((p) => p.id === 'system')!.content;
     expect(system).toMatch(/never invent/i);
     expect(system).toMatch(/price/i);

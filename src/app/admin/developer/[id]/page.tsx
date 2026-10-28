@@ -3,10 +3,25 @@ import { notFound } from 'next/navigation';
 import { LocalTime } from '@/components/admin/LocalTime';
 import { ONB_STATUS_COLORS, STATUS_COLORS } from '@/lib/admin/format';
 import { loadDeveloperClient, type DeveloperOnboarding } from '@/lib/developer/clients';
-import { buildPromptContext, type PromptContext } from '@/lib/developer/context';
+import { buildPromptContext, REFERENCE_FIELD, type PromptContext } from '@/lib/developer/context';
+import { defaultReferences } from '@/lib/developer/messages';
+import { developerSchemaReady, loadProject, loadPrompts } from '@/lib/developer/store';
+import { getOnboardingDefinition } from '@/lib/onboarding/definition';
+import { DesignPromptsPanel, type DesignPromptRow, type ReferenceChoice } from '@/components/admin/developer/DesignPromptsPanel';
 import { DEVELOPER_TABS, parseTab, promptsReady, type DeveloperTab } from '@/lib/developer/filters';
 
 export const dynamic = 'force-dynamic';
+// Generating both design proposals is two long model calls.
+export const maxDuration = 300;
+
+interface DesignData {
+  formReady: boolean;
+  schemaReady: boolean;
+  notes: string;
+  choices: ReferenceChoice[];
+  defaults: { A: string | null; B: string | null };
+  prompts: DesignPromptRow[];
+}
 
 const TAB_LABELS: Record<DeveloperTab, string> = { design: 'Design', build: 'Build', handover: 'Handover' };
 
@@ -139,7 +154,17 @@ function ReferencesCard({ context }: { context: PromptContext }) {
   );
 }
 
-function DesignTab({ onboarding, context }: { onboarding: DeveloperOnboarding | null; context: PromptContext | null }) {
+function DesignTab({
+  leadId,
+  onboarding,
+  context,
+  data,
+}: {
+  leadId: string;
+  onboarding: DeveloperOnboarding | null;
+  context: PromptContext | null;
+  data: DesignData | null;
+}) {
   return (
     <div className="space-y-4" data-testid="dev-panel-design">
       <Card title="Onboarding form" testId="dev-onboarding">
@@ -149,10 +174,14 @@ function DesignTab({ onboarding, context }: { onboarding: DeveloperOnboarding | 
       {context && <ReferencesCard context={context} />}
       <Card title="Design prompts">
         <p className="mb-4 text-sm text-slate-600">
-          Review the form data, then generate two Claude Design prompts (Proposal A and Proposal B) built from the client&apos;s chosen
-          reference websites.
+          Review the form data, then generate two Claude Design prompts (Proposal A and Proposal B), each built on one reference
+          website. Copy each prompt into Claude Design.
         </p>
-        <PendingAction label="Generate the prompt for design" note="Not available yet: arrives in the next Phase 1 update." />
+        {data ? (
+          <DesignPromptsPanel leadId={leadId} {...data} />
+        ) : (
+          <p className="text-sm text-slate-500">Prompts are generated once the client has an onboarding form.</p>
+        )}
       </Card>
       <Card title="Design versions">
         <p className="text-sm text-slate-600">
@@ -208,6 +237,34 @@ export default async function DeveloperClientPage({
   const tab = parseTab(rawTab);
   const name = [lead.vorname, lead.nachname].filter(Boolean).join(' ');
   const context = tab === 'design' && onboarding ? await buildPromptContext(lead, onboarding.id) : null;
+  let design: DesignData | null = null;
+  if (context && onboarding) {
+    const [schemaReady, definition] = await Promise.all([developerSchemaReady(), getOnboardingDefinition()]);
+    const [project, prompts] = schemaReady
+      ? await Promise.all([loadProject(lead.id), loadPrompts(lead.id, 'design')])
+      : [null, []];
+    const picks = context.referenceSites.map((r) => r.slug);
+    design = {
+      formReady: promptsReady(onboarding.status),
+      schemaReady,
+      notes: project?.internal_notes ?? '',
+      choices: (definition.fields.find((f) => f.id === REFERENCE_FIELD)?.options ?? []).map((o) => ({
+        value: o.value,
+        label: o.label_en,
+        pickedByClient: picks.includes(o.value),
+      })),
+      defaults: defaultReferences(picks),
+      prompts: prompts.map((p) => ({
+        id: p.id,
+        proposal: p.proposal,
+        reference_slug: p.reference_slug,
+        content: p.content,
+        model: p.model,
+        created_by: p.created_by,
+        created_at: p.created_at,
+      })),
+    };
+  }
 
   return (
     <div>
@@ -272,7 +329,7 @@ export default async function DeveloperClientPage({
         ))}
       </nav>
 
-      {tab === 'design' && <DesignTab onboarding={onboarding} context={context} />}
+      {tab === 'design' && <DesignTab leadId={lead.id} onboarding={onboarding} context={context} data={design} />}
       {tab === 'build' && <BuildTab />}
       {tab === 'handover' && <HandoverTab />}
     </div>

@@ -366,7 +366,7 @@ export const ENTITIES: Record<string, EntityDef> = {
     label: 'AI prompts',
     group: 'Onboarding form',
     description:
-      'The four texts that steer the assistant: system (tone + hard rules), completeness, brief, rewrite. The code enforces the hard rules a second time, so an edit here can change tone but not let a price or an invented fact through.',
+      'The texts that steer the assistant: system (tone + hard rules), completeness, brief, assist, and dev_design (how the Developers page writes Claude Design prompts). The code enforces the hard rules a second time, so an edit here can change tone but not let a price or an invented fact through.',
     canCreate: false,
     canDelete: false,
     orderBy: 'id',
