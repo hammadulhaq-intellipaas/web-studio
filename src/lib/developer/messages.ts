@@ -97,7 +97,7 @@ export function buildPromptInput(
       client: context.client,
       quote: context.quote,
       cms_booked: input.cms,
-      project: { name: input.project, github_repository: input.project, vercel_project: input.project, supabase_project: input.cms ? input.project : null },
+      project: { name: input.project, github_repository: input.project, vercel_project: input.project, supabase_project: input.project },
       approved_design: { ...input.design, folder: './design' },
       design_brief: input.designBrief,
       answers: allAnswers(context),

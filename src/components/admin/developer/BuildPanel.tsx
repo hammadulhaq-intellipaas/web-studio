@@ -88,7 +88,7 @@ export function BuildPanel({ leadId, schemaReady, formReady, approved, instructi
       {approved ? (
         <p className="mb-4 text-sm text-slate-600">
           Building from <strong>{approved.label}</strong> (Proposal {approved.proposal}). Project name <code>{project}</code>, used for the
-          GitHub repository, the Vercel project{cms ? ' and the Supabase project' : ''}. {cms ? 'The client booked a CMS.' : 'No CMS was booked.'}
+          GitHub repository, the Vercel project and the Supabase project. {cms ? 'The client booked a CMS.' : 'No CMS was booked.'}
         </p>
       ) : (
         <p className="mb-4 rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-600" data-testid="dev-build-locked">
@@ -140,7 +140,7 @@ export function BuildPanel({ leadId, schemaReady, formReady, approved, instructi
 
         <Step n={3} title="Set up the project">
           <p className="mb-2 text-xs text-slate-500">
-            Run these in a terminal, one folder per client. You need the gh, vercel{cms ? ', supabase' : ''} and claude command line tools,
+            Run these in a terminal, one folder per client. You need the gh, vercel, supabase and claude command line tools,
             each signed in. The tools ask for anything secret themselves; nothing secret goes into a prompt.
           </p>
           <SetupBlock setup={setup} />

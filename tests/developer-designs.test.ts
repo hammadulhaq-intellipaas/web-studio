@@ -151,17 +151,14 @@ describe('project setup', () => {
     expect(cmsBooked(null)).toBe(false);
   });
 
-  it('writes the setup commands, with Supabase only for a CMS', () => {
-    const plain = setupCommands('mueller', false);
-    expect(plain).toContain('gh repo create mueller --private --source . --remote origin');
-    expect(plain).toContain('vercel link --yes --project mueller');
-    expect(plain).not.toContain('supabase');
-    expect(plain.trim().split('\n').pop()).toBe('claude');
-
-    const cms = setupCommands('mueller', true);
-    expect(cms).toContain('supabase projects create mueller --region eu-central-1');
-    expect(cms).toContain('fizrafarid+mueller@intellipaas.io');
-    expect(cms).not.toMatch(/password|token|key=/i);
+  it('writes the setup commands, Supabase included for every client', () => {
+    const setup = setupCommands('mueller');
+    expect(setup).toContain('gh repo create mueller --private --source . --remote origin');
+    expect(setup).toContain('vercel link --yes --project mueller');
+    expect(setup).toContain('supabase projects create mueller --region eu-central-1');
+    expect(setup).toContain('fizrafarid+mueller@intellipaas.io');
+    expect(setup.trim().split('\n').pop()).toBe('claude');
+    expect(setup).not.toMatch(/password|token|key=/i);
   });
 });
 
@@ -207,6 +204,7 @@ describe('revision, build and handover inputs', () => {
     );
     expect(input.cms_booked).toBe(true);
     expect(input.project).toEqual({ name: 'mueller', github_repository: 'mueller', vercel_project: 'mueller', supabase_project: 'mueller' });
+    expect(JSON.parse(buildPromptInput(context, { project: 'mueller', cms: false, design, designBrief: null, devInstructions: '', internalNotes: '' })).project.supabase_project).toBe('mueller');
     expect(input.approved_design).toEqual({ ...design, folder: './design' });
     expect(input.developer_instructions).toBe('Use Sanity.');
     expect(input.answers[0].items[0].answer).toBe('Wir bauen Bäder.');
@@ -228,7 +226,9 @@ describe('the revision, build and handover instructions', () => {
     expect(DEV_REVISION_PROMPT).toMatch(/Change only what the feedback asks for/);
     expect(DEV_REVISION_PROMPT).toMatch(/# Design revision/);
     expect(DEV_BUILD_PROMPT).toMatch(/1:1/);
-    expect(DEV_BUILD_PROMPT).toMatch(/only if cms_booked is true/);
+    expect(DEV_BUILD_PROMPT).toMatch(/CMS is only built if cms_booked is true/);
+    expect(DEV_BUILD_PROMPT).toMatch(/every site uses its Supabase project/);
+    expect(DEV_BUILD_PROMPT).not.toMatch(/there is no Supabase/);
     expect(DEV_BUILD_PROMPT).toMatch(/never write a key, token or password/i);
     expect(DEV_BUILD_PROMPT).toMatch(/QA-REPORT\.md/);
     expect(DEV_HANDOVER_PROMPT).toMatch(/Never write a password/);

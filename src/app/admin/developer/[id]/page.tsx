@@ -257,7 +257,7 @@ function BuildTab({ lead, company, workspace, prompts }: { lead: Lead; company: 
             instructions={project.dev_instructions}
             project={name}
             cms={cms}
-            setup={setupCommands(name, cms)}
+            setup={setupCommands(name)}
             prompts={generated(prompts)}
           />
         ) : (
