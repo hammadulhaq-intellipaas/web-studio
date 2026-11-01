@@ -54,6 +54,10 @@ export async function POST(request: NextRequest, { params }: Params) {
       const comment = text(body.body, COMMENT_MAX);
       if (!version || !comment) return json({ error: 'bad_request' }, 400);
       const pin = body.kind === 'pin';
+      // A drawn box: its width as a percentage of the page, its height in px.
+      const w = pin ? num(body.w) : null;
+      const h = pin ? num(body.h) : null;
+      const area = w != null && h != null && w > 0 && w <= 100 && h > 0 && h <= 100_000;
       await addComment({
         lead_id: leadId,
         version_id: version.id,
@@ -63,6 +67,8 @@ export async function POST(request: NextRequest, { params }: Params) {
         device: pin ? (body.device === 'phone' ? 'phone' : 'laptop') : null,
         x: pin ? num(body.x) : null,
         y: pin ? num(body.y) : null,
+        w: area ? w : null,
+        h: area ? h : null,
         near_text: pin ? text(body.near, 400) || null : null,
         body: comment,
         author_name: author,

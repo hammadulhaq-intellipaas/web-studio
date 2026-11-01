@@ -11,9 +11,14 @@ export interface DesignComment {
   page_path: string | null;
   page_title: string | null;
   device: 'laptop' | 'phone' | null;
-  /** x as a percentage of the page width, y in px from the top, at that device's width. */
+  /**
+   * x as a percentage of the page width, y in px from the top, at that device's width. With w
+   * (percentage of the width) and h (px) they are the top-left corner of a box the client drew.
+   */
   x: number | null;
   y: number | null;
+  w?: number | null;
+  h?: number | null;
   /** The heading and the text closest to the pin, so the model knows where it is. */
   near_text: string | null;
   body: string;
@@ -29,8 +34,11 @@ export interface DesignComment {
 
 export type NewComment = Pick<
   DesignComment,
-  'lead_id' | 'version_id' | 'kind' | 'page_path' | 'page_title' | 'device' | 'x' | 'y' | 'near_text' | 'body' | 'author_name' | 'carry_over'
+  'lead_id' | 'version_id' | 'kind' | 'page_path' | 'page_title' | 'device' | 'x' | 'y' | 'w' | 'h' | 'near_text' | 'body' | 'author_name' | 'carry_over'
 >;
+
+/** A column a migration adds, not there yet. */
+const missingColumn = (error: { code?: string } | null) => error?.code === 'PGRST204' || error?.code === '42703';
 
 const db = () => createSupabaseAdminClient();
 
@@ -49,7 +57,12 @@ export async function addComment(row: NewComment): Promise<DesignComment> {
   const since = new Date(Date.now() - 3600_000).toISOString();
   const { count } = await db().from('design_comments').select('id', { count: 'exact', head: true }).eq('lead_id', row.lead_id).gte('created_at', since);
   if ((count ?? 0) >= HOURLY_LIMIT) throw new Error('Too many comments in a short time. Please try again later.');
-  const { data, error } = await db().from('design_comments').insert(row).select('*').single();
+  const { w, h, ...spot } = row;
+  const insert = (values: Record<string, unknown>) => db().from('design_comments').insert(values).select('*').single();
+  const area = w != null && h != null && spot.x != null && spot.y != null;
+  let { data, error } = await insert(area ? { ...spot, w, h } : spot);
+  // Before migration 20261101000025 there is no w/h: keep the box as a spot at its centre.
+  if (area && missingColumn(error)) ({ data, error } = await insert({ ...spot, x: spot.x! + w / 2, y: spot.y! + h / 2 }));
   if (error || !data) throw new Error(`Saving the comment failed: ${error?.message ?? 'unknown'}`);
   return data as DesignComment;
 }

@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
 import { usePathname, useRouter } from '@/i18n/navigation';
 import { useFunnel, type FunnelStep } from '@/stores/funnel';
+import { LanguagePills } from '../LanguagePills';
 import { BLUE, BORDER, INK, MUTED } from './ui';
 
 const STEP_NUMS: Partial<Record<FunnelStep, number>> = {
@@ -24,52 +25,17 @@ export function LanguageToggle({ onChange }: { onChange?: (locale: 'de' | 'en') 
   const router = useRouter();
   const pathname = usePathname();
 
-  const pill = (target: 'de' | 'en') => {
-    const active = locale === target;
-    return (
-      <button
-        key={target}
-        onClick={() => {
-          onChange?.(target);
-          // Keep the query string: `?c=<id>` is the customer's link to this configuration,
-          // and dropping it would restart the funnel on the next mount.
-          const query = Object.fromEntries(new URLSearchParams(window.location.search).entries());
-          router.replace({ pathname, query }, { locale: target });
-        }}
-        aria-label={target === 'de' ? 'Deutsch' : 'English'}
-        style={{
-          fontFamily: 'inherit',
-          cursor: 'pointer',
-          border: 'none',
-          padding: '5px 10px',
-          fontSize: 11.5,
-          fontWeight: 800,
-          letterSpacing: 0.5,
-          background: active ? INK : 'transparent',
-          color: active ? '#ffffff' : MUTED,
-          transition: 'all .15s',
-        }}
-      >
-        {target.toUpperCase()}
-      </button>
-    );
-  };
-
   return (
-    <span
-      data-testid="language-toggle"
-      className="lang-toggle"
-      style={{
-        display: 'inline-flex',
-        border: `1px solid ${BORDER}`,
-        borderRadius: 999,
-        overflow: 'hidden',
-        flex: 'none',
+    <LanguagePills
+      value={locale === 'en' ? 'en' : 'de'}
+      onChange={(target) => {
+        onChange?.(target);
+        // Keep the query string: `?c=<id>` is the customer's link to this configuration,
+        // and dropping it would restart the funnel on the next mount.
+        const query = Object.fromEntries(new URLSearchParams(window.location.search).entries());
+        router.replace({ pathname, query }, { locale: target });
       }}
-    >
-      {pill('de')}
-      {pill('en')}
-    </span>
+    />
   );
 }
 

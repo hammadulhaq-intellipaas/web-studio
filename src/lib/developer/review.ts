@@ -25,6 +25,9 @@ export interface ReviewComment {
   device: 'laptop' | 'phone' | null;
   x: number | null;
   y: number | null;
+  /** Set when the client drew a box: x and y are then its top-left corner. */
+  w: number | null;
+  h: number | null;
   near: string | null;
   body: string;
   author: string;
@@ -54,6 +57,8 @@ export const toReviewComment = (c: DesignComment): ReviewComment => ({
   device: c.device,
   x: c.x,
   y: c.y,
+  w: c.w ?? null,
+  h: c.h ?? null,
   near: c.near_text,
   body: c.body,
   author: c.author_name,
