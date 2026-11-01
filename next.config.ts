@@ -13,11 +13,12 @@ const nextConfig: NextConfig = {
   // its own code, so it and playwright-core stay unbundled too.
   serverExternalPackages: ['@react-pdf/renderer', '@sparticuz/chromium', 'playwright-core'],
   // The Developers pages read the reference websites' layout specs from the repo at runtime.
-  // The screenshot route needs the packed Chromium, which nothing imports, so it is listed.
+  // The screenshot route needs the packed Chromium, which nothing imports, and all of
+  // playwright-core: it loads files such as browsers.json in ways the tracer cannot follow.
   outputFileTracingIncludes: {
     '/admin/developer/**': ['./docs/reference-specs/**/*'],
     '/api/developer/**': ['./docs/reference-specs/**/*'],
-    '/api/showcase/screenshot': ['./node_modules/@sparticuz/chromium/bin/**'],
+    '/api/showcase/screenshot': ['./node_modules/@sparticuz/chromium/bin/**', './node_modules/playwright-core/**'],
   },
   images: {
     remotePatterns: supabaseHost
