@@ -1,9 +1,9 @@
 import Image from 'next/image';
 import { BLUE, BODY, BORDER, INK, MUTED } from '@/components/funnel/tokens';
-import { inLocale, normalizeSiteUrl, publicImageUrl, siteDomain, type ShowcaseInput } from '@/lib/showcase/shared';
+import { normalizeSiteUrl, publicImageUrl, siteDomain, type ShowcaseInput } from '@/lib/showcase/shared';
 import type { Locale } from '@/lib/types';
 
-/** Quotation marks the visitor's language uses; any the editor typed are dropped first. */
+/** Quotation marks the page's language uses; any the editor typed are dropped first. */
 const MARKS: Record<Locale, [string, string]> = { de: ['„', '“'], en: ['“', '”'] };
 const stripMarks = (text: string) => text.replace(/^["'„“”‚‘’»«]+|["'„“”‚‘’»«]+$/g, '').trim();
 
@@ -16,10 +16,8 @@ export function ShowcaseCard({ item, locale }: { item: ShowcaseInput; locale: Lo
   const url = normalizeSiteUrl(item.site_url);
   const domain = url ? siteDomain(url) : '';
   const name = item.business_name || domain || item.owner_name;
-  const quote = stripMarks(inLocale(item.quote_de, item.quote_en, locale));
-  const title = inLocale(item.owner_title_de, item.owner_title_en, locale);
-  const about = inLocale(item.about_de, item.about_en, locale);
-  const role = [title, item.business_name].filter(Boolean).join(' · ');
+  const quote = stripMarks(item.quote);
+  const role = [item.owner_title.trim(), item.business_name.trim()].filter(Boolean).join(' · ');
   const [open, close] = MARKS[locale];
   const initials = item.owner_name
     .split(/\s+/)
@@ -79,7 +77,6 @@ export function ShowcaseCard({ item, locale }: { item: ShowcaseInput; locale: Lo
             {role && <span style={{ display: 'block', fontSize: 13, lineHeight: 1.4, color: BODY }}>{role}</span>}
           </span>
         </div>
-        {about && <p style={{ margin: '14px 0 0', fontSize: 13.5, lineHeight: 1.5, color: BODY }}>{about}</p>}
         {domain && (
           <span
             style={{

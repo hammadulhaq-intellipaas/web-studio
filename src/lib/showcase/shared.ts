@@ -1,13 +1,13 @@
 import { SUPABASE_URL } from '@/lib/supabase/env';
-import type { Locale } from '@/lib/types';
 
 /**
- * The showcase: websites we have built, each shown as a card with a screenshot, the owner's
- * photo, name, professional title and a line of review. Edited on /admin/showcase. Nothing
- * here is server-only, so the card and the editor use the same rules as the save action.
+ * The showcase: websites we have built, each shown as a card with a screenshot taken from
+ * the site's link, the owner's photo, name, professional title and a line of review. Edited
+ * on /admin/showcase. Nothing here is server-only, so the card and the editor use the same
+ * rules as the save action.
  */
 
-export const SHOWCASE_MIGRATION = '20261101000026_showcase.sql';
+export const SHOWCASE_MIGRATIONS = ['20261101000026_showcase.sql', '20261101000027_showcase_simpler.sql'] as const;
 /** Public bucket: the cards load the images straight from storage. */
 export const SHOWCASE_BUCKET = 'showcase';
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -16,66 +16,71 @@ export const IMAGE_TYPES: Record<string, 'jpg' | 'png' | 'webp'> = {
   'image/png': 'png',
   'image/webp': 'webp',
 };
-/** Where an uploaded image lands; a saved entry only ever points at a path like this. */
+/** Where an image lands (uploaded or a screenshot); a saved entry only ever points at a path like this. */
 export const UPLOAD_PATH = /^uploads\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|png|webp)$/;
 
 /** A sentence or two: the card is a glance, not a case study. */
 export const QUOTE_MAX = 240;
 export const LINE_MAX = 120;
-const NOTE_MAX = 500;
 
 export interface ShowcaseItem {
   id: string;
-  owner_name: string;
-  owner_title_de: string;
-  owner_title_en: string;
-  business_name: string;
-  about_de: string;
-  about_en: string;
-  quote_de: string;
-  quote_en: string;
   site_url: string;
+  /** Filled in from the site when the screenshot is taken; the team can correct it. */
+  business_name: string;
+  owner_name: string;
+  owner_title: string;
+  /** The owner's review, shown as written on the German and the English page. */
+  quote: string;
+  /** Optional: without a photo the card shows the owner's initials. */
   photo_path: string | null;
   screenshot_path: string | null;
-  /** yyyy-mm-dd: the day the owner agreed to being shown. */
+  screenshot_at: string | null;
+  /** yyyy-mm-dd: the day the team recorded the owner's agreement to being shown. */
   consent_at: string | null;
-  consent_note: string;
+  consent_by: string | null;
   published: boolean;
   sort: number;
   updated_at: string | null;
   updated_by: string | null;
 }
 
-/** The fields the editor sends; everything else is set by the server. */
-export type ShowcaseInput = Omit<ShowcaseItem, 'id' | 'updated_at' | 'updated_by'>;
+/** The fields the editor sends; the order, who agreed and the timestamps are set by the server. */
+export type ShowcaseInput = Pick<
+  ShowcaseItem,
+  'site_url' | 'business_name' | 'owner_name' | 'owner_title' | 'quote' | 'photo_path' | 'screenshot_path' | 'screenshot_at' | 'consent_at' | 'published'
+>;
 
 export const EMPTY_SHOWCASE_INPUT: ShowcaseInput = {
-  owner_name: '',
-  owner_title_de: '',
-  owner_title_en: '',
-  business_name: '',
-  about_de: '',
-  about_en: '',
-  quote_de: '',
-  quote_en: '',
   site_url: '',
+  business_name: '',
+  owner_name: '',
+  owner_title: '',
+  quote: '',
   photo_path: null,
   screenshot_path: null,
+  screenshot_at: null,
   consent_at: null,
-  consent_note: '',
   published: false,
-  sort: 0,
 };
 
-/** "praxis-x.de" → "https://praxis-x.de". Anything that is not a web address → null. */
+const IPV4 = /^\d{1,3}(\.\d{1,3}){3}$/;
+
+/**
+ * "praxis-x.de" → "https://praxis-x.de/". Anything that is not a public web address → null:
+ * the screenshot browser opens this address on our server, so no IPs and no internal names.
+ */
 export function normalizeSiteUrl(raw: string): string | null {
   const trimmed = raw.trim();
   if (!trimmed) return null;
-  const withScheme = /^[a-z][a-z0-9+.-]*:/i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed.replace(/^\/+/, '')}`;
   try {
     const url = new URL(withScheme);
     if (url.protocol !== 'https:' && url.protocol !== 'http:') return null;
-    if (!url.hostname.includes('.')) return null;
+    if (url.username || url.password) return null;
+    const host = url.hostname.toLowerCase();
+    if (!host.includes('.') || host.startsWith('[') || IPV4.test(host)) return null;
+    if (/(^|\.)(localhost|local|internal|lan|home\.arpa)$/.test(host)) return null;
     return url.toString();
   } catch {
     return null;
@@ -91,25 +96,37 @@ export function siteDomain(url: string): string {
   }
 }
 
-export function publicImageUrl(path: string): string {
-  return `${SUPABASE_URL}/storage/v1/object/public/${SHOWCASE_BUCKET}/${path}`;
+const GENERIC_TITLE = /^(home|homepage|start|startseite|willkommen|welcome)$/i;
+
+/**
+ * The business name from the site itself: its og:site_name, else the page title's first part
+ * ("Praxis X – Physiotherapie" or "Praxis X: Physiotherapie" → "Praxis X"), or the next part
+ * when the first is just "Home".
+ */
+export function siteNameFrom(title: string, ogSiteName: string): string {
+  const fromOg = ogSiteName.trim();
+  if (fromOg) return fromOg.slice(0, LINE_MAX);
+  const parts = title
+    .split(/\s+[|–—·•:-]\s+|:\s+/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  const name = parts.find((p) => !GENERIC_TITLE.test(p)) ?? parts[0] ?? '';
+  return name.slice(0, LINE_MAX);
 }
 
-/** Text in the visitor's language, or the other language when that one is empty. */
-export function inLocale(de: string, en: string, locale: Locale): string {
-  return (locale === 'en' ? en || de : de || en).trim();
+export function publicImageUrl(path: string): string {
+  return `${SUPABASE_URL}/storage/v1/object/public/${SHOWCASE_BUCKET}/${path}`;
 }
 
 /** What an entry still needs before it can be published; empty when it is ready. */
 export function missingForPublish(item: ShowcaseInput): string[] {
   const missing: string[] = [];
-  if (!normalizeSiteUrl(item.site_url)) missing.push('website address');
-  if (!item.owner_name.trim()) missing.push("owner's name");
-  if (!item.owner_title_de.trim() && !item.owner_title_en.trim()) missing.push('professional title');
-  if (!item.quote_de.trim() && !item.quote_en.trim()) missing.push('review');
-  if (!item.photo_path) missing.push("owner's photo");
+  if (!normalizeSiteUrl(item.site_url)) missing.push('website link');
   if (!item.screenshot_path) missing.push('screenshot');
-  if (!item.consent_at) missing.push('consent date');
+  if (!item.owner_name.trim()) missing.push("owner's name");
+  if (!item.owner_title.trim()) missing.push('professional title');
+  if (!item.quote.trim()) missing.push('review');
+  if (!item.consent_at) missing.push("the owner's agreement");
   return missing;
 }
 
@@ -123,27 +140,23 @@ const imagePath = (value: unknown) => (typeof value === 'string' && UPLOAD_PATH.
 export function parseShowcaseInput(raw: Record<string, unknown>): { ok: true; value: ShowcaseInput } | { ok: false; error: string } {
   const siteRaw = clip(raw.site_url, 300);
   const site = siteRaw ? normalizeSiteUrl(siteRaw) : '';
-  if (site === null) return { ok: false, error: 'The website address does not look right. Example: praxis-x.de' };
+  if (site === null) return { ok: false, error: 'The website link does not look right. Example: praxis-x.de' };
   const consent = clip(raw.consent_at, 10);
-  if (consent && !/^\d{4}-\d{2}-\d{2}$/.test(consent)) return { ok: false, error: 'The consent date is not a date.' };
-  const sort = Number(raw.sort);
+  if (consent && !/^\d{4}-\d{2}-\d{2}$/.test(consent)) return { ok: false, error: 'The agreement date is not a date.' };
+  const takenAt = clip(raw.screenshot_at, 40);
+  const screenshot = imagePath(raw.screenshot_path);
 
   const value: ShowcaseInput = {
-    owner_name: clip(raw.owner_name, LINE_MAX),
-    owner_title_de: clip(raw.owner_title_de, LINE_MAX),
-    owner_title_en: clip(raw.owner_title_en, LINE_MAX),
-    business_name: clip(raw.business_name, LINE_MAX),
-    about_de: clip(raw.about_de, LINE_MAX),
-    about_en: clip(raw.about_en, LINE_MAX),
-    quote_de: clip(raw.quote_de, QUOTE_MAX),
-    quote_en: clip(raw.quote_en, QUOTE_MAX),
     site_url: site,
+    business_name: clip(raw.business_name, LINE_MAX),
+    owner_name: clip(raw.owner_name, LINE_MAX),
+    owner_title: clip(raw.owner_title, LINE_MAX),
+    quote: clip(raw.quote, QUOTE_MAX),
     photo_path: imagePath(raw.photo_path),
-    screenshot_path: imagePath(raw.screenshot_path),
+    screenshot_path: screenshot,
+    screenshot_at: screenshot && takenAt && !Number.isNaN(Date.parse(takenAt)) ? new Date(takenAt).toISOString() : null,
     consent_at: consent || null,
-    consent_note: clip(raw.consent_note, NOTE_MAX),
     published: raw.published === true,
-    sort: Number.isFinite(sort) ? Math.max(-9999, Math.min(9999, Math.round(sort))) : 0,
   };
   if (value.published) {
     const missing = missingForPublish(value);

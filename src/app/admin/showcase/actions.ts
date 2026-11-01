@@ -3,7 +3,14 @@
 import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { parseShowcaseInput } from '@/lib/showcase/shared';
-import { createImageUpload, deleteShowcaseItem, discardUploads, saveShowcaseItem, type ImageUploadTicket } from '@/lib/showcase/store';
+import {
+  createImageUpload,
+  deleteShowcaseItem,
+  discardUploads,
+  moveShowcaseItem,
+  saveShowcaseItem,
+  type ImageUploadTicket,
+} from '@/lib/showcase/store';
 
 type Result = { ok: boolean; error?: string };
 
@@ -41,6 +48,19 @@ export async function deleteShowcase(id: string): Promise<Result> {
   if (!UUID.test(id)) return { ok: false, error: 'Unknown entry.' };
   try {
     await deleteShowcaseItem(id);
+    revalidatePath('/admin/showcase');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: message(err) };
+  }
+}
+
+/** Moves an entry one place up or down in the list (and on the homepage). */
+export async function moveShowcase(id: string, step: -1 | 1): Promise<Result> {
+  await requireAdmin();
+  if (!UUID.test(id) || (step !== -1 && step !== 1)) return { ok: false, error: 'Unknown entry.' };
+  try {
+    await moveShowcaseItem(id, step);
     revalidatePath('/admin/showcase');
     return { ok: true };
   } catch (err) {

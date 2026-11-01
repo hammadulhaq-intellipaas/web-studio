@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { useRef, useState, useTransition } from 'react';
-import { deleteShowcase, discardShowcaseUploads, saveShowcase, startShowcaseUpload } from '@/app/admin/showcase/actions';
+import { deleteShowcase, discardShowcaseUploads, moveShowcase, saveShowcase, startShowcaseUpload } from '@/app/admin/showcase/actions';
 import { ShowcaseCard } from '@/components/showcase/ShowcaseCard';
 import {
   EMPTY_SHOWCASE_INPUT,
@@ -18,17 +18,60 @@ import {
   type ShowcaseItem,
 } from '@/lib/showcase/shared';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
-import type { Locale } from '@/lib/types';
 
 const input = 'w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm focus:border-blue-500 focus:outline-none';
 const labelCls = 'mb-1 block text-xs font-bold text-slate-500';
 const sectionCls = 'mb-3 text-sm font-bold uppercase tracking-wide text-slate-500';
+const linkButton = 'font-semibold text-blue-700 hover:underline disabled:opacity-60';
 
 /** The editable fields of an entry; a new entry starts empty. */
 const toInput = (item: ShowcaseItem | null): ShowcaseInput =>
   item
     ? (Object.fromEntries(Object.keys(EMPTY_SHOWCASE_INPUT).map((k) => [k, item[k as keyof ShowcaseInput]])) as ShowcaseInput)
     : { ...EMPTY_SHOWCASE_INPUT };
+
+const message = (err: unknown) => (err instanceof Error ? err.message : String(err));
+
+/** Today as yyyy-mm-dd in the team member's own time zone. */
+function today(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+const formatDate = (value: string, withTime = false) =>
+  new Date(value).toLocaleString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    ...(withTime ? { hour: '2-digit', minute: '2-digit' } : {}),
+  });
+
+/** Uploads one image straight to storage through a signed URL and returns its path. */
+async function uploadImage(file: File): Promise<string> {
+  if (!IMAGE_TYPES[file.type]) throw new Error('Please use a JPG, PNG or WebP image.');
+  if (file.size > MAX_IMAGE_BYTES) throw new Error('The image is larger than 5 MB.');
+  const started = await startShowcaseUpload(file.type, file.size);
+  if (!started.ok || !started.ticket) throw new Error(started.error ?? 'Preparing the upload failed');
+  const { ticket } = started;
+  const { error } = await createSupabaseBrowserClient()
+    .storage.from(ticket.bucket)
+    .uploadToSignedUrl(ticket.path, ticket.token, file, { contentType: file.type });
+  if (error) throw new Error(`Uploading failed: ${error.message}`);
+  return ticket.path;
+}
+
+/** Has the server open the link and take the screenshot. */
+async function takeScreenshot(url: string): Promise<{ path: string; siteName: string; takenAt: string }> {
+  const res = await fetch('/api/showcase/screenshot', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  });
+  const data = (await res.json().catch(() => ({}))) as { path?: string; siteName?: string; takenAt?: string; error?: string };
+  if (!res.ok || !data.path) throw new Error(data.error ?? 'The screenshot failed.');
+  return { path: data.path, siteName: data.siteName ?? '', takenAt: data.takenAt ?? new Date().toISOString() };
+}
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -40,42 +83,20 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
   );
 }
 
-/** One image (the owner's photo or the screenshot): uploaded straight to storage, then shown. */
-function ImageField({
-  label,
-  hint,
-  path,
-  round,
-  testId,
-  onChange,
-}: {
-  label: string;
-  hint: string;
-  path: string | null;
-  round?: boolean;
-  testId: string;
-  onChange: (path: string | null, uploaded?: string) => void;
-}) {
+/** The owner's photo: optional, uploaded straight to storage. */
+function PhotoField({ path, onChange }: { path: string | null; onChange: (path: string | null, uploaded?: string) => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const picker = useRef<HTMLInputElement>(null);
 
   const upload = async (file: File) => {
     setError(null);
-    if (!IMAGE_TYPES[file.type]) return setError('Please use a JPG, PNG or WebP image.');
-    if (file.size > MAX_IMAGE_BYTES) return setError('The image is larger than 5 MB.');
     setBusy(true);
     try {
-      const started = await startShowcaseUpload(file.type, file.size);
-      if (!started.ok || !started.ticket) throw new Error(started.error ?? 'Preparing the upload failed');
-      const { ticket } = started;
-      const { error: uploadError } = await createSupabaseBrowserClient()
-        .storage.from(ticket.bucket)
-        .uploadToSignedUrl(ticket.path, ticket.token, file, { contentType: file.type });
-      if (uploadError) throw new Error(`Uploading failed: ${uploadError.message}`);
-      onChange(ticket.path, ticket.path);
+      const uploaded = await uploadImage(file);
+      onChange(uploaded, uploaded);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(message(err));
     } finally {
       setBusy(false);
       if (picker.current) picker.current.value = '';
@@ -83,41 +104,37 @@ function ImageField({
   };
 
   return (
-    <div data-testid={testId}>
-      <span className={labelCls}>{label}</span>
-      <div className="flex items-center gap-4">
-        <div
-          className={`relative flex-none overflow-hidden border border-slate-200 bg-slate-100 ${round ? 'h-16 w-16 rounded-full' : 'h-16 w-[102px] rounded-lg'}`}
+    <div data-testid="showcase-photo">
+      <span className={labelCls}>Photo (optional)</span>
+      <div className="flex items-center gap-3">
+        <div className="relative h-14 w-14 flex-none overflow-hidden rounded-full border border-slate-200 bg-slate-100">
+          {path && <Image src={publicImageUrl(path)} alt="" fill sizes="56px" className="object-cover" />}
+        </div>
+        <button
+          type="button"
+          onClick={() => picker.current?.click()}
+          disabled={busy}
+          className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold hover:border-blue-500 disabled:opacity-60"
         >
-          {path && <Image src={publicImageUrl(path)} alt="" fill sizes="102px" className="object-cover object-top" />}
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => picker.current?.click()}
-            disabled={busy}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold hover:border-blue-500 disabled:opacity-60"
-          >
-            {busy ? 'Uploading…' : path ? 'Replace' : 'Upload'}
+          {busy ? 'Uploading…' : path ? 'Replace' : 'Upload'}
+        </button>
+        {path && !busy && (
+          <button type="button" onClick={() => onChange(null)} className="text-sm font-semibold text-slate-500 hover:text-red-600">
+            Remove
           </button>
-          {path && !busy && (
-            <button type="button" onClick={() => onChange(null)} className="text-sm font-semibold text-slate-500 hover:text-red-600">
-              Remove
-            </button>
-          )}
-          <input
-            ref={picker}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) void upload(file);
-            }}
-          />
-        </div>
+        )}
+        <input
+          ref={picker}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) void upload(file);
+          }}
+        />
       </div>
-      <span className="mt-1 block text-xs text-slate-500">{hint}</span>
+      <span className="mt-1 block text-xs text-slate-500">A real photo of the owner, square. Without one the card shows their initials.</span>
       {error && <span className="mt-1 block text-xs font-semibold text-red-600">{error}</span>}
     </div>
   );
@@ -126,21 +143,59 @@ function ImageField({
 function ShowcaseForm({ item, onClose, onCreated }: { item: ShowcaseItem | null; onClose: () => void; onCreated: (id: string) => void }) {
   const [values, setValues] = useState<ShowcaseInput>(() => toInput(item));
   const [saved, setSaved] = useState<ShowcaseInput>(() => toInput(item));
-  const [previewLocale, setPreviewLocale] = useState<Locale>('de');
   const [pending, startTransition] = useTransition();
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  // Every image uploaded while this form is open, so the ones never saved can be removed.
+  // Every image added while this form is open, so the ones never saved can be removed.
   const [uploaded, setUploaded] = useState<string[]>([]);
+  // The link the current screenshot was taken from; leaving the link field with a different one retakes it.
+  const [shotUrl, setShotUrl] = useState<string | null>(() => (item?.screenshot_path ? normalizeSiteUrl(item.site_url) : null));
+  const [shot, setShot] = useState<{ busy: boolean; error: string | null }>({ busy: false, error: null });
+  const fallbackPicker = useRef<HTMLInputElement>(null);
 
   const set = <K extends keyof ShowcaseInput>(key: K, value: ShowcaseInput[K]) => setValues((prev) => ({ ...prev, [key]: value }));
+  const url = normalizeSiteUrl(values.site_url);
   const missing = missingForPublish(values);
   const dirty = JSON.stringify(values) !== JSON.stringify(saved);
 
-  const setImage = (key: 'photo_path' | 'screenshot_path', path: string | null, fresh?: string) => {
+  const capture = async () => {
+    if (!url || shot.busy) return;
+    setShot({ busy: true, error: null });
+    try {
+      const result = await takeScreenshot(url);
+      setUploaded((prev) => [...prev, result.path]);
+      setValues((prev) => ({
+        ...prev,
+        screenshot_path: result.path,
+        screenshot_at: result.takenAt,
+        business_name: prev.business_name || result.siteName,
+      }));
+      setShotUrl(url);
+      setShot({ busy: false, error: null });
+    } catch (err) {
+      // A new link whose screenshot failed must not keep the old site's picture.
+      if (url !== shotUrl) setValues((prev) => ({ ...prev, screenshot_path: null, screenshot_at: null, published: false }));
+      setShot({ busy: false, error: message(err) });
+    }
+  };
+
+  const uploadInstead = async (file: File) => {
+    setShot({ busy: true, error: null });
+    try {
+      const path = await uploadImage(file);
+      setUploaded((prev) => [...prev, path]);
+      setValues((prev) => ({ ...prev, screenshot_path: path, screenshot_at: new Date().toISOString() }));
+      setShotUrl(url);
+      setShot({ busy: false, error: null });
+    } catch (err) {
+      setShot({ busy: false, error: message(err) });
+    } finally {
+      if (fallbackPicker.current) fallbackPicker.current.value = '';
+    }
+  };
+
+  const setPhoto = (path: string | null, fresh?: string) => {
     if (fresh) setUploaded((prev) => [...prev, fresh]);
-    set(key, path);
-    // An entry cannot stay published without its images.
-    if (!path) set('published', false);
+    set('photo_path', path);
   };
 
   const save = () =>
@@ -174,153 +229,174 @@ function ShowcaseForm({ item, onClose, onCreated }: { item: ShowcaseItem | null;
       onClose();
     });
 
-  const pair = (label: string, de: keyof ShowcaseInput, en: keyof ShowcaseInput, opts: { max: number; long?: boolean; placeholder?: [string, string] }) => (
-    <div className="grid gap-3 sm:grid-cols-2">
-      {(['de', 'en'] as const).map((lang) => {
-        const key = lang === 'de' ? de : en;
-        const value = String(values[key] ?? '');
-        const props = {
-          value,
-          maxLength: opts.max,
-          placeholder: opts.placeholder?.[lang === 'de' ? 0 : 1],
-          onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => set(key, e.target.value as never),
-          className: input,
-          'data-testid': `showcase-${String(key)}`,
-        };
-        return (
-          <Field key={lang} label={`${label} (${lang.toUpperCase()})`}>
-            {opts.long ? <textarea rows={3} {...props} /> : <input {...props} />}
-            {opts.long && (
-              <span className="mt-0.5 block text-right text-xs text-slate-400">
-                {value.length}/{opts.max}
-              </span>
-            )}
-          </Field>
-        );
-      })}
-    </div>
-  );
-
   return (
     <div className="grid gap-6 border-t border-slate-100 bg-slate-50/50 px-5 py-5 lg:grid-cols-[minmax(0,1fr)_380px]" data-testid="showcase-form">
       <div className="space-y-6">
         <section>
           <h3 className={sectionCls}>Website</h3>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Website address" hint={values.site_url && !normalizeSiteUrl(values.site_url) ? 'This does not look like a web address.' : undefined}>
-              <input value={values.site_url} onChange={(e) => set('site_url', e.target.value)} placeholder="praxis-x.de" className={input} data-testid="showcase-site_url" />
-            </Field>
-            <Field label="Business name">
-              <input value={values.business_name} maxLength={LINE_MAX} onChange={(e) => set('business_name', e.target.value)} placeholder="Praxis X" className={input} data-testid="showcase-business_name" />
-            </Field>
+          <Field label="Website link">
+            <input
+              value={values.site_url}
+              onChange={(e) => set('site_url', e.target.value)}
+              onBlur={() => {
+                if (url && url !== shotUrl) void capture();
+              }}
+              disabled={shot.busy}
+              placeholder="praxis-x.de"
+              className={input}
+              data-testid="showcase-site_url"
+            />
+          </Field>
+          <div className="mt-2 text-xs text-slate-600" data-testid="showcase-shot-status">
+            {shot.busy ? (
+              <span className="font-semibold text-slate-700">
+                Taking a screenshot of {url ? siteDomain(url) : 'the website'}… The first one can take up to half a minute.
+              </span>
+            ) : shot.error ? (
+              <span>
+                <span className="font-semibold text-red-600">{shot.error}</span>{' '}
+                <button type="button" onClick={() => void capture()} disabled={!url} className={linkButton}>
+                  Try again
+                </button>{' '}
+                or{' '}
+                <button type="button" onClick={() => fallbackPicker.current?.click()} className={linkButton} data-testid="showcase-shot-upload">
+                  upload a picture instead
+                </button>
+                .
+              </span>
+            ) : values.screenshot_path ? (
+              <span>
+                Screenshot {values.screenshot_at ? `taken ${formatDate(values.screenshot_at, true)}` : 'added'}.{' '}
+                <button type="button" onClick={() => void capture()} disabled={!url} className={linkButton} data-testid="showcase-shot-retake">
+                  Retake screenshot
+                </button>
+              </span>
+            ) : url ? (
+              <button type="button" onClick={() => void capture()} className={linkButton} data-testid="showcase-shot-take">
+                Take the screenshot
+              </button>
+            ) : (
+              'Paste the link: the screenshot is taken when you leave the field.'
+            )}
+            <input
+              ref={fallbackPicker}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void uploadInstead(file);
+              }}
+            />
           </div>
           <div className="mt-3">
-            {pair('What the website is about', 'about_de', 'about_en', {
-              max: LINE_MAX,
-              placeholder: ['Termine und Leistungen einer Physiotherapie-Praxis', 'Bookings and treatments for a physiotherapy practice'],
-            })}
+            <Field label="Business name" hint="Filled in from the website; correct it if needed.">
+              <input
+                value={values.business_name}
+                maxLength={LINE_MAX}
+                onChange={(e) => set('business_name', e.target.value)}
+                className={input}
+                data-testid="showcase-business_name"
+              />
+            </Field>
           </div>
         </section>
 
         <section>
           <h3 className={sectionCls}>Owner</h3>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Full name" hint="First and last name, as they want to be shown.">
-              <input value={values.owner_name} maxLength={LINE_MAX} onChange={(e) => set('owner_name', e.target.value)} className={input} data-testid="showcase-owner_name" />
-            </Field>
-            <ImageField
-              label="Photo"
-              hint="A real photo of the owner, square, at least 200 × 200 px. JPG, PNG or WebP, up to 5 MB."
-              path={values.photo_path}
-              round
-              testId="showcase-photo"
-              onChange={(path, fresh) => setImage('photo_path', path, fresh)}
-            />
+            <div className="space-y-3">
+              <Field label="Full name">
+                <input
+                  value={values.owner_name}
+                  maxLength={LINE_MAX}
+                  onChange={(e) => set('owner_name', e.target.value)}
+                  className={input}
+                  data-testid="showcase-owner_name"
+                />
+              </Field>
+              <Field label="Professional title">
+                <input
+                  value={values.owner_title}
+                  maxLength={LINE_MAX}
+                  onChange={(e) => set('owner_title', e.target.value)}
+                  placeholder="Physiotherapeutin"
+                  className={input}
+                  data-testid="showcase-owner_title"
+                />
+              </Field>
+            </div>
+            <PhotoField path={values.photo_path} onChange={setPhoto} />
           </div>
-          <div className="mt-3">{pair('Professional title', 'owner_title_de', 'owner_title_en', { max: LINE_MAX, placeholder: ['Physiotherapeutin', 'Physiotherapist'] })}</div>
         </section>
 
         <section>
           <h3 className={sectionCls}>Review</h3>
-          {pair('Review', 'quote_de', 'quote_en', { max: QUOTE_MAX, long: true })}
-          <p className="mt-1 text-xs text-slate-500">
-            The owner&apos;s own words, a sentence or two, without quotation marks. One language is enough: when the other is empty, the card shows
-            this one.
-          </p>
-        </section>
-
-        <section>
-          <h3 className={sectionCls}>Screenshot</h3>
-          <ImageField
-            label="Homepage screenshot"
-            hint="The top of the homepage at 1440 × 900 (16:10). JPG, PNG or WebP, up to 5 MB."
-            path={values.screenshot_path}
-            testId="showcase-screenshot"
-            onChange={(path, fresh) => setImage('screenshot_path', path, fresh)}
+          <textarea
+            rows={3}
+            value={values.quote}
+            maxLength={QUOTE_MAX}
+            onChange={(e) => set('quote', e.target.value)}
+            className={input}
+            data-testid="showcase-quote"
           />
-        </section>
-
-        <section>
-          <h3 className={sectionCls}>Consent</h3>
-          <div className="grid gap-3 sm:grid-cols-[180px_minmax(0,1fr)]">
-            <Field label="Date they agreed">
-              <input
-                type="date"
-                value={values.consent_at ?? ''}
-                onChange={(e) => {
-                  set('consent_at', e.target.value || null);
-                  if (!e.target.value) set('published', false);
-                }}
-                className={input}
-                data-testid="showcase-consent_at"
-              />
-            </Field>
-            <Field label="How">
-              <input
-                value={values.consent_note}
-                maxLength={500}
-                onChange={(e) => set('consent_note', e.target.value)}
-                placeholder="WhatsApp to Thorsten: yes to name, photo, review and screenshot"
-                className={input}
-                data-testid="showcase-consent_note"
-              />
-            </Field>
-          </div>
-          <p className="mt-1 text-xs text-slate-500">
-            Needed before publishing: the owner&apos;s written yes to showing their name, photo and words (GDPR, and § 22 KUG for the photo). Keep
-            the message, and take the entry down if they ask.
+          <p className="mt-1 flex gap-3 text-xs text-slate-500">
+            <span>The owner&apos;s own words, a sentence or two, without quotation marks. Shown as written on the German and the English page.</span>
+            <span className="ml-auto flex-none text-slate-400">
+              {values.quote.length}/{QUOTE_MAX}
+            </span>
           </p>
         </section>
 
-        <section>
-          <h3 className={sectionCls}>Publishing</h3>
-          <div className="flex flex-wrap items-start gap-6">
-            <label className="flex items-center gap-2 text-sm font-semibold">
-              <input
-                type="checkbox"
-                checked={values.published}
-                disabled={!values.published && missing.length > 0}
-                onChange={(e) => set('published', e.target.checked)}
-                data-testid="showcase-published"
-              />
-              Published
-            </label>
-            <Field label="Order">
-              <input type="number" value={values.sort} onChange={(e) => set('sort', Number(e.target.value))} className={input.replace('w-full', 'w-24')} data-testid="showcase-sort" />
-            </Field>
-          </div>
-          <p className="mt-1 text-xs text-slate-500">
-            {missing.length > 0 && !values.published
-              ? `To publish, add: ${missing.join(', ')}. `
-              : ''}
-            Lower numbers come first. The homepage does not show the showcase yet; published entries appear there once it does.
-          </p>
+        <section className="space-y-3">
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="mt-0.5"
+              checked={!!values.consent_at}
+              onChange={(e) => {
+                set('consent_at', e.target.checked ? today() : null);
+                if (!e.target.checked) set('published', false);
+              }}
+              data-testid="showcase-consent"
+            />
+            <span>
+              <span className="font-semibold">The owner agreed to be shown here</span>
+              <span className="block text-xs text-slate-500">
+                With their name, photo, review and website. Get their yes in writing (WhatsApp or email is fine) and keep it; if they ask,
+                unpublish or delete the entry.
+              </span>
+              {values.consent_at && (
+                <span className="block text-xs font-semibold text-emerald-700">
+                  Recorded {formatDate(values.consent_at)}
+                  {saved.consent_at === values.consent_at && item?.consent_by ? ` by ${item.consent_by}` : ''}
+                </span>
+              )}
+            </span>
+          </label>
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="mt-0.5"
+              checked={values.published}
+              disabled={!values.published && missing.length > 0}
+              onChange={(e) => set('published', e.target.checked)}
+              data-testid="showcase-published"
+            />
+            <span>
+              <span className="font-semibold">Published</span>
+              <span className="block text-xs text-slate-500">
+                {missing.length > 0 && !values.published ? `To publish, add: ${missing.join(', ')}. ` : ''}
+                The homepage does not show the showcase yet; published entries appear there once it does.
+              </span>
+            </span>
+          </label>
         </section>
 
         <div className="flex flex-wrap items-center gap-3 border-t border-slate-200 pt-4">
           <button
             onClick={save}
-            disabled={pending}
+            disabled={pending || shot.busy}
             data-testid="showcase-save"
             className="rounded-lg bg-slate-900 px-4 py-1.5 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-60"
           >
@@ -340,22 +416,8 @@ function ShowcaseForm({ item, onClose, onCreated }: { item: ShowcaseItem | null;
 
       <div>
         <div className="sticky top-20">
-          <div className="mb-2 flex items-center gap-2">
-            <span className={labelCls + ' mb-0'}>Preview</span>
-            <span className="ml-auto inline-flex overflow-hidden rounded-full border border-slate-300">
-              {(['de', 'en'] as const).map((l) => (
-                <button
-                  key={l}
-                  type="button"
-                  onClick={() => setPreviewLocale(l)}
-                  className={`px-2.5 py-0.5 text-xs font-bold ${previewLocale === l ? 'bg-slate-900 text-white' : 'text-slate-500'}`}
-                >
-                  {l.toUpperCase()}
-                </button>
-              ))}
-            </span>
-          </div>
-          <ShowcaseCard item={values} locale={previewLocale} />
+          <span className={labelCls}>Preview, as on the homepage</span>
+          <ShowcaseCard item={values} locale="de" />
         </div>
       </div>
     </div>
@@ -374,10 +436,21 @@ function Status({ item }: { item: ShowcaseItem }) {
 
 export function ShowcaseEditor({ items }: { items: ShowcaseItem[] }) {
   const [open, setOpen] = useState<string | null>(null);
+  const [moving, startMove] = useTransition();
+  const [moveError, setMoveError] = useState<string | null>(null);
+
+  const move = (id: string, step: -1 | 1) =>
+    startMove(async () => {
+      setMoveError(null);
+      const result = await moveShowcase(id, step);
+      if (!result.ok) setMoveError(result.error ?? 'Moving failed');
+    });
+
+  const arrow = 'rounded px-1.5 py-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30 disabled:hover:bg-transparent';
 
   return (
     <div>
-      <div className="mb-4 flex items-center">
+      <div className="mb-4 flex items-center gap-4">
         <button
           onClick={() => setOpen('new')}
           disabled={open === 'new'}
@@ -386,6 +459,7 @@ export function ShowcaseEditor({ items }: { items: ShowcaseItem[] }) {
         >
           Add a website
         </button>
+        {moveError && <span className="text-sm font-semibold text-red-600">{moveError}</span>}
       </div>
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
         {open === 'new' && (
@@ -395,28 +469,41 @@ export function ShowcaseEditor({ items }: { items: ShowcaseItem[] }) {
           </div>
         )}
         {items.length === 0 && open !== 'new' ? (
-          <div className="p-6 text-sm text-slate-500">No websites yet. Add the first one with its owner&apos;s photo, review and a screenshot.</div>
+          <div className="p-6 text-sm text-slate-500">No websites yet. Add the first one: paste its link and the screenshot is taken for you.</div>
         ) : (
-          items.map((item) => (
+          items.map((item, index) => (
             <div key={item.id} className="border-b border-slate-100 last:border-0">
-              <button
-                onClick={() => setOpen(open === item.id ? null : item.id)}
-                className="flex w-full items-center gap-4 px-5 py-3 text-left text-sm hover:bg-slate-50"
-                data-testid={`showcase-row-${item.id}`}
-              >
-                <span className="relative h-10 w-16 flex-none overflow-hidden rounded border border-slate-200 bg-slate-100">
-                  {item.screenshot_path && <Image src={publicImageUrl(item.screenshot_path)} alt="" fill sizes="64px" className="object-cover object-top" />}
-                </span>
-                <span className="min-w-0">
-                  <span className="block font-bold">{item.owner_name || 'Unnamed'}</span>
-                  <span className="block truncate text-xs text-slate-500">
-                    {[item.business_name, item.site_url ? siteDomain(item.site_url) : ''].filter(Boolean).join(' · ') || 'No website yet'}
+              <div className="flex items-center gap-2 pr-3 hover:bg-slate-50">
+                <button
+                  onClick={() => setOpen(open === item.id ? null : item.id)}
+                  className="flex min-w-0 flex-1 items-center gap-4 py-3 pl-5 text-left text-sm"
+                  data-testid={`showcase-row-${item.id}`}
+                >
+                  <span className="relative h-10 w-16 flex-none overflow-hidden rounded border border-slate-200 bg-slate-100">
+                    {item.screenshot_path && <Image src={publicImageUrl(item.screenshot_path)} alt="" fill sizes="64px" className="object-cover object-top" />}
                   </span>
-                </span>
-                <Status item={item} />
-                <span className="ml-auto text-xs text-slate-400">#{item.sort}</span>
-                <span className="text-slate-400">{open === item.id ? '▴' : '▾'}</span>
-              </button>
+                  <span className="min-w-0">
+                    <span className="block font-bold">{item.owner_name || 'Unnamed'}</span>
+                    <span className="block truncate text-xs text-slate-500">
+                      {[item.business_name, item.site_url ? siteDomain(item.site_url) : ''].filter(Boolean).join(' · ') || 'No website yet'}
+                    </span>
+                  </span>
+                  <Status item={item} />
+                  <span className="ml-auto text-slate-400">{open === item.id ? '▴' : '▾'}</span>
+                </button>
+                <button onClick={() => move(item.id, -1)} disabled={moving || index === 0} className={arrow} aria-label="Move up" title="Move up">
+                  ↑
+                </button>
+                <button
+                  onClick={() => move(item.id, 1)}
+                  disabled={moving || index === items.length - 1}
+                  className={arrow}
+                  aria-label="Move down"
+                  title="Move down"
+                >
+                  ↓
+                </button>
+              </div>
               {open === item.id && <ShowcaseForm key={item.id} item={item} onClose={() => setOpen(null)} onCreated={() => undefined} />}
             </div>
           ))
