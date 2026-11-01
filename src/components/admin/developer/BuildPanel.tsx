@@ -9,7 +9,9 @@ interface Props {
   /** Migration 20261028000022 has run. */
   schemaReady: boolean;
   formReady: boolean;
-  approved: { label: string; proposal: 'A' | 'B' } | null;
+  approved: { proposal: 'A' | 'B'; iteration: number } | null;
+  /** The pages the approved design covers, and how many more Claude Code builds in the same style. */
+  pages: { designed: string[]; more: number } | null;
   instructions: string;
   project: string;
   cms: boolean;
@@ -52,7 +54,7 @@ function SetupBlock({ setup }: { setup: string }) {
   );
 }
 
-export function BuildPanel({ leadId, schemaReady, formReady, approved, instructions, project, cms, setup, prompts }: Props) {
+export function BuildPanel({ leadId, schemaReady, formReady, approved, pages, instructions, project, cms, setup, prompts }: Props) {
   const [text, setText] = useState(instructions);
   const [saved, setSaved] = useState<'idle' | 'saved' | string>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -85,9 +87,14 @@ export function BuildPanel({ leadId, schemaReady, formReady, approved, instructi
 
   return (
     <div data-testid="dev-build">
+      {approved && pages && (
+        <p className="mb-2 text-sm text-slate-700" data-testid="dev-build-pages">
+          Designed: {pages.designed.join(', ')} ({pages.designed.length}) · Built in the same style: {pages.more} more {pages.more === 1 ? 'page' : 'pages'}
+        </p>
+      )}
       {approved ? (
         <p className="mb-4 text-sm text-slate-600">
-          Building from <strong>{approved.label}</strong> (Proposal {approved.proposal}). Project name <code>{project}</code>, used for the
+          Building from <strong>Proposal {approved.proposal === 'A' ? 1 : 2} · Iteration {approved.iteration}</strong>. Project name <code>{project}</code>, used for the
           GitHub repository, the Vercel project and the Supabase project. {cms ? 'The client booked a CMS.' : 'No CMS was booked.'}
         </p>
       ) : (
@@ -131,7 +138,7 @@ export function BuildPanel({ leadId, schemaReady, formReady, approved, instructi
               data-testid="dev-download-design"
               className="inline-block rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50"
             >
-              Download design.zip ({approved.label})
+              Download design.zip (Proposal {approved.proposal === 'A' ? 1 : 2} · Iteration {approved.iteration})
             </a>
           ) : (
             <p className="text-xs text-slate-500">Available once a version is approved.</p>

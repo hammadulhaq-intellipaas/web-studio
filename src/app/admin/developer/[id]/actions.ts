@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { loadDeveloperClient } from '@/lib/developer/clients';
+import { setCommentStatus } from '@/lib/developer/comments';
 import { approveVersion, finishUpload, reopenDesign as reopen, setDraftsOffline, startUpload, type UploadTicket } from '@/lib/developer/designs';
 import { generateBuild, generateDesignProposals, generateHandover, generateRevision } from '@/lib/developer/generate';
 import type { Proposal } from '@/lib/developer/messages';
@@ -170,6 +171,19 @@ export async function setDraftLinksOffline(leadId: string, offline: boolean): Pr
   await requireAdmin();
   try {
     await setDraftsOffline(leadId, offline);
+    revalidatePath(`/admin/developer/${leadId}`);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: message(err) };
+  }
+}
+
+/** The team handled a client comment itself, so it stays out of the next improvement prompt. */
+export async function resolveComment(leadId: string, commentId: string): Promise<Result> {
+  await requireAdmin();
+  if (!UUID.test(commentId)) return { ok: false, error: 'Unknown comment.' };
+  try {
+    await setCommentStatus(leadId, commentId, 'resolved');
     revalidatePath(`/admin/developer/${leadId}`);
     return { ok: true };
   } catch (err) {

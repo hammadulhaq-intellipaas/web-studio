@@ -106,7 +106,7 @@ export function DesignPromptsPanel({ leadId, formReady, schemaReady, locked, not
       <div className="mb-4 grid gap-3 sm:grid-cols-2">
         {(['A', 'B'] as const).map((p) => (
           <label key={p} className="block">
-            <span className="mb-1 block text-xs font-semibold text-slate-500">Proposal {p} follows</span>
+            <span className="mb-1 block text-xs font-semibold text-slate-500">Proposal {p === 'A' ? 1 : 2} follows</span>
             <select
               data-testid={`dev-ref-${p}`}
               value={refs[p]}
@@ -142,7 +142,7 @@ export function DesignPromptsPanel({ leadId, formReady, schemaReady, locked, not
               ? 'Available once the client has confirmed the onboarding form.'
               : locked
                 ? 'The design is approved and locked. Reopen it below to generate again.'
-                : 'Generates Proposal A and Proposal B together.'}
+                : 'Generates Proposal 1 and Proposal 2 together: the homepage plus 4 to 5 key pages each.'}
         </span>
       </div>
       {error && (
@@ -158,7 +158,7 @@ export function DesignPromptsPanel({ leadId, formReady, schemaReady, locked, not
         return (
           <div key={p} className="mt-6 border-t border-slate-100 pt-5" data-testid={`dev-proposal-${p}`}>
             <div className="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <h3 className="text-base font-bold">Proposal {p}</h3>
+              <h3 className="text-base font-bold">Proposal {p === 'A' ? 1 : 2}</h3>
               <span className="text-sm text-slate-500">follows {nameOf(latest.reference_slug)}</span>
               <span className="text-xs text-slate-400">
                 Version {versions.length} · <LocalTime iso={latest.created_at} /> · {latest.model}

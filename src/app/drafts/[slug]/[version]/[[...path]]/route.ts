@@ -31,6 +31,19 @@ function notFound() {
   });
 }
 
+/**
+ * Every design page carries the review bridge, so the client's review page can take pinned
+ * comments on it. Outside the review page the script does nothing.
+ */
+function withReviewBridge(html: Buffer): Buffer {
+  const tag = '<script src="/review-bridge.js" defer></script>';
+  const text = html.toString('utf8');
+  const at = text.search(/<\/head>/i);
+  if (at >= 0) return Buffer.from(text.slice(0, at) + tag + text.slice(at), 'utf8');
+  const body = text.search(/<\/body>/i);
+  return Buffer.from(body >= 0 ? text.slice(0, body) + tag + text.slice(body) : text + tag, 'utf8');
+}
+
 /** The file path after /drafts/<client>/<version>/, decoded segment by segment. */
 function filePath(pathname: string, slug: string, version: string): string | null {
   const prefix = `/drafts/${slug}/${version}`;
@@ -67,9 +80,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return url ? NextResponse.redirect(url, { status: 307, headers: { ...BASE_HEADERS, 'Cache-Control': 'no-store' } }) : notFound();
   }
 
-  const data = await readDraftFile(version, path);
-  if (!data) return notFound();
+  const stored = await readDraftFile(version, path);
+  if (!stored) return notFound();
   const type = contentTypeFor(path);
+  const data = type.startsWith('text/html') ? withReviewBridge(stored) : stored;
   return new NextResponse(new Uint8Array(data), {
     headers: {
       ...BASE_HEADERS,

@@ -20,14 +20,23 @@ export function slugify(text: string): string {
   return cut.includes('-') ? cut.slice(0, cut.lastIndexOf('-')) : cut;
 }
 
-/** The next version of a proposal: v1-a, v2-a, and v1-b on its own count. */
+/**
+ * The next iteration of a proposal and its link label: p1-i1, p1-i2, and p2-i1 on its own count.
+ * People read it as "Proposal 1 · Iteration 2"; A and B stay the stored names.
+ */
 export function nextLabel(proposal: Proposal, existing: { proposal: Proposal; version: number }[]): { version: number; label: string } {
   const version = existing.filter((v) => v.proposal === proposal).reduce((max, v) => Math.max(max, v.version), 0) + 1;
-  return { version, label: `v${version}-${proposal.toLowerCase()}` };
+  return { version, label: `p${proposal === 'A' ? 1 : 2}-i${version}` };
 }
 
-const LABEL = /^v\d{1,4}-[ab]$/;
+/** Labels of new uploads (p1-i2) and of the first ones (v1-a), so early links keep working. */
+const LABEL = /^(?:p[12]-i\d{1,4}|v\d{1,4}-[ab])$/;
 export const isLabel = (value: string) => LABEL.test(value);
+
+/** "Proposal 1 · Iteration 2", or the German "Entwurf 1 · Iteration 2" on the client's page. */
+export function versionName(proposal: Proposal, iteration: number, lang: 'de' | 'en' = 'en'): string {
+  return `${lang === 'de' ? 'Entwurf' : 'Proposal'} ${proposal === 'A' ? 1 : 2} · Iteration ${iteration}`;
+}
 
 /**
  * Storage key of one file of an unpacked design. The path is hex-encoded so spaces, umlauts

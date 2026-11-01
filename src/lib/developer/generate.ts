@@ -7,23 +7,29 @@ import { getOnboardingDefinition, getOnboardingSecrets } from '@/lib/onboarding/
 import { redactSecrets, stripDashes } from '@/lib/onboarding/guardrails';
 import type { PromptId } from '@/lib/onboarding/types';
 import { loadDeveloperClient } from './clients';
+import { loadComments, markAddressed, type DesignComment } from './comments';
 import { buildPromptContext, loadReferenceSpec, REFERENCE_FIELD } from './context';
 import { loadVersions } from './designs';
 import { slugify } from './drafts';
 import { promptsReady } from './filters';
 import {
   buildPromptInput,
+  codeWordsOutsideDeliverable,
   designPromptInput,
   handoverPromptInput,
+  pageListsFromDesign,
+  proposalNumber,
   PROPOSALS,
   revisionPromptInput,
+  splitClientSummary,
+  type CommentForPrompt,
   type DesignForPrompt,
   type Proposal,
   type ReferenceForPrompt,
 } from './messages';
 import { DEV_BUILD_PROMPT, DEV_DESIGN_PROMPT, DEV_HANDOVER_PROMPT, DEV_REVISION_PROMPT } from './prompt-defaults';
 import { cmsBooked } from './setup';
-import { designsSchemaReady, developerSchemaReady, insertPrompts, loadProject, loadPrompts } from './store';
+import { designsSchemaReady, developerSchemaReady, insertPrompts, loadProject, loadPrompts, reviewSchemaReady } from './store';
 
 export type GenerateResult = { ok: true } | { ok: false; error: string };
 
@@ -39,12 +45,24 @@ const DEFAULTS: Record<DevPromptId, string> = {
 /** Canned output for e2e runs (ONBOARDING_AI_FIXTURE=1): no key, no cost, deterministic. */
 function fixtureText(job: DevPromptId, company: string, detail: string): string {
   const title: Record<DevPromptId, string> = {
-    dev_design: `# Website design brief: ${company}, ${detail}`,
-    dev_revision: `# Design revision: ${company}, ${detail}`,
+    dev_design: `# Website design: ${company}, ${detail}\n\n## Pages in this design\n- Startseite: the homepage\n- Kontakt: the main action`,
+    dev_revision: `# Design improvement: ${company}, ${detail}`,
     dev_build: `# Build: ${company}`,
     dev_handover: `# ${company} Website Handoff`,
   };
-  return `${title[job]}\n\n## Goal\nFixture text.`;
+  const tail: Partial<Record<DevPromptId, string>> = {
+    dev_design: '\n\n## Pages not designed yet\n- Impressum',
+    dev_revision: '\n\n## For the client\n- Fixture change.',
+  };
+  return `${title[job]}\n\n## Goal\nFixture text.${tail[job] ?? ''}`;
+}
+
+/** Asks for one rewrite when a design or improvement prompt slips into code words. */
+function designLanguageCheck(text: string): string | null {
+  const words = codeWordsOutsideDeliverable(text);
+  return words.length
+    ? `Rewrite your whole answer in design language only. Outside the Deliverable section, replace these technical words by describing the same thing visually: ${words.join(', ')}. Keep every other part as it is.`
+    : null;
 }
 
 async function logCall(formId: string, job: DevPromptId, system: string, prompt: string, model: string, ok: boolean, response: Record<string, unknown>, ms: number) {
@@ -71,18 +89,44 @@ async function instructionFor(job: DevPromptId): Promise<string> {
   return secrets.prompts.find((p) => p.id === job)?.content?.trim() || DEFAULTS[job];
 }
 
-/** One model call, logged, with dashes stripped in code whatever the model wrote. */
-async function runModel(opts: { formId: string; job: DevPromptId; modelId: string; system: string; prompt: string; fixture: string }): Promise<string> {
+/**
+ * One model call, logged, with dashes stripped in code whatever the model wrote. `check` may
+ * return a correction; the model then gets exactly one chance to rewrite its answer.
+ */
+async function runModel(opts: {
+  formId: string;
+  job: DevPromptId;
+  modelId: string;
+  system: string;
+  prompt: string;
+  fixture: string;
+  check?: (text: string) => string | null;
+}): Promise<string> {
   const started = Date.now();
   let content: string;
   if (fixtureMode()) {
     content = opts.fixture;
   } else {
     try {
+      const model = getLanguageModel(opts.modelId);
       // A full multi-page brief runs to about 10k output tokens plus reasoning; leave headroom.
-      const { text, finishReason } = await generateText({ model: getLanguageModel(opts.modelId), system: opts.system, prompt: opts.prompt, maxOutputTokens: 20000 });
-      if (finishReason === 'length') throw new Error('the model ran out of room before finishing; try again');
-      content = text;
+      const first = await generateText({ model, system: opts.system, prompt: opts.prompt, maxOutputTokens: 20000 });
+      if (first.finishReason === 'length') throw new Error('the model ran out of room before finishing; try again');
+      content = first.text;
+      const correction = opts.check?.(content);
+      if (correction) {
+        const again = await generateText({
+          model,
+          system: opts.system,
+          messages: [
+            { role: 'user', content: opts.prompt },
+            { role: 'assistant', content },
+            { role: 'user', content: correction },
+          ],
+          maxOutputTokens: 20000,
+        });
+        if (again.finishReason !== 'length' && again.text.trim()) content = again.text;
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await logCall(opts.formId, opts.job, opts.system, opts.prompt, opts.modelId, false, { error: message }, Date.now() - started);
@@ -151,9 +195,10 @@ export async function generateDesignProposals(
           modelId,
           system,
           prompt,
-          fixture: `${fixtureText('dev_design', company, `Proposal ${proposal}`)}\n\n## Layout direction\n${reference ? `Follows ${reference.name}.` : "From the client's answers."}`,
+          fixture: `${fixtureText('dev_design', company, `Proposal ${proposalNumber(proposal)}`)}\n\n## Layout direction\n${reference ? `Follows ${reference.name}.` : "From the client's answers."}`,
+          check: designLanguageCheck,
         }).catch((err) => {
-          throw new Error(`Proposal ${proposal}: ${err instanceof Error ? err.message : String(err)}`);
+          throw new Error(`Proposal ${proposalNumber(proposal)}: ${err instanceof Error ? err.message : String(err)}`);
         });
         return { proposal, reference, content };
       }),
@@ -181,9 +226,20 @@ async function latestDesignPrompt(leadId: string, proposal: Proposal) {
   return (await loadPrompts(leadId, 'design')).find((p) => p.proposal === proposal) ?? null;
 }
 
-/** Turns the client's feedback on one design version into the prompt for the next version. */
-export async function generateRevision(leadId: string, versionId: string, feedback: string, by: string | null): Promise<GenerateResult> {
-  if (!feedback.trim()) return { ok: false, error: "Paste the client's feedback first." };
+const commentForPrompt = (c: DesignComment): CommentForPrompt => ({
+  page: c.page_title || c.page_path || '',
+  device: c.device ?? '',
+  near: c.near_text ?? '',
+  comment: c.body,
+  author: c.author_name,
+});
+
+/**
+ * Turns everything the client said about one iteration into the prompt for the next one: their
+ * pinned and general comments on it, comments on the other proposal they want carried over, and
+ * anything the team pasted (WhatsApp, a call). The comments it takes in are marked addressed.
+ */
+export async function generateRevision(leadId: string, versionId: string, pastedFeedback: string, by: string | null): Promise<GenerateResult> {
   const ready = await prepare(leadId, true);
   if ('error' in ready) return { ok: false, error: ready.error as string };
   const { onboarding, context, project, modelId, company, referenceName } = ready;
@@ -193,32 +249,47 @@ export async function generateRevision(leadId: string, versionId: string, feedba
     const versions = await loadVersions(leadId);
     const version = versions.find((v) => v.id === versionId && v.status === 'ready');
     if (!version) return { ok: false, error: 'Choose an uploaded design version.' };
+    const open = (await reviewSchemaReady()) ? (await loadComments(leadId)).filter((c) => c.status === 'open') : [];
+    const mine = open.filter((c) => c.version_id === version.id);
+    const otherIds = new Set(versions.filter((v) => v.proposal !== version.proposal).map((v) => v.id));
+    const carry = open.filter((c) => c.carry_over && otherIds.has(c.version_id));
+    if (!mine.length && !carry.length && !pastedFeedback.trim()) {
+      return { ok: false, error: 'There are no open comments on this iteration yet. Wait for the client, or paste their feedback.' };
+    }
+
     const brief = await latestDesignPrompt(leadId, version.proposal);
+    const otherBrief = carry.length ? (await latestDesignPrompt(leadId, version.proposal === 'A' ? 'B' : 'A'))?.content ?? null : null;
     const sameProposal = new Set(versions.filter((v) => v.proposal === version.proposal).map((v) => v.id));
     const earlier = (await loadPrompts(leadId, 'revision'))
       .filter((p) => p.design_version_id && sameProposal.has(p.design_version_id))
       .slice(0, 5)
       .reverse()
       .map((p) => p.content);
-    const design: DesignForPrompt = { proposal: version.proposal, version: version.label, reference: referenceName(brief?.reference_slug ?? null) };
+    const design: DesignForPrompt = { proposal: version.proposal, iteration: version.version, reference: referenceName(brief?.reference_slug ?? null) };
     const prompt = revisionPromptInput({
       company,
       formLanguage: context.client.formLanguage,
       design,
       designBrief: brief?.content ?? null,
-      earlierRevisions: earlier,
-      feedback: feedback.slice(0, 8000),
+      earlierImprovements: earlier,
+      comments: mine.filter((c) => c.kind === 'pin').map(commentForPrompt),
+      generalFeedback: mine.filter((c) => c.kind === 'general').map((c) => ({ comment: c.body, author: c.author_name })),
+      carryOver: carry.map(commentForPrompt),
+      otherProposalBrief: otherBrief,
+      pastedFeedback: pastedFeedback.slice(0, 8000),
       internalNotes: project.internal_notes,
     });
-    const content = await runModel({
+    const raw = await runModel({
       formId: onboarding.id,
       job: 'dev_revision',
       modelId,
       system: await instructionFor('dev_revision'),
       prompt,
-      fixture: fixtureText('dev_revision', company, version.label),
+      fixture: fixtureText('dev_revision', company, `Proposal ${proposalNumber(version.proposal)}, iteration ${version.version + 1}`),
+      check: designLanguageCheck,
     });
-    await insertPrompts([
+    const { prompt: content, summary } = splitClientSummary(raw);
+    const [promptId] = await insertPrompts([
       {
         lead_id: leadId,
         form_id: onboarding.id,
@@ -227,10 +298,12 @@ export async function generateRevision(leadId: string, versionId: string, feedba
         reference_slug: brief?.reference_slug ?? null,
         design_version_id: version.id,
         content,
+        client_summary: summary,
         model: modelId,
         created_by: by,
       },
     ]);
+    if (promptId) await markAddressed(leadId, [...mine, ...carry].map((c) => c.id), promptId);
     return { ok: true };
   } catch (err) {
     return failure(err);
@@ -244,7 +317,7 @@ async function approvedDesign(leadId: string, approvedId: string | null, referen
   if (!version) return null;
   const brief = await latestDesignPrompt(leadId, version.proposal);
   return {
-    design: { proposal: version.proposal, version: version.label, reference: referenceName(brief?.reference_slug ?? null) } as DesignForPrompt,
+    design: { proposal: version.proposal, iteration: version.version, reference: referenceName(brief?.reference_slug ?? null) } as DesignForPrompt,
     brief,
   };
 }
@@ -258,11 +331,14 @@ export async function generateBuild(leadId: string, by: string | null): Promise<
   try {
     const approved = await approvedDesign(leadId, project.approved_version_id, referenceName);
     if (!approved) return { ok: false, error: 'Approve a design version in the Design tab first.' };
+    const pages = pageListsFromDesign(approved.brief?.content ?? null);
     const prompt = buildPromptInput(context, {
       project: project.draft_slug ?? slugify(company),
       cms: cmsBooked(lead.config),
       design: approved.design,
       designBrief: approved.brief?.content ?? null,
+      pagesInDesign: pages.designed,
+      pagesNotDesigned: pages.notDesigned,
       devInstructions: project.dev_instructions,
       internalNotes: project.internal_notes,
     });

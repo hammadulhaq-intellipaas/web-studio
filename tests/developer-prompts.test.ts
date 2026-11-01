@@ -37,7 +37,7 @@ describe('designPromptInput', () => {
 
   it('carries the proposal, the spec and the notes, and pulls the client\'s own references out', () => {
     const input = JSON.parse(designPromptInput(context, 'B', reference, '  Keep it calm.  '));
-    expect(input.proposal).toBe('B');
+    expect(input.proposal).toBe(2);
     expect(input.reference_website).toEqual({ name: 'Graza', url: 'https://www.graza.co/', spec: reference.spec });
     expect(input.other_references).toContain('the calm layout');
     expect(input.answers[0].items.map((i: { question: string }) => i.question)).toEqual(['In one sentence, what do you do?']);
@@ -56,7 +56,7 @@ describe('designPromptInput', () => {
 describe('the dev_design instruction', () => {
   it('has no em or en dashes and carries the rules that keep sites from looking AI-made', () => {
     expect(DEV_DESIGN_PROMPT).not.toMatch(/[–—]/);
-    for (const rule of [/never invent/i, /gradients/i, /three identical icon cards/i, /em dash/i, /390 px/, /Impressum/, /# Website design brief/]) {
+    for (const rule of [/never invent/i, /gradients/i, /three identical icon cards/i, /em dash/i, /390 px/, /legal pages/, /# Website design: /]) {
       expect(DEV_DESIGN_PROMPT).toMatch(rule);
     }
   });

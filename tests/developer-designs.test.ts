@@ -1,9 +1,18 @@
 import { deflateRawSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 import type { PromptContext } from '@/lib/developer/context';
-import { contentTypeFor, draftPath, encodePath, isLabel, nextLabel, siteKey, slugify } from '@/lib/developer/drafts';
-import { buildPromptInput, handoverPromptInput, revisionPromptInput } from '@/lib/developer/messages';
-import { DEV_BUILD_PROMPT, DEV_HANDOVER_PROMPT, DEV_REVISION_PROMPT } from '@/lib/developer/prompt-defaults';
+import { contentTypeFor, draftPath, encodePath, isLabel, nextLabel, siteKey, slugify, versionName } from '@/lib/developer/drafts';
+import {
+  buildPromptInput,
+  clientPageList,
+  codeWordsOutsideDeliverable,
+  designPromptInput,
+  handoverPromptInput,
+  pageListsFromDesign,
+  revisionPromptInput,
+  splitClientSummary,
+} from '@/lib/developer/messages';
+import { DEV_BUILD_PROMPT, DEV_DESIGN_PROMPT, DEV_HANDOVER_PROMPT, DEV_REVISION_PROMPT } from '@/lib/developer/prompt-defaults';
 import { cmsBooked, setupCommands } from '@/lib/developer/setup';
 import { entryPage, unzip } from '@/lib/developer/unzip';
 
@@ -105,21 +114,22 @@ describe('draft links', () => {
     expect(long).not.toMatch(/-$/);
   });
 
-  it('numbers versions per proposal', () => {
-    expect(nextLabel('A', [])).toEqual({ version: 1, label: 'v1-a' });
+  it('numbers iterations per proposal, as Proposal 1 and 2', () => {
+    expect(nextLabel('A', [])).toEqual({ version: 1, label: 'p1-i1' });
     const existing = [
       { proposal: 'A' as const, version: 1 },
       { proposal: 'A' as const, version: 2 },
       { proposal: 'B' as const, version: 1 },
     ];
-    expect(nextLabel('A', existing)).toEqual({ version: 3, label: 'v3-a' });
-    expect(nextLabel('B', existing)).toEqual({ version: 2, label: 'v2-b' });
+    expect(nextLabel('A', existing)).toEqual({ version: 3, label: 'p1-i3' });
+    expect(nextLabel('B', existing)).toEqual({ version: 2, label: 'p2-i2' });
+    expect(versionName('A', 2)).toBe('Proposal 1 · Iteration 2');
+    expect(versionName('B', 1, 'de')).toBe('Entwurf 2 · Iteration 1');
   });
 
-  it('accepts only real version labels', () => {
-    expect(isLabel('v1-a')).toBe(true);
-    expect(isLabel('v12-b')).toBe(true);
-    for (const bad of ['v1-c', 'V1-a', 'v-a', '1-a', 'v1-a/../x', 'v1a']) expect(isLabel(bad), bad).toBe(false);
+  it('accepts only real version labels, new and old', () => {
+    for (const ok of ['p1-i1', 'p2-i14', 'v1-a', 'v12-b']) expect(isLabel(ok), ok).toBe(true);
+    for (const bad of ['p3-i1', 'p1-i', 'P1-i1', 'v1-c', 'V1-a', 'v-a', '1-a', 'v1-a/../x', 'p1-i1/x', 'v1a']) expect(isLabel(bad), bad).toBe(false);
   });
 
   it('builds storage keys that are always valid, whatever the file is called', () => {
@@ -171,41 +181,63 @@ const context: PromptContext = {
       title: 'How your site should look and sound',
       answers: [{ key: 'business_one_liner', question: 'In one sentence, what do you do?', answer: 'Wir bauen Bäder.' }],
     },
+    {
+      screen: 'pages',
+      title: 'Pages',
+      answers: [{ key: 'page_list', question: 'What pages does your site need?', answer: 'Startseite\nLeistungen\n- Badsanierung\nKontakt' }],
+    },
   ],
   referenceSites: [],
   files: [{ question: 'Logo', name: 'logo.svg', type: 'image/svg+xml' }],
   status: 'confirmed',
   confirmedAt: '2026-10-28T10:00:00Z',
 };
-const design = { proposal: 'A' as const, version: 'v2-a', reference: 'Graza' };
+const design = { proposal: 'A' as const, iteration: 2, reference: 'Graza' };
+const pin = { page: 'Startseite', device: 'laptop', near: 'Heading: "Unsere Kurse"', comment: 'Bitte heller.', author: 'Anna' };
 
 describe('revision, build and handover inputs', () => {
-  it('passes the feedback as written, with the brief and earlier revisions', () => {
-    const input = JSON.parse(
-      revisionPromptInput({
-        company: 'Müller Sanitär GmbH',
-        formLanguage: 'de',
-        design,
-        designBrief: '# Website design brief',
-        earlierRevisions: ['# Design revision: v1-a'],
-        feedback: '  Das Grün ist zu dunkel.  ',
-        internalNotes: '',
-      }),
-    );
-    expect(input.version).toBe('v2-a');
-    expect(input.feedback).toBe('Das Grün ist zu dunkel.');
-    expect(input.earlier_revisions).toEqual(['# Design revision: v1-a']);
+  it('gives the improvement prompt the comments, the carry-overs and the pasted feedback', () => {
+    const base = {
+      company: 'Müller Sanitär GmbH',
+      formLanguage: 'de',
+      design,
+      designBrief: '# Website design',
+      earlierImprovements: ['# Design improvement: iteration 2'],
+      comments: [pin],
+      generalFeedback: [{ comment: 'Insgesamt gut.', author: 'Anna' }],
+      carryOver: [] as (typeof pin)[],
+      otherProposalBrief: '# Proposal 2 brief',
+      pastedFeedback: '  Das Grün ist zu dunkel.  ',
+      internalNotes: '',
+    };
+    const input = JSON.parse(revisionPromptInput(base));
+    expect(input.proposal).toBe(1);
+    expect(input.iteration).toBe(2);
+    expect(input.comments).toEqual([pin]);
+    expect(input.general_feedback[0].comment).toBe('Insgesamt gut.');
+    expect(input.pasted_feedback).toBe('Das Grün ist zu dunkel.');
+    expect(input.other_proposal_brief).toBeNull();
     expect(input.internal_notes).toBeNull();
+    const carry = JSON.parse(revisionPromptInput({ ...base, carryOver: [pin] }));
+    expect(carry.carry_over).toEqual([pin]);
+    expect(carry.other_proposal_brief).toBe('# Proposal 2 brief');
+  });
+
+  it('sends the design model the proposal as a number', () => {
+    expect(JSON.parse(designPromptInput(context, 'B', null, '')).proposal).toBe(2);
   });
 
   it('gives the build prompt the project, the CMS flag and the developer instructions', () => {
     const input = JSON.parse(
-      buildPromptInput(context, { project: 'mueller', cms: true, design, designBrief: null, devInstructions: ' Use Sanity. ', internalNotes: 'Calm.' }),
+      buildPromptInput(context, { project: 'mueller', cms: true, design, designBrief: null, pagesInDesign: ['Startseite'], pagesNotDesigned: ['Team'], devInstructions: ' Use Sanity. ', internalNotes: 'Calm.' }),
     );
     expect(input.cms_booked).toBe(true);
     expect(input.project).toEqual({ name: 'mueller', github_repository: 'mueller', vercel_project: 'mueller', supabase_project: 'mueller' });
-    expect(JSON.parse(buildPromptInput(context, { project: 'mueller', cms: false, design, designBrief: null, devInstructions: '', internalNotes: '' })).project.supabase_project).toBe('mueller');
-    expect(input.approved_design).toEqual({ ...design, folder: './design' });
+    expect(JSON.parse(buildPromptInput(context, { project: 'mueller', cms: false, design, designBrief: null, pagesInDesign: [], pagesNotDesigned: [], devInstructions: '', internalNotes: '' })).project.supabase_project).toBe('mueller');
+    expect(input.approved_design).toEqual({ proposal: 1, iteration: 2, reference_website: 'Graza', folder: './design' });
+    expect(input.pages_in_design).toEqual(['Startseite']);
+    expect(input.pages_not_designed).toEqual(['Team']);
+    expect(input.client_page_list).toEqual(['Startseite', 'Leistungen', '- Badsanierung', 'Kontakt']);
     expect(input.developer_instructions).toBe('Use Sanity.');
     expect(input.answers[0].items[0].answer).toBe('Wir bauen Bäder.');
   });
@@ -218,14 +250,65 @@ describe('revision, build and handover inputs', () => {
   });
 });
 
-describe('the revision, build and handover instructions', () => {
+describe('page lists, the client summary and the code-word check', () => {
+  const designMd = [
+    '# Website design: Müller, Proposal 1',
+    '## Pages in this design',
+    '- Startseite: the homepage',
+    '- **Leistungen**: the overview',
+    '- Workshop: Yoga im Park: the landing page',
+    '## Goal',
+    'A static design.',
+    '## Deliverable',
+    'A static design, ready to export as HTML.',
+    '## Pages not designed yet',
+    '- Impressum',
+    '- Team',
+  ].join('\n');
+
+  it('reads the designed and the not designed pages from a design prompt', () => {
+    expect(pageListsFromDesign(designMd)).toEqual({ designed: ['Startseite', 'Leistungen', 'Workshop'], notDesigned: ['Impressum', 'Team'] });
+    expect(pageListsFromDesign(null)).toEqual({ designed: [], notDesigned: [] });
+  });
+
+  it("splits the client's \"what changed\" list off an improvement prompt", () => {
+    const md = '# Design improvement\n## Changes\n1. Lighter header\n## For the client\n- Der Kopfbereich ist jetzt heller.';
+    expect(splitClientSummary(md)).toEqual({ prompt: '# Design improvement\n## Changes\n1. Lighter header', summary: '- Der Kopfbereich ist jetzt heller.' });
+    expect(splitClientSummary('# Only a prompt').summary).toBeNull();
+  });
+
+  it('finds code words outside the Deliverable section only', () => {
+    expect(codeWordsOutsideDeliverable(designMd)).toEqual([]);
+    expect(codeWordsOutsideDeliverable(designMd.replace('A static design.', 'Use a CSS grid and a JavaScript slider.'))).toEqual(['css', 'javascript']);
+  });
+
+  it("reads the client's page list from the form", () => {
+    expect(clientPageList(context)).toEqual(['Startseite', 'Leistungen', '- Badsanierung', 'Kontakt']);
+  });
+});
+
+describe('the design, improvement, build and handover instructions', () => {
   it('have no em or en dashes', () => {
-    for (const text of [DEV_REVISION_PROMPT, DEV_BUILD_PROMPT, DEV_HANDOVER_PROMPT]) expect(text).not.toMatch(/[–—]/);
+    for (const text of [DEV_DESIGN_PROMPT, DEV_REVISION_PROMPT, DEV_BUILD_PROMPT, DEV_HANDOVER_PROMPT]) expect(text).not.toMatch(/[–—]/);
+  });
+  it('ask Claude Design for a static design of 5 to 6 key pages, in design language', () => {
+    expect(DEV_DESIGN_PROMPT).toMatch(/homepage plus four or five other pages, six pages at most/);
+    expect(DEV_DESIGN_PROMPT).toMatch(/## Pages in this design/);
+    expect(DEV_DESIGN_PROMPT).toMatch(/## Pages not designed yet/);
+    expect(DEV_DESIGN_PROMPT).toMatch(/Never use code or technical words/);
+    expect(DEV_DESIGN_PROMPT).toMatch(/shown as they will look, not built/);
+    expect(DEV_DESIGN_PROMPT).toMatch(/"Sie"/);
+    expect(DEV_DESIGN_PROMPT).toMatch(/Never design legal pages/);
   });
   it('carry their key rules and output shapes', () => {
     expect(DEV_REVISION_PROMPT).toMatch(/Change only what the feedback asks for/);
-    expect(DEV_REVISION_PROMPT).toMatch(/# Design revision/);
+    expect(DEV_REVISION_PROMPT).toMatch(/# Design improvement/);
+    expect(DEV_REVISION_PROMPT).toMatch(/## Carry over from Proposal/);
+    expect(DEV_REVISION_PROMPT).toMatch(/describe it completely/);
+    expect(DEV_REVISION_PROMPT).toMatch(/## For the client/);
     expect(DEV_BUILD_PROMPT).toMatch(/1:1/);
+    expect(DEV_BUILD_PROMPT).toMatch(/### Built in the same style/);
+    expect(DEV_BUILD_PROMPT).toMatch(/trust the folder over pages_in_design/);
     expect(DEV_BUILD_PROMPT).toMatch(/CMS is only built if cms_booked is true/);
     expect(DEV_BUILD_PROMPT).toMatch(/every site uses its Supabase project/);
     expect(DEV_BUILD_PROMPT).not.toMatch(/there is no Supabase/);

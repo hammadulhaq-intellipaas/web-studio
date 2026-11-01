@@ -1,5 +1,5 @@
 import 'server-only';
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { contentTypeFor, DESIGN_BUCKET, nextLabel, siteKey, slugify } from './drafts';
 import type { Proposal } from './messages';
@@ -46,14 +46,13 @@ interface ProjectRow {
   draft_slug: string | null;
   approved_version_id: string | null;
   drafts_offline: boolean;
+  /** Present once migration 20261101000024 has run. */
+  review_token?: string | null;
+  chosen_proposal?: Proposal | null;
 }
 
 async function projectRow(leadId: string): Promise<ProjectRow | null> {
-  const { data } = await db()
-    .from('developer_projects')
-    .select('lead_id, draft_slug, approved_version_id, drafts_offline')
-    .eq('lead_id', leadId)
-    .maybeSingle();
+  const { data } = await db().from('developer_projects').select('*').eq('lead_id', leadId).maybeSingle();
   return (data as ProjectRow | null) ?? null;
 }
 
@@ -86,8 +85,73 @@ async function removeFiles(version: Pick<DesignVersion, 'id' | 'lead_id' | 'orig
 }
 
 /**
- * Failed and abandoned uploads of a proposal give their label back: the next upload is v2-a
- * after a ready v1-a, not v4-a after two broken tries.
+ * The secret part of the client's review link, made once. Long and random, because the link
+ * lets anyone who has it comment, choose a proposal and approve. Null before the migration.
+ */
+export async function ensureReviewToken(leadId: string): Promise<string | null> {
+  const existing = await projectRow(leadId);
+  if (!existing || !('review_token' in existing)) return null;
+  if (existing.review_token) return existing.review_token;
+  const token = randomBytes(18).toString('base64url');
+  const { error } = await db().from('developer_projects').update({ review_token: token }).eq('lead_id', leadId).is('review_token', null);
+  if (error) return null;
+  return (await projectRow(leadId))?.review_token ?? null;
+}
+
+/** The client behind a review link, unless the link is wrong or the drafts are offline. */
+export async function resolveReview(slug: string, token: string): Promise<{ leadId: string } | null> {
+  if (!/^[a-z0-9-]{1,60}$/.test(slug) || !/^[A-Za-z0-9_-]{20,40}$/.test(token)) return null;
+  const { data } = await db().from('developer_projects').select('lead_id, review_token, drafts_offline').eq('draft_slug', slug).maybeSingle();
+  const row = data as { lead_id: string; review_token: string | null; drafts_offline: boolean } | null;
+  if (!row?.review_token || row.drafts_offline) return null;
+  const a = Buffer.from(row.review_token);
+  const b = Buffer.from(token);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
+  return { leadId: row.lead_id };
+}
+
+/** The client picks the proposal they want to continue with; it can only happen once. */
+export async function clientChoose(leadId: string, proposal: Proposal, name: string): Promise<void> {
+  const project = await projectRow(leadId);
+  if (project?.chosen_proposal) throw new Error('A proposal has already been chosen.');
+  if (project?.approved_version_id) throw new Error('The design is already approved.');
+  const { error } = await db()
+    .from('developer_projects')
+    .update({ chosen_proposal: proposal, chosen_at: new Date().toISOString(), chosen_by: name })
+    .eq('lead_id', leadId)
+    .is('chosen_proposal', null);
+  if (error) throw new Error(`Saving the choice failed: ${error.message}`);
+  // What the client said about the other proposal in round 1 may hold things they want in this one.
+  const others = (await loadVersions(leadId)).filter((v) => v.proposal !== proposal).map((v) => v.id);
+  if (others.length) await db().from('design_comments').update({ carry_over: true }).eq('lead_id', leadId).eq('status', 'open').in('version_id', others);
+}
+
+/** The client approves the newest iteration of the proposal they chose. That locks the design. */
+export async function clientApprove(leadId: string, versionId: string, name: string): Promise<DesignVersion> {
+  const project = await projectRow(leadId);
+  if (project?.approved_version_id) throw new Error('The design is already approved.');
+  const ready = (await loadVersions(leadId)).filter((v) => v.status === 'ready');
+  let chosen = project?.chosen_proposal ?? null;
+  // With a single proposal there is nothing to choose: approving it chooses it.
+  const proposals = [...new Set(ready.map((v) => v.proposal))];
+  if (!chosen && proposals.length === 1) {
+    chosen = proposals[0];
+    await db().from('developer_projects').update({ chosen_proposal: chosen, chosen_at: new Date().toISOString(), chosen_by: name }).eq('lead_id', leadId);
+  }
+  if (!chosen) throw new Error('Please choose a proposal first.');
+  const latest = ready.filter((v) => v.proposal === chosen).pop();
+  if (!latest || latest.id !== versionId) throw new Error('Only the newest iteration can be approved.');
+  const { error } = await db()
+    .from('developer_projects')
+    .update({ approved_version_id: versionId, approved_at: new Date().toISOString(), approved_by: name, client_approved: true })
+    .eq('lead_id', leadId);
+  if (error) throw new Error(`Approving failed: ${error.message}`);
+  return latest;
+}
+
+/**
+ * Failed and abandoned uploads of a proposal give their label back: the next upload is p1-i2
+ * after a ready p1-i1, not p1-i4 after two broken tries.
  */
 async function clearBrokenUploads(leadId: string, proposal: Proposal): Promise<void> {
   const cutoff = Date.now() - STALE_MS;
@@ -119,8 +183,13 @@ export async function startUpload(
 ): Promise<UploadTicket> {
   if (!ACCEPTED.test(fileName)) throw new Error('Upload the Claude Design export as a .zip (or a single .html page).');
   if (size > MAX_UPLOAD_BYTES) throw new Error('The file is larger than 50 MB.');
-  if ((await projectRow(leadId))?.approved_version_id) throw new Error('The design is approved and locked. Reopen it first.');
+  const project = await projectRow(leadId);
+  if (project?.approved_version_id) throw new Error('The design is approved and locked. Reopen it first.');
+  if (project?.chosen_proposal && project.chosen_proposal !== proposal) {
+    throw new Error(`The client chose Proposal ${project.chosen_proposal === 'A' ? 1 : 2}. New iterations go to that proposal.`);
+  }
   await ensureDraftSlug(leadId, clientName);
+  await ensureReviewToken(leadId);
   await clearBrokenUploads(leadId, proposal);
 
   const { version, label } = nextLabel(proposal, await loadVersions(leadId));
@@ -247,6 +316,8 @@ export async function reopenDesign(leadId: string): Promise<void> {
     .update({ approved_version_id: null, approved_at: null, approved_by: null })
     .eq('lead_id', leadId);
   if (error) throw new Error(`Reopening failed: ${error.message}`);
+  // Best effort: the column only exists once migration 20261101000024 has run.
+  await db().from('developer_projects').update({ client_approved: false }).eq('lead_id', leadId);
 }
 
 export async function setDraftsOffline(leadId: string, offline: boolean): Promise<void> {

@@ -5,16 +5,18 @@ import { LocalTime } from '@/components/admin/LocalTime';
 import { ONB_STATUS_COLORS, STATUS_COLORS } from '@/lib/admin/format';
 import { loadDeveloperClient, type DeveloperOnboarding } from '@/lib/developer/clients';
 import { buildPromptContext, REFERENCE_FIELD, type PromptContext } from '@/lib/developer/context';
-import { loadVersions, type DesignVersion } from '@/lib/developer/designs';
+import { loadComments } from '@/lib/developer/comments';
+import { ensureReviewToken, loadVersions, type DesignVersion } from '@/lib/developer/designs';
+import { toReviewComment, type ReviewComment } from '@/lib/developer/review';
 import { slugify } from '@/lib/developer/drafts';
-import { defaultReferences } from '@/lib/developer/messages';
+import { defaultReferences, pageListsFromDesign } from '@/lib/developer/messages';
 import { cmsBooked, setupCommands } from '@/lib/developer/setup';
-import { designsSchemaReady, developerSchemaReady, loadProject, loadPrompts, type DeveloperProject, type StoredPrompt } from '@/lib/developer/store';
+import { designsSchemaReady, developerSchemaReady, loadProject, loadPrompts, type DeveloperProject, type StoredPrompt, reviewSchemaReady } from '@/lib/developer/store';
 import type { Lead } from '@/lib/types';
 import { getOnboardingDefinition } from '@/lib/onboarding/definition';
 import { BuildPanel } from '@/components/admin/developer/BuildPanel';
 import { DesignPromptsPanel, type DesignPromptRow, type ReferenceChoice } from '@/components/admin/developer/DesignPromptsPanel';
-import { DesignVersionsPanel } from '@/components/admin/developer/DesignVersionsPanel';
+import { DesignVersionsPanel, type ReviewInfo } from '@/components/admin/developer/DesignVersionsPanel';
 import { HandoverPanel } from '@/components/admin/developer/HandoverPanel';
 import type { GeneratedRow } from '@/components/admin/developer/PromptView';
 import { DEVELOPER_TABS, parseTab, promptsReady, type DeveloperTab } from '@/lib/developer/filters';
@@ -51,6 +53,8 @@ interface Workspace {
   project: DeveloperProject;
   versions: DesignVersion[];
   draftBase: string | null;
+  review: ReviewInfo;
+  comments: ReviewComment[];
 }
 
 const generated = (rows: StoredPrompt[]): GeneratedRow[] =>
@@ -208,6 +212,7 @@ function DesignTab({
             versions={workspace.versions.map((v) => ({
               id: v.id,
               proposal: v.proposal,
+              version: v.version,
               label: v.label,
               status: v.status,
               error: v.error,
@@ -219,7 +224,9 @@ function DesignTab({
             }))}
             approved={project.approved_version_id ? { id: project.approved_version_id, at: project.approved_at, by: project.approved_by } : null}
             offline={project.drafts_offline}
-            revisions={revisions.map((r) => ({ ...generated([r])[0], design_version_id: r.design_version_id }))}
+            revisions={revisions.map((r) => ({ ...generated([r])[0], design_version_id: r.design_version_id, client_summary: r.client_summary ?? null }))}
+            review={workspace.review}
+            comments={workspace.comments}
           />
         ) : (
           <p className="text-sm text-slate-600">
@@ -240,7 +247,7 @@ function MigrationNotice() {
   );
 }
 
-function BuildTab({ lead, company, workspace, prompts }: { lead: Lead; company: string; workspace: Workspace | null; prompts: StoredPrompt[] }) {
+function BuildTab({ lead, company, workspace, prompts, pages }: { lead: Lead; company: string; workspace: Workspace | null; prompts: StoredPrompt[]; pages: { designed: string[]; more: number } | null }) {
   const project = workspace?.project;
   const approved = workspace?.versions.find((v) => v.id === project?.approved_version_id);
   const name = project?.draft_slug ?? slugify(company);
@@ -253,7 +260,8 @@ function BuildTab({ lead, company, workspace, prompts }: { lead: Lead; company: 
             leadId={lead.id}
             schemaReady={workspace.designsReady}
             formReady={workspace.formReady}
-            approved={approved ? { label: approved.label, proposal: approved.proposal } : null}
+            approved={approved ? { proposal: approved.proposal, iteration: approved.version } : null}
+            pages={pages}
             instructions={project.dev_instructions}
             project={name}
             cms={cms}
@@ -331,11 +339,32 @@ export default async function DeveloperClientPage({
   if (schemaReady) {
     const [project, designsReady] = await Promise.all([loadProject(lead.id), designsSchemaReady()]);
     const versions = designsReady ? await loadVersions(lead.id) : [];
-    const draftBase = project.draft_slug ? `${await siteOrigin()}/drafts/${project.draft_slug}` : null;
-    workspace = { formReady, designsReady, project, versions, draftBase };
+    const origin = await siteOrigin();
+    const draftBase = project.draft_slug ? `${origin}/drafts/${project.draft_slug}` : null;
+    // The client's review link and comments arrive with migration 20261101000024.
+    const reviewReady = designsReady && (await reviewSchemaReady());
+    const token = reviewReady && project.draft_slug ? await ensureReviewToken(lead.id) : null;
+    const comments = reviewReady ? (await loadComments(lead.id)).filter((c) => c.status !== 'resolved').map(toReviewComment) : [];
+    const review: ReviewInfo = {
+      ready: reviewReady,
+      url: token && project.draft_slug ? `${origin}/review/${project.draft_slug}/${token}` : null,
+      chosen: project.chosen_proposal,
+      chosenAt: project.chosen_at,
+      chosenBy: project.chosen_by,
+      clientApproved: project.client_approved,
+    };
+    workspace = { formReady, designsReady, project, versions, draftBase, review, comments };
   }
   const kindFor: Record<DeveloperTab, 'revision' | 'build' | 'handover'> = { design: 'revision', build: 'build', handover: 'handover' };
   const tabPrompts = workspace ? await loadPrompts(lead.id, kindFor[tab]) : [];
+  // The Build tab's one-line split: the pages the approved design covers, and how many more are built in its style.
+  let buildPages: { designed: string[]; more: number } | null = null;
+  const approvedVersion = workspace?.versions.find((v) => v.id === workspace.project.approved_version_id);
+  if (tab === 'build' && approvedVersion) {
+    const brief = (await loadPrompts(lead.id, 'design')).find((p) => p.proposal === approvedVersion.proposal);
+    const lists = pageListsFromDesign(brief?.content ?? null);
+    if (lists.designed.length) buildPages = { designed: lists.designed, more: lists.notDesigned.length };
+  }
 
   const context = tab === 'design' && onboarding ? await buildPromptContext(lead, onboarding.id) : null;
   let design: DesignData | null = null;
@@ -433,7 +462,7 @@ export default async function DeveloperClientPage({
       {tab === 'design' && (
         <DesignTab leadId={lead.id} onboarding={onboarding} context={context} data={design} workspace={workspace} revisions={tabPrompts} />
       )}
-      {tab === 'build' && <BuildTab lead={lead} company={company} workspace={workspace} prompts={tabPrompts} />}
+      {tab === 'build' && <BuildTab lead={lead} company={company} workspace={workspace} prompts={tabPrompts} pages={buildPages} />}
       {tab === 'handover' && <HandoverTab lead={lead} company={company} workspace={workspace} docs={tabPrompts} />}
     </div>
   );

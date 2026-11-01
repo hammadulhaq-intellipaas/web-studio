@@ -16,6 +16,14 @@ export interface DeveloperProject {
   drafts_offline: boolean;
   live_url: string;
   cms_url: string;
+  /** The secret part of the client's review link: /review/<draft_slug>/<review_token>. */
+  review_token: string | null;
+  /** The proposal the client chose on the review link; later iterations go to it only. */
+  chosen_proposal: Proposal | null;
+  chosen_at: string | null;
+  chosen_by: string | null;
+  /** The approval came from the client's own button on the review link. */
+  client_approved: boolean;
   updated_at: string | null;
   updated_by: string | null;
 }
@@ -30,6 +38,11 @@ const EMPTY_PROJECT: Omit<DeveloperProject, 'lead_id'> = {
   drafts_offline: false,
   live_url: '',
   cms_url: '',
+  review_token: null,
+  chosen_proposal: null,
+  chosen_at: null,
+  chosen_by: null,
+  client_approved: false,
   updated_at: null,
   updated_by: null,
 };
@@ -44,6 +57,8 @@ export interface StoredPrompt {
   /** The design version a revision prompt is about. */
   design_version_id: string | null;
   content: string;
+  /** An improvement prompt's "what changed" list, shown to the client on the next iteration. */
+  client_summary?: string | null;
   model: string;
   created_by: string | null;
   created_at: string;
@@ -57,6 +72,12 @@ function missingTable(error: { code?: string } | null): boolean {
 /** Whether the Developers tables exist. Before the migration the page explains what to run. */
 export async function developerSchemaReady(): Promise<boolean> {
   const { error } = await createSupabaseAdminClient().from('developer_prompts').select('id').limit(1);
+  return !missingTable(error);
+}
+
+/** Whether migration 20261101000024 (client comments and the review link) has run. */
+export async function reviewSchemaReady(): Promise<boolean> {
+  const { error } = await createSupabaseAdminClient().from('design_comments').select('id').limit(1);
   return !missingTable(error);
 }
 
@@ -94,11 +115,19 @@ export async function loadPrompts(leadId: string, kind: PromptKind): Promise<Sto
   return (data ?? []) as StoredPrompt[];
 }
 
-type NewPrompt = Omit<StoredPrompt, 'id' | 'created_at' | 'design_version_id'> & { design_version_id?: string | null };
+type NewPrompt = Omit<StoredPrompt, 'id' | 'created_at' | 'design_version_id' | 'client_summary'> & {
+  design_version_id?: string | null;
+  client_summary?: string | null;
+};
 
-export async function insertPrompts(rows: NewPrompt[]): Promise<void> {
-  // design_version_id is only sent when set, so design prompts still save before migration 022.
-  const clean = rows.map(({ design_version_id, ...rest }) => (design_version_id ? { ...rest, design_version_id } : rest));
-  const { error } = await createSupabaseAdminClient().from('developer_prompts').insert(clean);
+/** Saves prompts and returns their ids. Optional columns are only sent when set, so older schemas still work. */
+export async function insertPrompts(rows: NewPrompt[]): Promise<string[]> {
+  const clean = rows.map(({ design_version_id, client_summary, ...rest }) => ({
+    ...rest,
+    ...(design_version_id ? { design_version_id } : {}),
+    ...(client_summary ? { client_summary } : {}),
+  }));
+  const { data, error } = await createSupabaseAdminClient().from('developer_prompts').insert(clean).select('id');
   if (error) throw new Error(`Saving the prompts failed: ${error.message}`);
+  return ((data ?? []) as { id: string }[]).map((r) => r.id);
 }
