@@ -13,6 +13,7 @@ const LINKS = [
   { href: '/admin/calendar', label: 'Calendar' },
   { href: '/admin/catalog', label: 'Catalog' },
   { href: '/admin/vouchers', label: 'Vouchers' },
+  { href: '/admin/showcase', label: 'Showcase' },
 ];
 
 export function AdminNav() {
