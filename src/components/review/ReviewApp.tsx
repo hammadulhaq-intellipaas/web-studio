@@ -143,6 +143,13 @@ function PhoneIcon() {
     </svg>
   );
 }
+function HelpIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9.5" /><path d="M9.5 9.2a2.6 2.6 0 0 1 5 .9c0 1.7-2.5 2.2-2.5 3.9" /><path d="M12 17.2h.01" />
+    </svg>
+  );
+}
 /** A box drawn around a spot, with its number: what "Mark a spot" makes. */
 function MarkIcon({ size = 18 }: { size?: number }) {
   return (
@@ -353,15 +360,17 @@ export function ReviewApp({ initial, api }: { initial: ReviewState; api: string 
 
   let step = 0;
   return (
-    <div className="flex min-h-dvh flex-col bg-[#F5F7FB] text-[#0F2440]">
+    // Tailwind gives buttons the arrow cursor: here every button shows the hand, so it reads as clickable.
+    <div className="flex min-h-dvh flex-col bg-[#F5F7FB] text-[#0F2440] [&_button:not(:disabled)]:cursor-pointer">
       <header className="flex items-center gap-3 border-b border-[#E4E9F2] bg-white px-4 py-2.5 sm:px-6">
         <Image src="/intellipaas-logo.png" alt="IntelliPaaS Web Studio" width={36} height={36} className="h-9 w-9 shrink-0" style={{ objectFit: 'cover', objectPosition: 'center 38%' }} />
         <div className="mr-auto min-w-0">
           <div className="text-[15px] font-bold leading-tight">{t.title}</div>
           <div className="truncate text-xs text-[#7A879B]">{data.company} · Web Studio</div>
         </div>
-        <button type="button" onClick={() => setGuide(true)} className="hidden rounded-lg px-2.5 py-1.5 text-sm font-medium text-[#4A5872] hover:bg-[#F5F7FB] sm:block">
-          {t.howItWorks}
+        <button type="button" onClick={() => setGuide(true)} aria-label={t.howItWorks} title={t.howItWorks}
+          className="flex shrink-0 items-center gap-1.5 rounded-full border border-[#D5DCE8] bg-white p-1.5 text-sm font-semibold text-[#1E5EFF] shadow-sm transition-colors hover:border-[#1E5EFF] hover:bg-[#EEF3FF] sm:py-1.5 sm:pl-2.5 sm:pr-3.5">
+          <HelpIcon /><span className="hidden sm:inline">{t.howItWorks}</span>
         </button>
         <LanguagePills value={lang} onChange={setLang} />
       </header>
