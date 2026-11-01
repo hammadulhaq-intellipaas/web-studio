@@ -7,7 +7,7 @@ test.describe('public funnel (en)', () => {
   test('EN funnel renders, number formatting, and toggle back to DE', async ({ page }) => {
     await page.goto('/en');
     await expect(
-      page.getByRole('heading', { name: 'Your new website — configured in just a few minutes.' }),
+      page.getByRole('heading', { name: 'Your new website, configured in just a few minutes.' }),
     ).toBeVisible();
     await page.getByRole('button', { name: 'Start now' }).click();
     await expect(page.getByRole('heading', { name: 'Who are you?' })).toBeVisible();

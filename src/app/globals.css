@@ -484,6 +484,19 @@ html[data-unsaved] [data-funnel-root] {
   }
 }
 
+/* Site footer on phones (quote form, onboarding form, legal pages): the brand and copyright
+   above the links, both on the left, never one row that wraps wherever it runs out of room. */
+@media (max-width: 640px) {
+  .site-footer-row {
+    flex-direction: column;
+    align-items: flex-start !important;
+    padding: 18px 16px !important;
+  }
+  .site-footer-brand {
+    flex-direction: column;
+  }
+}
+
 /* Configurator support plans (four of them): 2 x 2, four in a row only when the column has
    room for readable cards, one per row on small phones. Never the lopsided 3 + 1. */
 .support-grid {

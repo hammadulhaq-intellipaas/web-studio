@@ -3,45 +3,51 @@
 import { useTranslations } from 'next-intl';
 import NextLink from 'next/link';
 import { Link } from '@/i18n/navigation';
-import { BORDER, INK, MUTED } from './ui';
-import { LockIcon } from './ui';
+import { BODY, BORDER, INK } from './ui';
 
-export function Footer() {
+const linkStyle = { color: BODY, textDecoration: 'none' } as const;
+
+/**
+ * The one site footer, shared by the configurator, the onboarding form and the legal pages:
+ * brand and copyright on the left, the legal links on the right, stacked on phones
+ * (`.site-footer-*` in globals.css). The admin link is for a signed-in team member only.
+ */
+export function Footer({ showAdminLink = false }: { showAdminLink?: boolean }) {
   const t = useTranslations('common');
 
   return (
     <footer style={{ borderTop: `1px solid ${BORDER}`, background: '#ffffff' }}>
       <div
+        className="site-footer-row"
         style={{
           maxWidth: 1140,
           margin: '0 auto',
-          padding: '18px 24px',
+          padding: '20px 24px',
           display: 'flex',
-          flexWrap: 'wrap',
           alignItems: 'center',
-          gap: 18,
-          fontSize: 12.5,
-          color: MUTED,
+          justifyContent: 'space-between',
+          gap: '12px 32px',
+          fontSize: 13,
+          color: BODY,
         }}
       >
-        <span style={{ fontWeight: 700, color: INK }}>{t('footerBrand')}</span>
-        <Link href="/impressum" className="hov-blue-text" style={{ color: MUTED, textDecoration: 'none' }}>
-          {t('impressum')}
-        </Link>
-        <Link href="/datenschutz" className="hov-blue-text" style={{ color: MUTED, textDecoration: 'none' }}>
-          {t('datenschutz')}
-        </Link>
-        <NextLink
-          href="/admin"
-          className="hov-blue-text"
-          style={{ color: '#B9C6DB', fontSize: 11.5, fontWeight: 600, textDecoration: 'none' }}
-        >
-          {t('adminLink')}
-        </NextLink>
-        <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-          <LockIcon color={MUTED} />
-          {t('footerBadges')}
-        </span>
+        <div className="site-footer-brand" style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: '2px 14px' }}>
+          <span style={{ fontWeight: 700, color: INK }}>{t('footerBrand')}</span>
+          <span>{t('footerCopyright', { year: new Date().getFullYear() })}</span>
+        </div>
+        <nav style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px 20px' }}>
+          <Link href="/impressum" className="hov-blue-text" style={linkStyle}>
+            {t('impressum')}
+          </Link>
+          <Link href="/datenschutz" className="hov-blue-text" style={linkStyle}>
+            {t('datenschutz')}
+          </Link>
+          {showAdminLink && (
+            <NextLink href="/admin" className="hov-blue-text" style={linkStyle} data-testid="footer-admin-link">
+              {t('adminLink')}
+            </NextLink>
+          )}
+        </nav>
       </div>
     </footer>
   );

@@ -14,7 +14,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: 'IntelliPaaS Web Studio',
-  description: 'Ihre neue Website — in wenigen Minuten konfiguriert.',
+  description: 'Ihre neue Website, in wenigen Minuten konfiguriert.',
 };
 
 export function generateStaticParams() {

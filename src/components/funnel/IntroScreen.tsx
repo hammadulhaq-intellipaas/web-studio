@@ -1,11 +1,10 @@
 'use client';
 
-import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
 import type { Catalog, Locale } from '@/lib/types';
 import { lt } from '@/lib/types';
 import { useFunnel } from '@/stores/funnel';
-import { BODY, BORDER, CheckIcon, gradButton, INK } from './ui';
+import { BODY, CheckIcon, gradButton } from './ui';
 
 export function IntroScreen({ catalog }: { catalog: Catalog }) {
   const t = useTranslations('intro');
@@ -23,7 +22,7 @@ export function IntroScreen({ catalog }: { catalog: Catalog }) {
         flexDirection: 'column',
         alignItems: 'center',
         textAlign: 'center',
-        padding: '72px 0 80px',
+        padding: 'clamp(56px,9vw,104px) 0 clamp(64px,9vw,104px)',
       }}
     >
       {notice === 'link_dead' && (
@@ -44,14 +43,6 @@ export function IntroScreen({ catalog }: { catalog: Catalog }) {
           {tq('linkDead')}
         </div>
       )}
-      <Image
-        src="/intellipaas-logo.png"
-        alt=""
-        width={110}
-        height={110}
-        priority
-        style={{ height: 110, width: 'auto', marginBottom: 8 }}
-      />
       <h1
         style={{
           fontSize: 'clamp(30px,4.5vw,46px)',
@@ -77,37 +68,6 @@ export function IntroScreen({ catalog }: { catalog: Catalog }) {
       >
         {t('sub')}
       </p>
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          justifyContent: 'center',
-          gap: 10,
-          marginBottom: 36,
-          maxWidth: 660,
-        }}
-      >
-        {catalog.trustItems.map((item) => (
-          <span
-            key={item.de}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 7,
-              fontSize: 13,
-              fontWeight: 600,
-              color: INK,
-              background: '#ffffff',
-              border: `1px solid ${BORDER}`,
-              borderRadius: 999,
-              padding: '8px 14px',
-            }}
-          >
-            <CheckIcon />
-            {lt(item, locale)}
-          </span>
-        ))}
-      </div>
       <button
         onClick={() => startSession()}
         className="hov-cta"
@@ -122,6 +82,33 @@ export function IntroScreen({ catalog }: { catalog: Catalog }) {
       >
         {t('cta')}
       </button>
+      {/* The trust points as one quiet line under the button, not a row of pills. Each point
+          keeps its check mark when the line wraps on a phone. */}
+      {catalog.trustItems.length > 0 && (
+        <ul
+          data-testid="intro-trust"
+          style={{
+            listStyle: 'none',
+            margin: '26px 0 0',
+            padding: 0,
+            maxWidth: 880,
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
+            gap: '8px 22px',
+          }}
+        >
+          {catalog.trustItems.map((item) => (
+            <li
+              key={item.de}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13.5, fontWeight: 500, color: BODY, whiteSpace: 'nowrap' }}
+            >
+              <CheckIcon />
+              {lt(item, locale)}
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

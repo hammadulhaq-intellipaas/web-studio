@@ -8,14 +8,18 @@ import { BLUE, BORDER, INK, MUTED } from '@/components/funnel/ui';
 
 /**
  * Same chrome as the configurator header (logo, Web Studio badge, DE/EN) with an optional
- * progress bar and a "save and come back later" control supplied by the shell.
+ * progress bar and a "save and come back later" control supplied by the shell. The legal
+ * pages use it too, with the logo leading back to the homepage.
  */
 export function OnboardingHeader({
+  homeHref = '/onboardingform',
   progress,
   stepLabel,
   onLocaleChange,
   actions,
 }: {
+  /** Where the logo leads. */
+  homeHref?: string;
   /** 0–100, or undefined for pages without a progress bar. */
   progress?: number;
   stepLabel?: string;
@@ -46,7 +50,7 @@ export function OnboardingHeader({
         }}
       >
         <Link
-          href="/onboardingform"
+          href={homeHref}
           title={t('logoAlt')}
           className="hov-fade site-brand-link"
           style={{ display: 'flex', alignItems: 'center', gap: 14, textDecoration: 'none', minWidth: 0 }}

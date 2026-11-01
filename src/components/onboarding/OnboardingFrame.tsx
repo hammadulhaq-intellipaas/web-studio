@@ -1,8 +1,8 @@
 import { Footer } from '@/components/funnel/Footer';
 
 /**
- * Page chrome shared by every onboarding screen: the same page background, type and
- * footer as the configurator, so the two feel like one product.
+ * Page chrome shared by every onboarding screen and the legal pages: the same page
+ * background, type and footer as the configurator, so it all feels like one product.
  */
 export function OnboardingFrame({ header, children }: { header: React.ReactNode; children: React.ReactNode }) {
   return (

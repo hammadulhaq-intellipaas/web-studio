@@ -63,7 +63,7 @@ export function FunnelShell({ catalog, teamEmail = null }: { catalog: Catalog; t
           <DoneScreen catalog={catalog} />
         )}
       </main>
-      <Footer />
+      <Footer showAdminLink={!!teamEmail} />
       {hydrated && <UnsavedChangesBar />}
     </div>
     </CatalogProvider>

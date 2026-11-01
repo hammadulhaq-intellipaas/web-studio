@@ -1,17 +1,17 @@
 {
   "common": {
     "back": "← Back",
-    "logoAlt": "IntelliPaaS.io — to the homepage",
+    "logoAlt": "To the IntelliPaaS.io homepage",
     "webStudio": "Web Studio",
     "stepOf": "Step {num} of {total}",
     "footerBrand": "IntelliPaaS.io Web Studio",
     "impressum": "Legal notice",
     "datenschutz": "Privacy policy",
     "adminLink": "Price management",
-    "footerBadges": "GDPR-compliant · SSL-encrypted (256-bit) · Secured by Cloudflare · Servers in DE/EU/US"
+    "footerCopyright": "© {year} IntelliPaaS Inc."
   },
   "intro": {
-    "headline": "Your new website — configured in just a few minutes.",
+    "headline": "Your new website, configured in just a few minutes.",
     "sub": "Answer a few questions and instantly get a suitable package with a price. No obligation.",
     "cta": "Start now"
   },
