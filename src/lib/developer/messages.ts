@@ -4,12 +4,14 @@ export type Proposal = 'A' | 'B';
 export const PROPOSALS: Proposal[] = ['A', 'B'];
 
 /**
- * The reference website each proposal starts from: the client's first and second pick. One
- * pick means both proposals start on it (the team switches one in the Design tab); none means
- * both work from the client's answers alone.
+ * The reference each proposal starts from: the client's first and second pick from our library.
+ * Their own references (a link they typed, their screenshots) fill a proposal the library picks
+ * leave open. One source means both proposals start on it (the team switches one in the Design
+ * tab); none means both work from the client's answers alone.
  */
-export function defaultReferences(picks: string[]): Record<Proposal, string | null> {
-  return { A: picks[0] ?? null, B: picks[1] ?? picks[0] ?? null };
+export function defaultReferences(picks: string[], clientSources: string[] = []): Record<Proposal, string | null> {
+  if (picks.length) return { A: picks[0], B: picks[1] ?? clientSources[0] ?? picks[0] };
+  return { A: clientSources[0] ?? null, B: clientSources[1] ?? clientSources[0] ?? null };
 }
 
 /** Proposal A and B are shown and sent to the model as 1 and 2. */
@@ -20,6 +22,10 @@ export interface ReferenceForPrompt {
   name: string;
   url: string | null;
   spec: string | null;
+  /** Set for the client's own references; a library website has none. */
+  source?: 'client_link' | 'client_screenshots';
+  /** Why there is no spec, or how it was made: shown to the model next to the spec. */
+  note?: string | null;
 }
 
 /**
@@ -42,7 +48,15 @@ export function designPromptInput(
         section: s.title,
         items: s.answers.filter((a) => a.key !== 'references').map((a) => ({ question: a.question, answer: a.answer })),
       })),
-      reference_website: reference ? { name: reference.name, url: reference.url, spec: reference.spec } : null,
+      reference_website: reference
+        ? {
+            name: reference.name,
+            url: reference.url,
+            ...(reference.source ? { source: reference.source } : {}),
+            ...(reference.note ? { note: reference.note } : {}),
+            spec: reference.spec,
+          }
+        : null,
       other_references: own?.answer ?? null,
       uploaded_files: context.files,
       internal_notes: internalNotes.trim() || null,

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { LocalTime } from '@/components/admin/LocalTime';
 
 /** A generated prompt: rendered for reading, copied as the raw Markdown it is pasted as. */
@@ -53,8 +54,9 @@ export function PromptView({
           {copied ? 'Copied' : copyLabel}
         </button>
       </div>
-      <div className="max-h-[520px] overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 px-5 py-4 text-sm leading-relaxed text-slate-800 [&_h1]:mb-3 [&_h1]:text-lg [&_h1]:font-extrabold [&_h2]:mb-1.5 [&_h2]:mt-5 [&_h2]:text-base [&_h2]:font-bold [&_h3]:mb-1 [&_h3]:mt-4 [&_h3]:font-bold [&_li]:my-0.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-2 [&_table]:my-3 [&_td]:border [&_td]:border-slate-200 [&_td]:px-2 [&_td]:py-1 [&_th]:border [&_th]:border-slate-200 [&_th]:px-2 [&_th]:py-1 [&_th]:text-left [&_ul]:list-disc [&_ul]:pl-5">
-        <ReactMarkdown>{content}</ReactMarkdown>
+      <div className="max-h-[520px] overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 px-5 py-4 text-sm leading-relaxed text-slate-800 [&_h1]:mb-3 [&_h1]:text-lg [&_h1]:font-extrabold [&_h2]:mb-1.5 [&_h2]:mt-5 [&_h2]:text-base [&_h2]:font-bold [&_h3]:mb-1 [&_h3]:mt-4 [&_h3]:font-bold [&_li]:my-0.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-2 [&_pre]:my-3 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-white [&_pre]:p-3 [&_pre]:text-xs [&_table]:my-3 [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto [&_td]:border [&_td]:border-slate-200 [&_td]:px-2 [&_td]:py-1 [&_th]:border [&_th]:border-slate-200 [&_th]:px-2 [&_th]:py-1 [&_th]:text-left [&_ul]:list-disc [&_ul]:pl-5">
+        {/* GFM: the tables of the reference specs and the handover document. */}
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
       </div>
     </div>
   );

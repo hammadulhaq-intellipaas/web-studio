@@ -32,7 +32,8 @@ const nextConfig: NextConfig = {
   // The screenshot route needs the packed Chromium, which nothing imports, and all of
   // playwright-core: it loads files such as browsers.json in ways the tracer cannot follow.
   outputFileTracingIncludes: {
-    '/admin/developer/**': ['./docs/reference-specs/**/*'],
+    // The Design tab also reads a client's own reference website in the same browser.
+    '/admin/developer/**': ['./docs/reference-specs/**/*', packageFiles('@sparticuz/chromium', 'bin/**'), packageFiles('playwright-core', '**')],
     '/api/developer/**': ['./docs/reference-specs/**/*'],
     '/api/showcase/screenshot': [packageFiles('@sparticuz/chromium', 'bin/**'), packageFiles('playwright-core', '**')],
   },

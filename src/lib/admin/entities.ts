@@ -366,7 +366,7 @@ export const ENTITIES: Record<string, EntityDef> = {
     label: 'AI prompts',
     group: 'Onboarding form',
     description:
-      'The texts that steer the assistant: system (tone + hard rules), completeness, brief, assist, and the four Developers page texts: dev_design (Claude Design prompts), dev_revision (revision prompts from client feedback), dev_build (the Claude Code build prompt) and dev_handover (the handover document for the client). The code enforces the hard rules a second time, so an edit here can change tone but not let a price or an invented fact through.',
+      'The texts that steer the assistant: system (tone + hard rules), completeness, brief, assist, and the five Developers page texts: dev_design (Claude Design prompts), dev_revision (revision prompts from client feedback), dev_build (the Claude Code build prompt), dev_handover (the handover document for the client) and dev_reference_spec (the reference spec written from a website link or pictures the client gave). The code enforces the hard rules a second time, so an edit here can change tone but not let a price or an invented fact through.',
     canCreate: false,
     canDelete: false,
     orderBy: 'id',

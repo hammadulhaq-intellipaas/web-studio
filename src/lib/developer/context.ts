@@ -6,9 +6,13 @@ import { exportRecord } from '@/lib/onboarding/export';
 import { loadFiles, loadForm, publicFiles } from '@/lib/onboarding/records';
 import type { Locale } from '@/lib/types';
 import type { Lead } from '@/lib/types';
+import type { ClientReference, ClientShot } from './reference-sources';
 
 /** The onboarding field holding the client's picks from our reference websites. */
 export const REFERENCE_FIELD = 'reference_sites';
+/** The client's own reference links (up to 3, with likes and dislikes) and pictures. */
+export const CLIENT_REFERENCES_FIELD = 'references';
+export const REFERENCE_SHOTS_FIELD = 'reference_screenshots';
 
 const SLUG = /^[a-z0-9-]+$/;
 
@@ -52,6 +56,10 @@ export interface PromptContext {
   sections: ContextSection[];
   referenceSites: ContextReference[];
   files: { question: string; name: string; type: string }[];
+  /** The client's own reference links, as they typed them, with what they like and dislike. */
+  clientReferences: ClientReference[];
+  /** The pictures the client uploaded as references (screenshots, a brochure, anything). */
+  referenceShots: ClientShot[];
   status: string;
   confirmedAt: string | null;
 }
@@ -90,6 +98,14 @@ export async function buildPromptContext(lead: Lead, formId: string): Promise<Pr
     }),
   );
 
+  const rows = record.answers[CLIENT_REFERENCES_FIELD]?.v;
+  const clientReferences: ClientReference[] = (Array.isArray(rows) ? (rows as Record<string, unknown>[]) : [])
+    .map((r) => ({ url: String(r?.url ?? '').trim(), likes: String(r?.likes ?? '').trim(), dislikes: String(r?.dislikes ?? '').trim() }))
+    .filter((r) => r.url);
+  const referenceShots: ClientShot[] = stored
+    .filter((f) => f.field_key === REFERENCE_SHOTS_FIELD)
+    .map((f) => ({ id: f.id, name: f.file_name, type: f.mime_type ?? '', bucket: f.bucket, path: f.storage_path }));
+
   const labelOf = (key: string | null) => definition.fields.find((f) => f.id === key)?.label_en ?? key ?? 'Upload';
   return {
     client: {
@@ -105,6 +121,8 @@ export async function buildPromptContext(lead: Lead, formId: string): Promise<Pr
     sections,
     referenceSites,
     files: files.map((f) => ({ question: labelOf(f.field_key), name: f.file_name, type: f.mime_type })),
+    clientReferences,
+    referenceShots,
     status: record.status,
     confirmedAt: record.confirmed?.at ?? null,
   };

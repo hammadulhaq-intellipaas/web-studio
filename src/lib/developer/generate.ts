@@ -5,10 +5,11 @@ import { getLanguageModel } from '@/lib/ai/provider';
 import { fixtureMode, modelConfigured } from '@/lib/onboarding/ai/client';
 import { getOnboardingDefinition, getOnboardingSecrets } from '@/lib/onboarding/definition';
 import { redactSecrets, stripDashes } from '@/lib/onboarding/guardrails';
+import { normalizeSiteUrl } from '@/lib/showcase/shared';
 import type { PromptId } from '@/lib/onboarding/types';
 import { loadDeveloperClient } from './clients';
 import { loadComments, markAddressed, type DesignComment } from './comments';
-import { buildPromptContext, loadReferenceSpec, REFERENCE_FIELD } from './context';
+import { buildPromptContext, loadReferenceSpec, REFERENCE_FIELD, REFERENCE_SHOTS_FIELD, type PromptContext } from './context';
 import { loadVersions } from './designs';
 import { slugify } from './drafts';
 import { promptsReady } from './filters';
@@ -27,19 +28,38 @@ import {
   type Proposal,
   type ReferenceForPrompt,
 } from './messages';
-import { DEV_BUILD_PROMPT, DEV_DESIGN_PROMPT, DEV_HANDOVER_PROMPT, DEV_REVISION_PROMPT } from './prompt-defaults';
+import { DEV_BUILD_PROMPT, DEV_DESIGN_PROMPT, DEV_HANDOVER_PROMPT, DEV_REFERENCE_SPEC_PROMPT, DEV_REVISION_PROMPT } from './prompt-defaults';
+import {
+  CLIENT_SHOTS,
+  clientLinkIndex,
+  clientSourceLabel,
+  domainOf,
+  isClientSource,
+  isReadableShot,
+  readingSummary,
+  shotsInput,
+  SHOT_MAX_BYTES,
+  SHOT_MAX_COUNT,
+  siteInput,
+  sourceKey,
+  SPEC_SECTIONS,
+  specCheck,
+} from './reference-sources';
+import { latestSpec, referenceSpecsReady, saveSpec, SPEC_MAX_AGE_DAYS } from './reference-specs';
+import { readSite, SiteReadError } from './site-reader';
 import { cmsBooked } from './setup';
 import { designsSchemaReady, developerSchemaReady, insertPrompts, loadProject, loadPrompts, reviewSchemaReady } from './store';
 
 export type GenerateResult = { ok: true } | { ok: false; error: string };
 
-type DevPromptId = Extract<PromptId, 'dev_design' | 'dev_revision' | 'dev_build' | 'dev_handover'>;
+type DevPromptId = Extract<PromptId, 'dev_design' | 'dev_revision' | 'dev_build' | 'dev_handover' | 'dev_reference_spec'>;
 
 const DEFAULTS: Record<DevPromptId, string> = {
   dev_design: DEV_DESIGN_PROMPT,
   dev_revision: DEV_REVISION_PROMPT,
   dev_build: DEV_BUILD_PROMPT,
   dev_handover: DEV_HANDOVER_PROMPT,
+  dev_reference_spec: DEV_REFERENCE_SPEC_PROMPT,
 };
 
 /** Canned output for e2e runs (ONBOARDING_AI_FIXTURE=1): no key, no cost, deterministic. */
@@ -49,6 +69,7 @@ function fixtureText(job: DevPromptId, company: string, detail: string): string 
     dev_revision: `# Design improvement: ${company}, ${detail}`,
     dev_build: `# Build: ${company}`,
     dev_handover: `# ${company} Website Handoff`,
+    dev_reference_spec: `# ${detail}: reference spec\n\n${SPEC_SECTIONS.map((t, i) => `## ${i + 1}. ${t}\nFixture text.`).join('\n\n')}`,
   };
   const tail: Partial<Record<DevPromptId, string>> = {
     dev_design: '\n\n## Pages not designed yet\n- Impressum',
@@ -99,10 +120,18 @@ async function runModel(opts: {
   modelId: string;
   system: string;
   prompt: string;
+  /** Pictures the model looks at together with the prompt, in the order the prompt names them. */
+  pictures?: { image: Buffer; mediaType: string }[];
   fixture: string;
   check?: (text: string) => string | null;
 }): Promise<string> {
   const started = Date.now();
+  const pictures = opts.pictures ?? [];
+  // The log keeps the text; the pictures are only counted.
+  const logged = pictures.length ? `${opts.prompt}\n\n[${pictures.length} pictures attached]` : opts.prompt;
+  const question = pictures.length
+    ? { role: 'user' as const, content: [{ type: 'text' as const, text: opts.prompt }, ...pictures.map((p) => ({ type: 'image' as const, image: p.image, mediaType: p.mediaType }))] }
+    : { role: 'user' as const, content: opts.prompt };
   let content: string;
   if (fixtureMode()) {
     content = opts.fixture;
@@ -110,7 +139,7 @@ async function runModel(opts: {
     try {
       const model = getLanguageModel(opts.modelId);
       // A full multi-page brief runs to about 10k output tokens plus reasoning; leave headroom.
-      const first = await generateText({ model, system: opts.system, prompt: opts.prompt, maxOutputTokens: 20000 });
+      const first = await generateText({ model, system: opts.system, messages: [question], maxOutputTokens: 20000 });
       if (first.finishReason === 'length') throw new Error('the model ran out of room before finishing; try again');
       content = first.text;
       const correction = opts.check?.(content);
@@ -118,23 +147,19 @@ async function runModel(opts: {
         const again = await generateText({
           model,
           system: opts.system,
-          messages: [
-            { role: 'user', content: opts.prompt },
-            { role: 'assistant', content },
-            { role: 'user', content: correction },
-          ],
+          messages: [question, { role: 'assistant', content }, { role: 'user', content: correction }],
           maxOutputTokens: 20000,
         });
         if (again.finishReason !== 'length' && again.text.trim()) content = again.text;
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      await logCall(opts.formId, opts.job, opts.system, opts.prompt, opts.modelId, false, { error: message }, Date.now() - started);
+      await logCall(opts.formId, opts.job, opts.system, logged, opts.modelId, false, { error: message }, Date.now() - started);
       throw new Error(message);
     }
   }
   content = stripDashes(content.trim());
-  await logCall(opts.formId, opts.job, opts.system, opts.prompt, opts.modelId, true, { text: content }, Date.now() - started);
+  await logCall(opts.formId, opts.job, opts.system, logged, opts.modelId, true, { text: content }, Date.now() - started);
   return content;
 }
 
@@ -155,12 +180,136 @@ async function prepare(leadId: string, needsDesigns: boolean) {
   if (!context) return { error: 'The onboarding form could not be loaded.' } as const;
   const modelId = fixtureMode() ? 'fixture' : definition.settings.model;
   const company = context.client.company ?? lead.firma ?? 'Client';
-  const referenceName = (slug: string | null) =>
-    slug ? (definition.fields.find((f) => f.id === REFERENCE_FIELD)?.options.find((o) => o.value === slug)?.label_en ?? slug) : null;
+  const referenceName = (slug: string | null) => {
+    if (!slug) return null;
+    if (isClientSource(slug)) return clientSourceLabel(slug, context.clientReferences, context.referenceShots) ?? slug;
+    return definition.fields.find((f) => f.id === REFERENCE_FIELD)?.options.find((o) => o.value === slug)?.label_en ?? slug;
+  };
   return { lead, onboarding, context, definition, project, modelId, company, referenceName } as const;
 }
 
 const failure = (err: unknown): GenerateResult => ({ ok: false, error: err instanceof Error ? err.message : String(err) });
+
+/** One of the client's own references, by its choice value: what it is and where its spec is kept. */
+function clientSource(value: string, context: PromptContext, leadId: string) {
+  if (value === CLIENT_SHOTS) {
+    const shots = context.referenceShots.filter(isReadableShot);
+    if (!shots.length) return null;
+    const label = clientSourceLabel(value, context.clientReferences, context.referenceShots) ?? "The client's screenshots";
+    return { kind: 'screenshots' as const, label, typed: '', url: null, shots, key: sourceKey({ kind: 'screenshots', leadId, shots }) };
+  }
+  const index = clientLinkIndex(value);
+  const ref = index === null ? undefined : context.clientReferences[index];
+  if (!ref) return null;
+  // Opened by our server's browser: public web addresses only (no IPs, no internal names).
+  const url = normalizeSiteUrl(ref.url);
+  return { kind: 'link' as const, label: `The client's link: ${domainOf(ref.url)}`, typed: ref.url, url, shots: [], key: url ? sourceKey({ kind: 'link', url }) : null };
+}
+
+/** Where the spec of each of the client's own references is kept, by choice value (for the Design tab). */
+export function clientSpecKeys(context: PromptContext, leadId: string, values: string[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const value of values) {
+    const key = clientSource(value, context, leadId)?.key;
+    if (key) out[value] = key;
+  }
+  return out;
+}
+
+/** The client's pictures as the model gets them; files it cannot look at are named, not sent. */
+async function loadShots(shots: PromptContext['referenceShots'], question: string) {
+  const db = createSupabaseAdminClient();
+  const pictures: { image: Buffer; mediaType: string }[] = [];
+  const meta: { name: string; question: string }[] = [];
+  const skipped: string[] = [];
+  for (const shot of shots) {
+    if (pictures.length >= SHOT_MAX_COUNT) {
+      skipped.push(`${shot.name} (only the first ${SHOT_MAX_COUNT} pictures are used)`);
+      continue;
+    }
+    const { data, error } = await db.storage.from(shot.bucket).download(shot.path);
+    if (error || !data) {
+      skipped.push(`${shot.name} (could not be loaded)`);
+      continue;
+    }
+    if (data.size > SHOT_MAX_BYTES) {
+      skipped.push(`${shot.name} (larger than 8 MB)`);
+      continue;
+    }
+    const type = shot.type.toLowerCase();
+    pictures.push({ image: Buffer.from(await data.arrayBuffer()), mediaType: type === 'image/jpg' ? 'image/jpeg' : type });
+    meta.push({ name: shot.name, question });
+  }
+  return { pictures, meta, skipped };
+}
+
+export type SpecResult = { ok: true; cached: boolean; summary: string } | { ok: false; error: string };
+
+/**
+ * Writes the reference spec for one of the client's own references, a link they gave or their
+ * pictures, in the 13 sections of the library specs, and keeps it for the design prompt. A
+ * website read in the last 30 days is not read again unless `force` is set.
+ */
+export async function generateReferenceSpec(leadId: string, value: string, force: boolean, by: string | null): Promise<SpecResult> {
+  const ready = await prepare(leadId, false);
+  if ('error' in ready) return { ok: false, error: ready.error as string };
+  const { onboarding, context, definition, project, modelId, company } = ready;
+  if (project.approved_version_id) return { ok: false, error: 'The design is approved and locked. Reopen it first.' };
+  if (!(await referenceSpecsReady())) return { ok: false, error: 'Run migration 20261103000028 first.' };
+  const source = clientSource(value, context, leadId);
+  if (!source || !source.key) {
+    return { ok: false, error: source ? `"${source.typed}" is not a public web address, so it cannot be read.` : "This reference is not in the client's form." };
+  }
+
+  try {
+    if (!force) {
+      const cached = await latestSpec(source.key, source.kind === 'link' ? SPEC_MAX_AGE_DAYS : undefined);
+      if (cached) return { ok: true, cached: true, summary: cached.summary ?? '' };
+    }
+    let input: string;
+    let pictures: { image: Buffer; mediaType: string }[];
+    let summary: string;
+    if (source.kind === 'link') {
+      const reading = await readSite(source.url!);
+      input = siteInput(reading);
+      pictures = reading.pictures;
+      summary = readingSummary(reading);
+    } else {
+      const question = definition.fields.find((f) => f.id === REFERENCE_SHOTS_FIELD)?.label_en ?? 'Screenshots of what you like';
+      const loaded = await loadShots(source.shots, question);
+      const notPictures = context.referenceShots.filter((s) => !isReadableShot(s)).map((s) => `${s.name} (not a picture)`);
+      const skipped = [...notPictures, ...loaded.skipped];
+      if (!loaded.pictures.length) return { ok: false, error: "None of the client's pictures could be loaded (JPG, PNG, WebP or GIF, up to 8 MB each)." };
+      input = shotsInput(company, loaded.meta, skipped, new Date().toISOString());
+      pictures = loaded.pictures;
+      summary = `Made from ${loaded.pictures.length} ${loaded.pictures.length === 1 ? 'picture' : 'pictures'}${skipped.length ? `; not used: ${skipped.join(', ')}` : ''}.`;
+    }
+    const content = await runModel({
+      formId: onboarding.id,
+      job: 'dev_reference_spec',
+      modelId,
+      system: await instructionFor('dev_reference_spec'),
+      prompt: input,
+      pictures,
+      fixture: fixtureText('dev_reference_spec', company, source.label),
+      check: specCheck,
+    });
+    await saveSpec({
+      source_key: source.key,
+      kind: source.kind,
+      url: source.kind === 'link' ? source.url : null,
+      lead_id: source.kind === 'screenshots' ? leadId : null,
+      content,
+      summary,
+      model: modelId,
+      created_by: by,
+    });
+    return { ok: true, cached: false, summary };
+  } catch (err) {
+    if (err instanceof SiteReadError) return { ok: false, error: `${domainOf(source.url ?? '')}: ${err.message}` };
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
 
 /**
  * Generates the Claude Design prompts for Proposal A and B and stores them as a new version.
@@ -177,8 +326,28 @@ export async function generateDesignProposals(
   if (project.approved_version_id) return { ok: false, error: 'The design is approved and locked. Reopen it first.' };
 
   const options = definition.fields.find((f) => f.id === REFERENCE_FIELD)?.options ?? [];
+  const specsReady = await referenceSpecsReady();
   const resolve = async (slug: string | null): Promise<ReferenceForPrompt | null> => {
     if (!slug) return null;
+    if (isClientSource(slug)) {
+      // The client's own reference: its spec was written a moment ago (generateReferenceSpec).
+      const source = clientSource(slug, context, leadId);
+      if (!source) return null;
+      const row = source.key && specsReady ? await latestSpec(source.key) : null;
+      const note = !row
+        ? 'No spec could be made for this reference. Follow what the client says about it in other_references.'
+        : source.kind === 'link'
+          ? 'Spec written automatically from a quick read of the website: exact measurements, fewer pages than a library spec.'
+          : "Spec written from the client's pictures only.";
+      return {
+        slug,
+        name: source.label,
+        url: source.kind === 'link' ? (source.url ?? source.typed) : null,
+        source: source.kind === 'link' ? 'client_link' : 'client_screenshots',
+        note,
+        spec: row?.content ?? null,
+      };
+    }
     const option = options.find((o) => o.value === slug);
     return { slug, name: option?.label_en ?? slug, url: option?.url ?? null, spec: await loadReferenceSpec(slug) };
   };

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { generateDesign, saveInternalNotes } from '@/app/admin/developer/[id]/actions';
+import { generateDesign, makeReferenceSpec, saveInternalNotes } from '@/app/admin/developer/[id]/actions';
 import { LocalTime } from '@/components/admin/LocalTime';
 import { PromptView } from './PromptView';
 
@@ -9,6 +9,16 @@ export interface ReferenceChoice {
   value: string;
   label: string;
   pickedByClient: boolean;
+  /** The client's own link or pictures, or one of our 11 library websites. */
+  group?: 'client' | 'library';
+}
+
+/** A reference spec written on the spot from one of the client's own references. */
+export interface ReferenceSpecView {
+  content: string;
+  summary: string | null;
+  model: string;
+  created_at: string;
 }
 
 export interface DesignPromptRow {
@@ -33,6 +43,9 @@ interface Props {
   choices: ReferenceChoice[];
   defaults: { A: string | null; B: string | null };
   prompts: DesignPromptRow[];
+  /** Migration 20261103000028 has run: the client's own references can be chosen. */
+  specsReady: boolean;
+  specs: Record<string, ReferenceSpecView>;
 }
 
 const NONE = '';
@@ -80,19 +93,97 @@ function NotesEditor({ leadId, initial, disabled }: { leadId: string; initial: s
   );
 }
 
-export function DesignPromptsPanel({ leadId, formReady, schemaReady, locked, notes, choices, defaults, prompts }: Props) {
+/** The spec a proposal was built from, when it follows one of the client's own references. */
+function SpecBlock({ spec, label, onRead, busy, disabled, testId }: { spec: ReferenceSpecView | undefined; label: string; onRead: () => void; busy: boolean; disabled: boolean; testId: string }) {
+  const again = (
+    <button
+      type="button"
+      onClick={onRead}
+      disabled={disabled || busy}
+      className="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      {busy ? 'Reading…' : spec ? 'Read it again' : 'Try again'}
+    </button>
+  );
+  if (!spec) {
+    return (
+      <div className="mb-3 flex flex-wrap items-center gap-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900" data-testid={testId}>
+        <span className="min-w-0 flex-1">No spec could be made from {label}, so this proposal follows the client&apos;s description of it.</span>
+        {again}
+      </div>
+    );
+  }
+  return (
+    <details className="mb-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2" data-testid={testId}>
+      <summary className="cursor-pointer text-sm">
+        <span className="font-semibold">Reference spec from {label}</span>
+        <span className="text-xs text-slate-500">
+          {' '}
+          · <LocalTime iso={spec.created_at} /> · {spec.model}
+          {spec.summary ? ` · ${spec.summary}` : ''}
+        </span>
+      </summary>
+      <div className="mt-2 flex justify-end">{again}</div>
+      <div className="mt-2">
+        <PromptView content={spec.content} copyLabel="Copy spec" />
+      </div>
+    </details>
+  );
+}
+
+export function DesignPromptsPanel({ leadId, formReady, schemaReady, locked, notes, choices, defaults, prompts, specsReady, specs }: Props) {
   const [refs, setRefs] = useState({ A: defaults.A ?? NONE, B: defaults.B ?? NONE });
   const [error, setError] = useState<string | null>(null);
-  const [pending, start] = useTransition();
+  const [warnings, setWarnings] = useState<string[]>([]);
+  const [step, setStep] = useState<string | null>(null);
+  const [reading, setReading] = useState<string | null>(null);
+  // A plain flag, not a transition: a transition would hold back the step texts until the end.
+  const [pending, setPending] = useState(false);
   const canGenerate = formReady && schemaReady && !locked && !pending;
   const nameOf = (slug: string | null) => (slug ? choices.find((c) => c.value === slug)?.label ?? slug : "the client's answers");
+  const isOwn = (value: string | null) => !!value && choices.some((c) => c.value === value && c.group === 'client');
+  const own = choices.filter((c) => c.group === 'client');
+  const library = choices.filter((c) => c.group !== 'client');
 
-  const generate = () =>
-    start(async () => {
-      setError(null);
+  /** Reads the client's own references first (one step each), then writes both proposals. */
+  const generate = async () => {
+    setPending(true);
+    setError(null);
+    setWarnings([]);
+    const notes: string[] = [];
+    try {
+      for (const value of [...new Set([refs.A, refs.B].filter(isOwn))]) {
+        const label = nameOf(value);
+        setStep(label.includes('screenshots') ? "Looking at the client's pictures and writing their spec…" : `Reading ${label.replace("The client's link: ", '')} and writing its spec…`);
+        const r = await makeReferenceSpec(leadId, value, false);
+        if (!r.ok) notes.push(`${label}: ${r.error ?? 'the spec could not be made'}. The proposal follows the client's description instead.`);
+      }
+      setStep('Writing both proposals…');
       const r = await generateDesign(leadId, refs.A || null, refs.B || null);
       if (!r.ok) setError(r.error ?? 'Generating failed');
-    });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Generating failed');
+    } finally {
+      setStep(null);
+      setWarnings(notes);
+      setPending(false);
+    }
+  };
+
+  const readAgain = async (value: string) => {
+    setPending(true);
+    setError(null);
+    setReading(value);
+    try {
+      const r = await makeReferenceSpec(leadId, value, true);
+      if (!r.ok) setError(`${nameOf(value)}: ${r.error ?? 'the spec could not be made'}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Reading failed');
+    } finally {
+      setReading(null);
+      setPending(false);
+    }
+  };
 
   return (
     <div data-testid="dev-design-prompts">
@@ -114,12 +205,24 @@ export function DesignPromptsPanel({ leadId, formReady, schemaReady, locked, not
               className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
             >
               <option value={NONE}>No reference website: the client&apos;s answers only</option>
-              {choices.map((c) => (
-                <option key={c.value} value={c.value}>
-                  {c.label}
-                  {c.pickedByClient ? '  (picked by the client)' : ''}
-                </option>
-              ))}
+              {own.length > 0 && (
+                <optgroup label="The client's own references (a spec is written when you generate)">
+                  {own.map((c) => (
+                    <option key={c.value} value={c.value} disabled={!specsReady}>
+                      {c.label}
+                      {!specsReady ? '  (needs migration 20261103000028)' : ''}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              <optgroup label="Our reference library">
+                {library.map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.label}
+                    {c.pickedByClient ? '  (picked by the client)' : ''}
+                  </option>
+                ))}
+              </optgroup>
             </select>
           </label>
         ))}
@@ -133,22 +236,31 @@ export function DesignPromptsPanel({ leadId, formReady, schemaReady, locked, not
           data-testid="dev-generate-design"
           className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
         >
-          {pending ? 'Generating…' : prompts.length ? 'Generate new versions' : 'Generate the prompt for design'}
+          {pending && step ? 'Generating…' : prompts.length ? 'Generate new versions' : 'Generate the prompt for design'}
         </button>
-        <span className="text-xs text-slate-500">
-          {pending
-            ? 'Writing both proposals. This takes a minute or two.'
+        <span className="text-xs text-slate-500" data-testid="dev-generate-step">
+          {pending && step
+            ? `${step} This takes a minute or two.`
             : !formReady
               ? 'Available once the client has confirmed the onboarding form.'
               : locked
                 ? 'The design is approved and locked. Reopen it below to generate again.'
-                : 'Generates Proposal 1 and Proposal 2 together: the homepage plus 4 to 5 key pages each.'}
+                : [refs.A, refs.B].some(isOwn)
+                  ? "Reads the client's own reference first and writes its spec, then both proposals. About 3 to 4 minutes."
+                  : 'Generates Proposal 1 and Proposal 2 together: the homepage plus 4 to 5 key pages each.'}
         </span>
       </div>
       {error && (
         <p className="mt-3 text-sm font-semibold text-red-600" data-testid="dev-generate-error">
           {error}
         </p>
+      )}
+      {warnings.length > 0 && (
+        <ul className="mt-3 space-y-1 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900" data-testid="dev-generate-warnings">
+          {warnings.map((w) => (
+            <li key={w}>{w}</li>
+          ))}
+        </ul>
       )}
 
       {(['A', 'B'] as const).map((p) => {
@@ -165,6 +277,16 @@ export function DesignPromptsPanel({ leadId, formReady, schemaReady, locked, not
                 {latest.created_by ? ` · ${latest.created_by}` : ''}
               </span>
             </div>
+            {latest.reference_slug && isOwn(latest.reference_slug) && (
+              <SpecBlock
+                spec={specs[latest.reference_slug]}
+                label={nameOf(latest.reference_slug).replace("The client's link: ", '').replace("The client's screenshots", "the client's pictures")}
+                onRead={() => readAgain(latest.reference_slug!)}
+                busy={reading === latest.reference_slug}
+                disabled={pending || locked}
+                testId={`dev-spec-${p}`}
+              />
+            )}
             <PromptView content={latest.content} testId={`dev-prompt-${p}`} />
             {older.length > 0 && (
               <details className="mt-3">

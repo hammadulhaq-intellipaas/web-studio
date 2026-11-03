@@ -9,13 +9,16 @@ import { loadComments } from '@/lib/developer/comments';
 import { ensureReviewToken, loadVersions, type DesignVersion } from '@/lib/developer/designs';
 import { toReviewComment, type ReviewComment } from '@/lib/developer/review';
 import { slugify } from '@/lib/developer/drafts';
+import { clientSpecKeys } from '@/lib/developer/generate';
 import { defaultReferences, pageListsFromDesign } from '@/lib/developer/messages';
+import { clientChoices } from '@/lib/developer/reference-sources';
+import { latestSpecs, referenceSpecsReady } from '@/lib/developer/reference-specs';
 import { cmsBooked, setupCommands } from '@/lib/developer/setup';
 import { designsSchemaReady, developerSchemaReady, loadProject, loadPrompts, type DeveloperProject, type StoredPrompt, reviewSchemaReady } from '@/lib/developer/store';
 import type { Lead } from '@/lib/types';
 import { getOnboardingDefinition } from '@/lib/onboarding/definition';
 import { BuildPanel } from '@/components/admin/developer/BuildPanel';
-import { DesignPromptsPanel, type DesignPromptRow, type ReferenceChoice } from '@/components/admin/developer/DesignPromptsPanel';
+import { DesignPromptsPanel, type DesignPromptRow, type ReferenceChoice, type ReferenceSpecView } from '@/components/admin/developer/DesignPromptsPanel';
 import { DesignVersionsPanel, type ReviewInfo } from '@/components/admin/developer/DesignVersionsPanel';
 import { HandoverPanel } from '@/components/admin/developer/HandoverPanel';
 import type { GeneratedRow } from '@/components/admin/developer/PromptView';
@@ -33,6 +36,10 @@ interface DesignData {
   choices: ReferenceChoice[];
   defaults: { A: string | null; B: string | null };
   prompts: DesignPromptRow[];
+  /** Migration 20261103000028 has run: the client's own references can be chosen. */
+  specsReady: boolean;
+  /** The spec last written for each of the client's own references, by choice value. */
+  specs: Record<string, ReferenceSpecView>;
 }
 
 const TAB_LABELS: Record<DeveloperTab, string> = { design: 'Design', build: 'Build', handover: 'Handover' };
@@ -373,17 +380,35 @@ export default async function DeveloperClientPage({
     const project = workspace?.project ?? null;
     const prompts = schemaReady ? await loadPrompts(lead.id, 'design') : [];
     const picks = context.referenceSites.map((r) => r.slug);
+    const own = clientChoices(context.clientReferences, context.referenceShots);
+    const specsReady = schemaReady && (await referenceSpecsReady());
+    const keys = specsReady ? clientSpecKeys(context, lead.id, own.map((c) => c.value)) : {};
+    const rows = await latestSpecs(Object.values(keys));
+    const specs: Record<string, ReferenceSpecView> = {};
+    for (const [value, key] of Object.entries(keys)) {
+      const row = rows.get(key);
+      if (row) specs[value] = { content: row.content, summary: row.summary, model: row.model, created_at: row.created_at };
+    }
     design = {
       formReady,
       schemaReady,
       locked: Boolean(project?.approved_version_id),
       notes: project?.internal_notes ?? '',
-      choices: (definition.fields.find((f) => f.id === REFERENCE_FIELD)?.options ?? []).map((o) => ({
-        value: o.value,
-        label: o.label_en,
-        pickedByClient: picks.includes(o.value),
-      })),
-      defaults: defaultReferences(picks),
+      choices: [
+        ...own.map((c) => ({ ...c, pickedByClient: true, group: 'client' as const })),
+        ...(definition.fields.find((f) => f.id === REFERENCE_FIELD)?.options ?? []).map((o) => ({
+          value: o.value,
+          label: o.label_en,
+          pickedByClient: picks.includes(o.value),
+          group: 'library' as const,
+        })),
+      ],
+      defaults: defaultReferences(
+        picks,
+        specsReady ? own.map((c) => c.value) : [],
+      ),
+      specsReady,
+      specs,
       prompts: prompts.map((p) => ({
         id: p.id,
         proposal: p.proposal,

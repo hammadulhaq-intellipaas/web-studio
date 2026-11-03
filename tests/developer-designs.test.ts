@@ -188,6 +188,8 @@ const context: PromptContext = {
     },
   ],
   referenceSites: [],
+  clientReferences: [],
+  referenceShots: [],
   files: [{ question: 'Logo', name: 'logo.svg', type: 'image/svg+xml' }],
   status: 'confirmed',
   confirmedAt: '2026-10-28T10:00:00Z',

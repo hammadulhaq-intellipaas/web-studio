@@ -5,8 +5,9 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { loadDeveloperClient } from '@/lib/developer/clients';
 import { setCommentStatus } from '@/lib/developer/comments';
 import { approveVersion, finishUpload, reopenDesign as reopen, setDraftsOffline, startUpload, type UploadTicket } from '@/lib/developer/designs';
-import { generateBuild, generateDesignProposals, generateHandover, generateRevision } from '@/lib/developer/generate';
+import { generateBuild, generateDesignProposals, generateHandover, generateReferenceSpec, generateRevision } from '@/lib/developer/generate';
 import type { Proposal } from '@/lib/developer/messages';
+import { isClientSource } from '@/lib/developer/reference-sources';
 import { saveProject } from '@/lib/developer/store';
 
 type Result = { ok: boolean; error?: string };
@@ -36,6 +37,19 @@ export async function saveInternalNotes(leadId: string, notes: string): Promise<
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
+}
+
+/**
+ * Reads one of the client's own references (a link they gave, or their pictures) and writes its
+ * reference spec. The Design tab calls this once per such reference before generateDesign, so
+ * each step gets its own time limit.
+ */
+export async function makeReferenceSpec(leadId: string, value: string, force: boolean): Promise<Result & { summary?: string; cached?: boolean }> {
+  const by = await requireAdmin();
+  if (!isClientSource(value)) return { ok: false, error: 'Unknown reference.' };
+  const result = await generateReferenceSpec(leadId, value, force, by);
+  revalidatePath(`/admin/developer/${leadId}`);
+  return result.ok ? { ok: true, summary: result.summary, cached: result.cached } : { ok: false, error: result.error };
 }
 
 /** Generates Proposal A and B for Claude Design, each from the reference website chosen for it. */
