@@ -17,7 +17,9 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { chromium, devices, type Page } from 'playwright';
+import { chromium, devices, type Page } from '@playwright/test';
+// sharp comes with Next.js; it is not a dependency of its own, which is why this script is left
+// out of the app's type check (tsconfig.json) and runs locally only.
 import sharp from 'sharp';
 import { REFERENCE_SITES } from '../supabase/seed/onboarding/fields.ts';
 import { HIDE_BANNERS } from '../src/lib/hide-banners.ts';
