@@ -6,7 +6,8 @@ import { exportRecord } from '@/lib/onboarding/export';
 import { loadFiles, loadForm, publicFiles } from '@/lib/onboarding/records';
 import type { Locale } from '@/lib/types';
 import type { Lead } from '@/lib/types';
-import type { ClientReference, ClientShot } from './reference-sources';
+import { chosenExamples, examplesRule } from '@/lib/onboarding/examples';
+import { exampleChoices, type ClientReference, type ClientShot } from './reference-sources';
 
 /** The onboarding field holding the client's picks from our reference websites. */
 export const REFERENCE_FIELD = 'reference_sites';
@@ -60,6 +61,11 @@ export interface PromptContext {
   clientReferences: ClientReference[];
   /** The pictures the client uploaded as references (screenshots, a brochure, anything). */
   referenceShots: ClientShot[];
+  /**
+   * The client's design examples as Design tab choices, in the form's order: Proposal 1 starts
+   * on the first, Proposal 2 on the second (see exampleChoices).
+   */
+  examples: string[];
   status: string;
   confirmedAt: string | null;
 }
@@ -106,6 +112,13 @@ export async function buildPromptContext(lead: Lead, formId: string): Promise<Pr
     .filter((f) => f.field_key === REFERENCE_SHOTS_FIELD)
     .map((f) => ({ id: f.id, name: f.file_name, type: f.mime_type ?? '', bucket: f.bucket, path: f.storage_path }));
 
+  // Before the examples rule existed the same three questions held the references; read them
+  // in the same order, so an older form still gets sensible defaults.
+  const rule = examplesRule(definition.fields)?.rule ?? { count: 2, picks: REFERENCE_FIELD, links: CLIENT_REFERENCES_FIELD, pictures: REFERENCE_SHOTS_FIELD };
+  const counts: Record<string, number> = {};
+  for (const f of stored) if (f.field_key) counts[f.field_key] = (counts[f.field_key] ?? 0) + 1;
+  const examples = exampleChoices(chosenExamples(rule, record.answers, counts));
+
   const labelOf = (key: string | null) => definition.fields.find((f) => f.id === key)?.label_en ?? key ?? 'Upload';
   return {
     client: {
@@ -123,6 +136,7 @@ export async function buildPromptContext(lead: Lead, formId: string): Promise<Pr
     files: files.map((f) => ({ question: labelOf(f.field_key), name: f.file_name, type: f.mime_type })),
     clientReferences,
     referenceShots,
+    examples,
     status: record.status,
     confirmedAt: record.confirmed?.at ?? null,
   };

@@ -4,7 +4,6 @@ import { useTranslations } from 'next-intl';
 import type { Locale } from '@/lib/types';
 import type { Answers, OnbField } from '@/lib/onboarding/types';
 import { loc } from '@/lib/onboarding/types';
-import { linesOf } from '@/lib/onboarding/logic';
 import { BLUE, MUTED } from '@/components/funnel/ui';
 
 /** The band an option stands for, e.g. "5 to 8 pages" → { min: 5, max: 8 }. */
@@ -21,13 +20,14 @@ function band(field: OnbField | undefined, value: unknown) {
  */
 export function PageCounter({
   field,
-  value,
+  n,
   answers,
   definition,
   locale,
 }: {
   field: OnbField;
-  value: string;
+  /** How many pages are listed. */
+  n: number;
   answers: Answers;
   definition: { fields: OnbField[] };
   locale: Locale;
@@ -35,8 +35,6 @@ export function PageCounter({
   const t = useTranslations('onboarding.shell');
   const bandFieldId = field.config.count_band;
   if (!bandFieldId) return null;
-
-  const n = linesOf(value).length;
   if (!n) return null;
 
   const bandField = definition.fields.find((f) => f.id === bandFieldId);

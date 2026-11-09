@@ -8,6 +8,8 @@ export interface DeveloperProject {
   lead_id: string;
   internal_notes: string;
   dev_instructions: string;
+  /** The team's instructions for the handover document (language, sections, extras). Migration 030. */
+  handover_instructions: string;
   /** The client part of every draft link: /drafts/<draft_slug>/<version>. */
   draft_slug: string | null;
   approved_version_id: string | null;
@@ -31,6 +33,7 @@ export interface DeveloperProject {
 const EMPTY_PROJECT: Omit<DeveloperProject, 'lead_id'> = {
   internal_notes: '',
   dev_instructions: '',
+  handover_instructions: '',
   draft_slug: null,
   approved_version_id: null,
   approved_at: null,
@@ -94,12 +97,15 @@ export async function loadProject(leadId: string): Promise<DeveloperProject> {
 
 export async function saveProject(
   leadId: string,
-  patch: Partial<Pick<DeveloperProject, 'internal_notes' | 'dev_instructions' | 'live_url' | 'cms_url'>>,
+  patch: Partial<Pick<DeveloperProject, 'internal_notes' | 'dev_instructions' | 'handover_instructions' | 'live_url' | 'cms_url'>>,
   by: string | null,
 ): Promise<void> {
   const { error } = await createSupabaseAdminClient()
     .from('developer_projects')
     .upsert({ lead_id: leadId, ...patch, updated_at: new Date().toISOString(), updated_by: by }, { onConflict: 'lead_id' });
+  if (error && missingTable(error) && 'handover_instructions' in patch) {
+    throw new Error('Saving the handover instructions needs migration 20261109000030 to be run in Supabase first.');
+  }
   if (error) throw new Error(`Saving the project failed: ${error.message}`);
 }
 

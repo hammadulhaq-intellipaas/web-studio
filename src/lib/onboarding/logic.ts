@@ -5,6 +5,7 @@ import {
   DONT_KNOW_VALUE,
   HARD_MAX_ROWS,
 } from './limits';
+import { chosenExamples } from './examples';
 import type {
   Answer,
   Answers,
@@ -37,6 +38,20 @@ export function linesOf(text: string): string[] {
 export function textOf(answer: Answer | undefined): string {
   return typeof answer?.v === 'string' ? answer.v : '';
 }
+
+/**
+ * The entries of a list answer (a multiselect): the list itself, or, for an answer typed before
+ * the question became a list, its lines with any leading dash of a sub-page taken off.
+ */
+export function entriesOf(answer: Answer | undefined): string[] {
+  const v = answer?.v;
+  if (Array.isArray(v)) return v.filter((x): x is string => typeof x === 'string').map((x) => x.trim()).filter(Boolean);
+  if (typeof v === 'string') return linesOf(v).map((l) => l.replace(/^[-–•*]\s*/, '').trim()).filter(Boolean);
+  return [];
+}
+
+/** The longest entry a multiselect accepts, so a pasted paragraph cannot pose as a page name. */
+export const MAX_ENTRY_CHARS = 80;
 
 export function rowsOf(answer: Answer | undefined): RepeaterRow[] {
   return Array.isArray(answer?.v) && answer.v.every((r) => typeof r === 'object' && r !== null)
@@ -204,7 +219,9 @@ export type ErrorCode =
   | 'ranking_min'
   | 'ranking_max'
   | 'rows_min'
-  | 'rows_max';
+  | 'rows_max'
+  | 'examples_min'
+  | 'examples_max';
 
 export interface FieldError {
   field: string;
@@ -349,7 +366,15 @@ export function hasNoneOption(field: OnbField): boolean {
 export function validateField(field: OnbField, ctx: ValidationContext, locale: Locale = 'de'): FieldError[] {
   const answer = ctx.answers[field.id];
   const required = isRequiredNow(field, ctx);
-  if (field.type === 'notice') return [];
+  if (field.type === 'notice') {
+    // The design examples: exactly `count` across gallery ticks, own links and own pictures.
+    const rule = field.config.proposal_examples;
+    if (!rule) return [];
+    const n = chosenExamples(rule, ctx.answers, ctx.files).length;
+    if (n < rule.count) return [{ field: field.id, code: 'examples_min', params: { n, count: rule.count, left: rule.count - n } }];
+    if (n > rule.count) return [{ field: field.id, code: 'examples_max', params: { n, count: rule.count } }];
+    return [];
+  }
   if (answer?.dk) return field.allow_dont_know ? [] : [{ field: field.id, code: 'invalid_option' }];
   // "We don't have one" is a complete answer and carries no value of its own, so it has to
   // short-circuit the type checks below — otherwise a required field can never be satisfied.
@@ -360,6 +385,20 @@ export function validateField(field: OnbField, ctx: ValidationContext, locale: L
   }
   if (field.type === 'repeater') return validateRepeater(field, answer, required);
   if (field.type === 'ranking') return validateRanking(field, answer, required, locale);
+  if (field.type === 'multiselect') {
+    const entries = entriesOf(answer);
+    if (!entries.length) return required ? [{ field: field.id, code: 'required' }] : [];
+    const errors: FieldError[] = [];
+    // Only for entries made in the list itself: a list typed before it became one (a string) may
+    // have longer lines, and must not block a client who has already finished the form.
+    if (Array.isArray(answer?.v) && entries.some((e) => e.length > MAX_ENTRY_CHARS))
+      errors.push({ field: field.id, code: 'max_chars', params: { max: MAX_ENTRY_CHARS } });
+    if (field.config.min_checked != null && entries.length < field.config.min_checked)
+      errors.push({ field: field.id, code: 'checkboxes_min', params: { min: field.config.min_checked } });
+    if (field.config.max_checked != null && entries.length > field.config.max_checked)
+      errors.push({ field: field.id, code: 'checkboxes_max', params: { max: field.config.max_checked } });
+    return errors;
+  }
 
   if (isEmpty(answer)) return required ? [{ field: field.id, code: 'required' }] : [];
   const v = answer!.v;
@@ -486,6 +525,10 @@ export function computeGaps(
       if (required) gaps.push({ field: field.id, kind: 'empty' });
       continue;
     }
+    if (field.type === 'multiselect') {
+      if (field.config.min_lines != null && entriesOf(answer).length < field.config.min_lines) gaps.push({ field: field.id, kind: 'thin' });
+      continue;
+    }
     if (isTextType(field.type)) {
       const text = textOf(answer);
       const thinLines = field.config.min_lines != null && linesOf(text).length < field.config.min_lines;
@@ -514,9 +557,9 @@ export interface FlagContext {
   redactions?: number;
 }
 
-/** Top-level page count implied by `page_list` (sub-pages count too — they are pages). */
+/** Pages listed in `page_list`: one per entry (an older typed list counts its lines). */
 export function listedPages(answers: Answers): number {
-  return linesOf(textOf(answers.page_list)).length;
+  return entriesOf(answers.page_list).length;
 }
 
 /**

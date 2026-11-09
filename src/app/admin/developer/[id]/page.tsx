@@ -11,7 +11,8 @@ import { toReviewComment, type ReviewComment } from '@/lib/developer/review';
 import { slugify } from '@/lib/developer/drafts';
 import { clientSpecKeys } from '@/lib/developer/generate';
 import { defaultReferences, pageListsFromDesign } from '@/lib/developer/messages';
-import { clientChoices } from '@/lib/developer/reference-sources';
+import { autoPending } from '@/lib/developer/auto-status';
+import { clientChoices, isClientSource } from '@/lib/developer/reference-sources';
 import { latestSpecs, referenceSpecsReady } from '@/lib/developer/reference-specs';
 import { cmsBooked, setupCommands } from '@/lib/developer/setup';
 import { designsSchemaReady, developerSchemaReady, loadProject, loadPrompts, type DeveloperProject, type StoredPrompt, reviewSchemaReady } from '@/lib/developer/store';
@@ -38,6 +39,8 @@ interface DesignData {
   prompts: DesignPromptRow[];
   /** Migration 20261103000028 has run: the client's own references can be chosen. */
   specsReady: boolean;
+  /** The client confirmed a moment ago and the automatic prompts are still being written. */
+  autoPending: boolean;
   /** The spec last written for each of the client's own references, by choice value. */
   specs: Record<string, ReferenceSpecView>;
 }
@@ -103,52 +106,13 @@ function OnboardingStatus({ onboarding }: { onboarding: DeveloperOnboarding | nu
   );
 }
 
-/** The context the prompts are built from, as a readable summary for a final review. */
-function FormDataCard({ context }: { context: PromptContext }) {
-  const count = context.sections.reduce((n, s) => n + s.answers.length, 0);
-  return (
-    <Card title="Form data" testId="dev-form-data">
-      <p className="mb-3 text-sm text-slate-600">
-        {count} answers from the onboarding form{context.confirmedAt ? '' : ' (not confirmed yet, so they can still change)'}. The design
-        prompts are built from exactly this.
-      </p>
-      <div className="mb-4 grid gap-1 text-sm sm:grid-cols-[120px_1fr]">
-        <span className="font-semibold text-slate-500">Package</span>
-        <span>{context.quote.package ?? <span className="text-slate-400">Not chosen</span>}</span>
-        <span className="font-semibold text-slate-500">Add-ons</span>
-        <span>{context.quote.addons.length ? context.quote.addons.join(', ') : <span className="text-slate-400">None</span>}</span>
-      </div>
-      {count === 0 ? (
-        <p className="text-sm text-slate-500">The client has not answered anything yet.</p>
-      ) : (
-        <div className="space-y-2">
-          {context.sections.map((s) => (
-            <details key={s.screen} className="rounded-lg border border-slate-200" data-testid={`dev-section-${s.screen}`}>
-              <summary className="cursor-pointer px-4 py-2.5 text-sm font-semibold">
-                {s.title} <span className="font-normal text-slate-400">· {s.answers.length}</span>
-              </summary>
-              <dl className="space-y-3 border-t border-slate-100 px-4 py-3">
-                {s.answers.map((a) => (
-                  <div key={a.key}>
-                    <dt className="text-xs font-semibold text-slate-500">{a.question}</dt>
-                    <dd className="mt-0.5 whitespace-pre-wrap break-words text-sm text-slate-800">{a.answer}</dd>
-                  </div>
-                ))}
-              </dl>
-            </details>
-          ))}
-        </div>
-      )}
-    </Card>
-  );
-}
-
 function ReferencesCard({ context }: { context: PromptContext }) {
   return (
     <Card title="Reference websites" testId="dev-references">
       {context.referenceSites.length === 0 ? (
         <p className="text-sm text-slate-600">
-          The client did not pick any of our example websites. Their own references, if any, are in the form data above.
+          The client did not pick any of our example websites. Their own references, if any, are in the dropdowns below and in the
+          form answers.
         </p>
       ) : (
         <ul className="space-y-2">
@@ -196,12 +160,11 @@ function DesignTab({
       <Card title="Onboarding form" testId="dev-onboarding">
         <OnboardingStatus onboarding={onboarding} />
       </Card>
-      {context && <FormDataCard context={context} />}
       {context && <ReferencesCard context={context} />}
       <Card title="Design prompts">
         <p className="mb-4 text-sm text-slate-600">
-          Review the form data, then generate two Claude Design prompts (Proposal A and Proposal B), each built on one reference
-          website. Copy each prompt into Claude Design.
+          Both prompts are generated automatically when the client confirms the onboarding form, Proposal 1 and 2 each from one of
+          the two design examples the client chose. Copy each prompt into Claude Design, or change a reference and generate again.
         </p>
         {data ? (
           <DesignPromptsPanel leadId={leadId} {...data} />
@@ -272,7 +235,7 @@ function BuildTab({ lead, company, workspace, prompts, pages }: { lead: Lead; co
             instructions={project.dev_instructions}
             project={name}
             cms={cms}
-            setup={setupCommands(name)}
+            setup={setupCommands(name, cms)}
             prompts={generated(prompts)}
           />
         ) : (
@@ -306,6 +269,7 @@ function HandoverTab({ lead, company, workspace, docs }: { lead: Lead; company: 
               hasDrafts={workspace.versions.length > 0}
               fileName={`${slugify(company)}-handover.md`}
               docs={generated(docs)}
+              instructions={project.handover_instructions}
             />
           </>
         ) : (
@@ -403,10 +367,9 @@ export default async function DeveloperClientPage({
           group: 'library' as const,
         })),
       ],
-      defaults: defaultReferences(
-        picks,
-        specsReady ? own.map((c) => c.value) : [],
-      ),
+      // The client's own sources only when they can be read (a link, or pictures the model can see).
+      defaults: defaultReferences(context.examples, (value) => !isClientSource(value) || (specsReady && own.some((c) => c.value === value))),
+      autoPending: autoPending(onboarding.confirmed?.at ?? null, prompts.length),
       specsReady,
       specs,
       prompts: prompts.map((p) => ({

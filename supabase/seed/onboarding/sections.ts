@@ -57,7 +57,7 @@ const rows: Omit<OnbBriefSection, 'sort' | 'active'>[] = [
     title_de: 'Seitenstruktur',
     title_en: 'Page structure',
     instructions:
-      'Render the page list as a markdown list preserving the hierarchy (sub-pages indented). State the page count and the booked page band as given. Note any linking requirements. If the list and the count disagree, say so plainly without proposing a price.',
+      'Render the page list as a markdown list, one page per line, in the order the client gave. State the page count and the booked page band as given. Note any linking requirements. If the list and the count disagree, say so plainly without proposing a price.',
     source_fields: [
       'booked_package',
       'booked_page_band',

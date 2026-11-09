@@ -6,6 +6,7 @@
  *
  * Plain helpers only, no server code, so they are easy to test.
  */
+import type { ChosenExample } from '@/lib/onboarding/examples';
 
 /** One link from the form's "Reference websites" question. */
 export interface ClientReference {
@@ -75,6 +76,15 @@ export function clientSourceLabel(value: string, refs: ClientReference[], shots:
   const i = clientLinkIndex(value);
   const ref = i === null ? undefined : refs[i];
   return ref ? `The client's link: ${domainOf(ref.url)}` : null;
+}
+
+/**
+ * The client's design examples from the form (see src/lib/onboarding/examples.ts) as Design tab
+ * choices, in the form's order: a gallery site is its slug, a link `client-link-N`, the pictures
+ * `client-screenshots`. Proposal 1 starts on the first, Proposal 2 on the second.
+ */
+export function exampleChoices(examples: ChosenExample[]): string[] {
+  return examples.map((e) => (e.kind === 'library' ? e.value : e.kind === 'link' ? clientLinkValue(e.index) : CLIENT_SHOTS));
 }
 
 /** The client's own sources as dropdown choices: each link, then the pictures if there are any. */

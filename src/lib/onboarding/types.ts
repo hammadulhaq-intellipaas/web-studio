@@ -17,7 +17,9 @@ export type FieldType =
   | 'ranking'
   | 'repeater'
   | 'upload'
-  | 'notice';
+  | 'notice'
+  /** A searchable list the client picks several entries from, and may add their own to. */
+  | 'multiselect';
 
 export type ScreenKind = 'questions' | 'review';
 
@@ -82,6 +84,17 @@ export interface RankingBucket {
   default?: boolean;
 }
 
+/** Where the client's design examples come from, and how many the form asks for. */
+export interface ProposalExamplesRule {
+  count: number;
+  /** Ticks from our gallery (a card multi-select). */
+  picks: string;
+  /** Their own website links (a repeater with a `url` column). */
+  links: string;
+  /** Their own pictures (an upload): all of them together count as one example. */
+  pictures: string;
+}
+
 /**
  * Per-type knobs stored in `onb_fields.config` (jsonb). Only the keys relevant to the
  * field's `type` are read; `validateField` in logic.ts is the source of truth for which.
@@ -142,9 +155,25 @@ export interface FieldConfig {
   /** Why we need it, behind an info button next to the label. */
   tooltip_de?: string;
   tooltip_en?: string;
+  // multiselect
+  /** The client may add entries that are not in the list. */
+  allow_custom?: boolean;
+  /** Another field whose lines are offered as entries too (their own services as pages). */
+  options_from?: string;
+  /** Group heading above the entries taken from `options_from`. */
+  options_from_label_de?: string;
+  options_from_label_en?: string;
   // notice: which onb_texts key to render
   text_key?: string;
-  tone?: 'info' | 'warn';
+  /** `heading` shows the field's own label and help text as a small section heading. */
+  tone?: 'info' | 'warn' | 'heading';
+  /**
+   * The design examples the two proposals are based on: this notice shows which example each
+   * proposal follows and requires exactly `count` of them across the three named fields.
+   */
+  proposal_examples?: ProposalExamplesRule;
+  /** Leave out the "optional" marker: the field is one of several the client chooses between. */
+  hide_optional?: boolean;
   /** A field that makes this one optional when it has a value/files ("one or the other"). */
   required_unless?: string;
   /** Show a link below the label whose href is the named app setting (when set). */

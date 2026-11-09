@@ -259,7 +259,7 @@ export const ENTITIES: Record<string, EntityDef> = {
     label: 'Fields',
     group: 'Onboarding form',
     description:
-      'Every question of the onboarding form. The row id is the field key that answers, follow-ups, flag rules and brief sections refer to — never rename an id that is in use. Types: text, textarea, url, email, tel, number, date, radio, checkboxes, select, slider, ranking, repeater, upload, notice.',
+      'Every question of the onboarding form. The row id is the field key that answers, follow-ups, flag rules and brief sections refer to, so never rename an id that is in use. Types: text, textarea, url, email, tel, number, date, radio, checkboxes, select, slider, ranking, repeater, upload, notice, multiselect (a searchable list with several picks; the answer is the list of entries).',
     canCreate: true,
     canDelete: true,
     orderBy: ['screen_id', 'sort'],
@@ -280,7 +280,7 @@ export const ENTITIES: Record<string, EntityDef> = {
       json('options', 'Options (JSON [{value,label_de,label_en,hint_de?,hint_en?,min?,max?}]) — radio, checkboxes, select, ranking items. Card checkboxes also take {url,image,group_de,group_en}'),
       json(
         'config',
-        'Config (JSON) — per type: text {min_chars,max_chars,min_lines,rows} · number {min,max} · date {min_date} · slider {min,max,step,captions:[{de,en}],examples:[{de,en}]} · ranking {buckets:[{value,label_de,label_en,min?,max?,default?}]} · repeater {fields:[{key,type,label_de,label_en,required?,min_chars?,options?}],min_rows,max_rows,initial_rows,add_label_de,add_label_en} · checkboxes {min_checked,max_checked,exclusive:[...],display:"cards"} · upload {accept,max_files,max_mb,max_total_mb} · notice {text_key,tone} · any {required_unless,link_setting,link_label_de,link_label_en}',
+        'Config (JSON), per type: text {min_chars,max_chars,min_lines,rows} · number {min,max} · date {min_date} · slider {min,max,step,captions:[{de,en}],examples:[{de,en}]} · ranking {buckets:[{value,label_de,label_en,min?,max?,default?}]} · repeater {fields:[{key,type,label_de,label_en,required?,min_chars?,options?}],min_rows,max_rows,initial_rows,add_label_de,add_label_en} · checkboxes {min_checked,max_checked,exclusive:[...],display:"cards"} · multiselect {min_checked,max_checked,min_lines,allow_custom,options_from,options_from_label_de,options_from_label_en,count_band} · upload {accept,max_files,max_mb,max_total_mb} · notice {text_key,tone:"info"|"warn"|"heading" (heading shows the label and helper text as a section heading), proposal_examples:{count,picks,links,pictures}} · any {required_unless,hide_optional,link_setting,link_label_de,link_label_en}',
       ),
       json(
         'show_when',

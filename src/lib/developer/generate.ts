@@ -545,12 +545,14 @@ export async function generateHandover(leadId: string, by: string | null): Promi
   const { lead, onboarding, context, project, modelId, company, referenceName } = ready;
 
   try {
-    const approved = await approvedDesign(leadId, project.approved_version_id, referenceName);
+    const [approved, builds] = await Promise.all([approvedDesign(leadId, project.approved_version_id, referenceName), loadPrompts(leadId, 'build')]);
     const prompt = handoverPromptInput(context, {
       cms: cmsBooked(lead.config),
       liveUrl: project.live_url,
       cmsUrl: project.cms_url,
       design: approved?.design ?? null,
+      buildPrompt: builds[0]?.content ?? null,
+      handoverInstructions: project.handover_instructions,
       internalNotes: project.internal_notes,
     });
     const content = await runModel({

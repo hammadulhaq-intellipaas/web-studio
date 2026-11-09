@@ -36,6 +36,9 @@ const nextConfig: NextConfig = {
     '/admin/developer/**': ['./docs/reference-specs/**/*', packageFiles('@sparticuz/chromium', 'bin/**'), packageFiles('playwright-core', '**')],
     '/api/developer/**': ['./docs/reference-specs/**/*'],
     '/api/showcase/screenshot': [packageFiles('@sparticuz/chromium', 'bin/**'), packageFiles('playwright-core', '**')],
+    // Confirming the onboarding form writes the design prompts: the library specs, and the same
+    // browser for a client's own reference website.
+    '/api/onboarding/[id]/confirm': ['./docs/reference-specs/**/*', packageFiles('@sparticuz/chromium', 'bin/**'), packageFiles('playwright-core', '**')],
   },
   images: {
     remotePatterns: supabaseHost

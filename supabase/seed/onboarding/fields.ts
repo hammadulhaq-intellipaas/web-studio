@@ -361,7 +361,22 @@ const inboxes: OnbField[] = [
 
 /* ------------------------------------------------------------------ Step 4 · look and sound */
 
+/** A small section heading inside a long screen: the label is the heading, the help text the line under it. */
+const heading = (id: string, screen: string, de: string, en: string, help_de: string, help_en: string) =>
+  field(id, screen, 'notice', de, en, { help_de, help_en, config: { tone: 'heading' } });
+
+/** The design examples each proposal is based on: exactly two, from these three questions. */
+export const PROPOSAL_EXAMPLES = { count: 2, picks: 'reference_sites', links: 'references', pictures: 'reference_screenshots' };
+
 const design: OnbField[] = [
+  heading(
+    'design_part_business',
+    'design',
+    'Ihr Unternehmen in Ihren Worten',
+    'Your business, in your words',
+    'Daraus entstehen die Texte Ihrer Website.',
+    'This becomes the basis for the words on your website.',
+  ),
   field('business_one_liner', 'design', 'textarea', 'Was machen Sie, in einem Satz?', 'In one sentence, what do you do?', {
     required: true,
     ai_check: true,
@@ -470,6 +485,14 @@ const design: OnbField[] = [
     help_en: 'Please provide the supporting details or the name of the person who can provide them for your website.',
     config: { rows: 4 },
   }),
+  heading(
+    'design_part_feel',
+    'design',
+    'Wie sich Ihre Seite anfühlen soll',
+    'How your site should feel',
+    'Zwei Regler, jeweils mit Platz für Ihre eigenen Worte.',
+    'Two sliders, each with room for your own words.',
+  ),
   field('tone_scale', 'design', 'slider', 'Wie soll sich Ihre Seite anfühlen?', 'How should your site feel?', {
     required: true,
     help_de: 'Bitte stellen Sie sich einen Ihrer Kunden vor, der die Seite öffnet, und wählen Sie, was sich für ihn richtig anfühlen würde.',
@@ -528,29 +551,30 @@ const design: OnbField[] = [
     help_en: 'Optional. For example a feeling, a brand or a website you had in mind.',
     config: { rows: 2 },
   }),
-  field('reference_sites', 'design', 'checkboxes', 'Welche dieser Websites gefallen Ihnen optisch?', 'Which of these websites do you like the look of?', {
-    required: true,
-    help_de:
-      'Wählen Sie so viele, wie Sie möchten. Wir nehmen sie als Ausgangspunkt für Aufbau und Wirkung Ihrer Seite, Ihre Inhalte, Farben und Ihr Branding haben dabei Vorrang. Weitere Websites können Sie unten ergänzen.',
-    help_en:
-      'Pick as many as you like. We use them as a starting point for the layout and feel of your site, while your own content, colours and branding come first. You can add other websites below.',
-    config: { display: 'cards', required_unless: 'references' },
+  heading(
+    'design_part_examples',
+    'design',
+    'Ihre 2 Gestaltungsbeispiele',
+    'Your 2 design examples',
+    'Wir gestalten 2 Entwürfe für Sie. Jeder orientiert sich an einem Beispiel, das Sie wählen. Bitte wählen Sie insgesamt 2, ganz wie Sie möchten: aus unserer Galerie, eine Website, die Ihnen gefällt, oder Ihre eigenen Bilder. Ihre Inhalte, Farben und Ihr Logo haben dabei immer Vorrang.',
+    'We design 2 proposals for you, each based on one example you choose. Please choose 2 in total, in any mix: from our gallery, a website you like, or your own pictures. Your own content, colours and logo always come first.',
+  ),
+  field('reference_sites', 'design', 'checkboxes', 'Aus unserer Galerie', 'From our gallery', {
+    help_de: 'Jede Website, die Sie hier wählen, zählt als ein Beispiel. In der Galerie sehen Sie die ganzen Seiten auf Laptop und Handy.',
+    help_en: 'Each website you tick counts as one example. The gallery shows the whole pages on a laptop and a phone.',
+    config: { display: 'cards', hide_optional: true },
     options: REFERENCE_SITES,
   }),
-  field('references', 'design', 'repeater', 'Gibt es weitere Websites, die Ihnen gefallen?', 'Are there other websites you like?', {
-    required: true,
-    help_de: 'Optional, wenn Sie oben eine gewählt haben. Bitte sagen Sie uns, welcher Teil Ihnen gefällt, nicht die ganze Seite.',
-    help_en: 'Optional if you picked one above. Please tell us the part you like, not the whole site.',
+  field('references', 'design', 'repeater', 'Oder: eine Website, die Ihnen gefällt', 'Or: a website you like', {
+    help_de: 'Jeder Link zählt als ein Beispiel. Bitte sagen Sie uns, was Ihnen daran gefällt.',
+    help_en: 'Each link counts as one example. Please tell us what you like about it.',
     config: {
-      required_unless: 'reference_sites',
+      hide_optional: true,
       min_rows: 1,
-      max_rows: 3,
+      max_rows: 2,
       initial_rows: 1,
-      add_label_de: 'Weitere Seite hinzufügen',
-      add_label_en: 'Add another site',
-      link_setting: 'onb_examples_url',
-      link_label_de: 'Beispiele unserer Arbeit ansehen',
-      link_label_en: 'See examples of our work',
+      add_label_de: 'Weitere Website hinzufügen',
+      add_label_en: 'Add another website',
       fields: [
         {
           key: 'url',
@@ -586,22 +610,28 @@ const design: OnbField[] = [
     'reference_screenshots',
     'design',
     'upload',
-    'Haben Sie Screenshots oder etwas anderes, das zeigt, was Ihnen gefällt?',
-    'Do you have screenshots, or anything else that shows what you like?',
+    'Oder: Ihre eigenen Bilder',
+    'Or: your own pictures',
     {
-      help_de: 'Eine Broschüre, ein Schaufenster, eine Zeitschriftenseite, wirklich alles.',
-      help_en: 'A brochure, a shop front, a magazine page, anything at all.',
-      config: { max_files: 10, max_total_mb: 25 },
+      help_de:
+        'Screenshots oder Fotos, zum Beispiel von einer Broschüre, einem Schaufenster oder einer Zeitschriftenseite. Alle Bilder zusammen zählen als ein Beispiel.',
+      help_en: 'Screenshots or photos, for example of a brochure, a shop front or a magazine page. All your pictures together count as one example.',
+      // Pictures only: they are what the design brief is written from.
+      config: { max_files: 10, max_total_mb: 25, hide_optional: true, accept: ['jpg', 'jpeg', 'png', 'webp', 'gif'] },
     },
   ),
-  field('avoid', 'design', 'textarea', 'Gibt es etwas, das Sie auf Ihrer Website nicht wollen?', 'Is there anything you do not want on your website?', {
-    required: true,
-    help_de: 'Bitte deutlich, denn wir behandeln das als harte Regel, nicht als Vorliebe.',
-    help_en: 'Please be blunt, because we treat this as a hard rule rather than a preference.',
-    placeholder_de: 'Keine Stockfotos von Menschen im Anzug. Nichts, was nach Krankenhaus aussieht. Keine Slider.',
-    placeholder_en: 'No stock photos of people in suits. Nothing that looks like a hospital. No sliding banners.',
-    config: { rows: 3, ...noneTick('Mir fällt nichts ein', 'Nothing comes to mind') },
+  // Which example each proposal follows, live, and the rule: exactly two across the three questions above.
+  field('design_examples_summary', 'design', 'notice', 'Ihre 2 Entwürfe', 'Your 2 proposals', {
+    config: { proposal_examples: PROPOSAL_EXAMPLES },
   }),
+  heading(
+    'design_part_look',
+    'design',
+    'Farben, Schrift und Bilder',
+    'Colours, lettering and pictures',
+    'Die Details, die für beide Entwürfe gelten.',
+    'The details that apply to both proposals.',
+  ),
   field(
     'brand_guidelines',
     'design',
@@ -690,9 +720,47 @@ const design: OnbField[] = [
       opt('detailed', 'Ausführlich, unsere Kunden lesen alles, bevor sie kaufen', 'Detailed, our customers read everything before they buy'),
     ],
   }),
+  // Last on the screen: the hard rules, after the client has thought through everything else.
+  field('avoid', 'design', 'textarea', 'Gibt es etwas, das Sie auf Ihrer Website nicht wollen?', 'Is there anything you do not want on your website?', {
+    required: true,
+    help_de: 'Bitte deutlich, denn wir behandeln das als harte Regel, nicht als Vorliebe.',
+    help_en: 'Please be blunt, because we treat this as a hard rule rather than a preference.',
+    placeholder_de: 'Keine Stockfotos von Menschen im Anzug. Nichts, was nach Krankenhaus aussieht. Keine Slider.',
+    placeholder_en: 'No stock photos of people in suits. Nothing that looks like a hospital. No sliding banners.',
+    config: { rows: 3, ...noneTick('Mir fällt nichts ein', 'Nothing comes to mind') },
+  }),
 ];
 
 /* ------------------------------------------------------------------ Step 5 · page structure */
+
+/** Pages the page list offers; the client can add any other page by typing it. */
+export const PAGE_OPTIONS = [
+  opt('home', 'Startseite', 'Home'),
+  opt('about', 'Über uns', 'About us'),
+  opt('services', 'Leistungen', 'Services'),
+  opt('how_we_work', 'So arbeiten wir', 'How we work'),
+  opt('team', 'Team', 'Team'),
+  opt('work', 'Referenzen', 'Our work'),
+  opt('testimonials', 'Kundenstimmen', 'Testimonials'),
+  opt('prices', 'Preise', 'Prices'),
+  opt('booking', 'Termin buchen', 'Book an appointment'),
+  opt('classes', 'Kurse', 'Classes'),
+  opt('timetable', 'Stundenplan', 'Timetable'),
+  opt('events', 'Veranstaltungen', 'Events'),
+  opt('shop', 'Shop', 'Shop'),
+  opt('gallery', 'Galerie', 'Gallery'),
+  opt('blog', 'Blog', 'Blog'),
+  opt('news', 'Aktuelles', 'News'),
+  opt('faq', 'Häufige Fragen', 'FAQ'),
+  opt('downloads', 'Downloads', 'Downloads'),
+  opt('careers', 'Karriere', 'Careers'),
+  opt('press', 'Presse', 'Press'),
+  opt('partners', 'Partner', 'Partners'),
+  opt('locations', 'Standorte', 'Locations'),
+  opt('directions', 'Anfahrt', 'How to find us'),
+  opt('newsletter', 'Newsletter', 'Newsletter'),
+  opt('contact', 'Kontakt', 'Contact'),
+];
 
 const pages: OnbField[] = [
   field('catalogue', 'pages', 'textarea', 'Was sind Ihre Produkte oder Leistungen?', 'What are your products or services?', {
@@ -704,15 +772,23 @@ const pages: OnbField[] = [
     placeholder_en: 'Bathroom renovation\nAccessible bathrooms\nHeating upgrades\nEmergency call-outs',
     config: { rows: 5, min_lines: 2, ai_assist: true },
   }),
-  field('page_list', 'pages', 'textarea', 'Welche Seiten braucht Ihre Website?', 'What pages does your site need?', {
+  field('page_list', 'pages', 'multiselect', 'Welche Seiten braucht Ihre Website?', 'What pages does your site need?', {
     required: true,
     help_de:
-      'Eine pro Zeile, Unterseiten bitte mit einem Bindestrich einrücken. Rechtsseiten, die 404-Seite und die Danke-Seite sind immer dabei und zählen nicht mit.',
+      'Wählen Sie aus der Liste oder tippen Sie eine eigene Seite ein. Ihre Leistungen von oben stehen auch in der Liste, falls eine davon eine eigene Seite bekommen soll. Rechtsseiten, die 404-Seite und die Danke-Seite sind immer dabei und zählen nicht mit.',
     help_en:
-      'One per line and please start a sub-page with a dash. Legal pages, the 404 page and the thank you page are always included and do not count towards your total.',
-    placeholder_de: 'Home\nLeistungen\n- Badsanierung\n- Barrierefreie Bäder\nÜber uns\nKontakt',
-    placeholder_en: 'Home\nServices\n- Bathroom renovation\n- Accessible bathrooms\nAbout us\nContact',
-    config: { rows: 7, min_lines: 3, count_band: 'booked_page_band' },
+      'Pick from the list or type a page of your own. Your services from above are in the list too, in case one should get a page of its own. Legal pages, the 404 page and the thank you page are always included and do not count towards your total.',
+    placeholder_de: 'Seite suchen oder eintippen',
+    placeholder_en: 'Search or type a page name',
+    options: PAGE_OPTIONS,
+    config: {
+      min_lines: 3,
+      count_band: 'booked_page_band',
+      allow_custom: true,
+      options_from: 'catalogue',
+      options_from_label_de: 'Ihre Leistungen',
+      options_from_label_en: 'Your services',
+    },
   }),
   field(
     'page_relationships',

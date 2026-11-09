@@ -19,18 +19,25 @@ const context: PromptContext = {
   referenceSites: [],
   clientReferences: [],
   referenceShots: [],
+  examples: [],
   files: [{ question: 'Logo', name: 'logo.svg', type: 'image/svg+xml' }],
   status: 'confirmed',
   confirmedAt: '2026-10-28T10:00:00Z',
 };
 
 describe('defaultReferences', () => {
-  it('gives A the first pick and B the second', () => {
+  it('gives A the first example and B the second', () => {
     expect(defaultReferences(['graza', 'rivian', 'devol'])).toEqual({ A: 'graza', B: 'rivian' });
+    expect(defaultReferences(['graza', 'client-link-1'])).toEqual({ A: 'graza', B: 'client-link-1' });
+    expect(defaultReferences(['client-link-1', 'client-screenshots'])).toEqual({ A: 'client-link-1', B: 'client-screenshots' });
   });
-  it('starts both on the only pick, and on nothing without picks', () => {
+  it('starts both on the only example, and on nothing without examples', () => {
     expect(defaultReferences(['graza'])).toEqual({ A: 'graza', B: 'graza' });
     expect(defaultReferences([])).toEqual({ A: null, B: null });
+  });
+  it('skips the examples that cannot be used yet', () => {
+    const libraryOnly = (v: string) => !v.startsWith('client-');
+    expect(defaultReferences(['client-link-1', 'graza'], libraryOnly)).toEqual({ A: 'graza', B: 'graza' });
   });
 });
 

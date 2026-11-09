@@ -76,7 +76,7 @@ export function FieldShell({
             <span style={{ color: '#D6493E' }} aria-label={t('required')}>
               {' *'}
             </span>
-          ) : (
+          ) : field.config.hide_optional ? null : (
             <span style={{ color: MUTED, fontWeight: 500, whiteSpace: 'nowrap' }}>{' · '}{t('optional')}</span>
           )}
           {tooltip && (

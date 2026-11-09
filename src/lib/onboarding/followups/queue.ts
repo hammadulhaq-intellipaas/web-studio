@@ -1,6 +1,7 @@
 import type { Locale } from '@/lib/types';
 import { MAX_FOLLOWUP_CHARS } from '../limits';
 import {
+  entriesOf,
   fieldLabel,
   isEmpty,
   linesOf,
@@ -167,9 +168,12 @@ export function ruleQuestions(input: Omit<QueueInput, 'llmQuestions' | 'budget' 
       case 'equals':
         hit = !answer?.dk && conditionValue(answer) === String(t.value);
         break;
-      case 'lt_lines':
-        hit = !isEmpty(answer) && linesOf(textOf(answer)).length < Number(t.value ?? 0);
+      case 'lt_lines': {
+        // A list (the page list) counts its entries, a text its lines.
+        const count = field.type === 'multiselect' ? entriesOf(answer).length : linesOf(textOf(answer)).length;
+        hit = !isEmpty(answer) && count < Number(t.value ?? 0);
         break;
+      }
       case 'lt_chars':
         hit = !isEmpty(answer) && textOf(answer).trim().length < Number(t.value ?? 0);
         break;

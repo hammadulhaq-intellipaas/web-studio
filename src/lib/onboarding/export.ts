@@ -1,5 +1,5 @@
 import type { Locale } from '@/lib/types';
-import { bucketLabel, fieldLabel, optionLabel, rowsOf, sliderLabel, sliderPhrase, textOf, visibility } from './logic';
+import { bucketLabel, entriesOf, fieldLabel, optionLabel, rowsOf, sliderLabel, sliderPhrase, textOf, visibility } from './logic';
 import type {
   Answer,
   Answers,
@@ -80,6 +80,9 @@ function displayBase(field: OnbField, answer: Answer | undefined, locale: Locale
       if (answer.other) labels.push(answer.other);
       return labels.join(', ');
     }
+    case 'multiselect':
+      // One entry per line, as the typed page list was: the build prompt reads it line by line.
+      return entriesOf(answer).join('\n');
     case 'slider': {
       // Words only, as on the slider itself; the number stays in the structured export.
       const n = Number(v);
@@ -167,6 +170,7 @@ function exportedValue(field: OnbField, answer: Answer): unknown {
   }
   if (field.type === 'repeater') return rowsOf(answer).map(({ _id, ...rest }) => ({ id: _id, ...rest }));
   if (field.type === 'checkboxes' && answer.other) return { values: answer.v, other: answer.other };
+  if (field.type === 'multiselect') return entriesOf(answer);
   return answer.v;
 }
 

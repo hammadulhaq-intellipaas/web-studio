@@ -31,15 +31,11 @@ describe('reference-site picker', () => {
     }
   });
 
-  it('either the picker or "other websites" satisfies the requirement', () => {
+  it('is never required on its own: the examples summary asks for two across the three questions', () => {
     const ctx = (answers: Answers) => ({ answers, files: {}, fields });
     const other = fields.find((f) => f.id === 'references')!;
-    // Neither answered: both are required.
-    expect(isRequiredNow(picker, ctx({}))).toBe(true);
-    expect(isRequiredNow(other, ctx({}))).toBe(true);
-    // A pick makes "other websites" optional, and an own website makes the picker optional.
-    expect(isRequiredNow(other, ctx({ reference_sites: { v: ['graza'] } }))).toBe(false);
-    expect(isRequiredNow(picker, ctx({ references: { v: [{ _id: 'r1', url: 'https://example.com', likes: 'The calm layout' }] } }))).toBe(false);
+    expect(isRequiredNow(picker, ctx({}))).toBe(false);
+    expect(isRequiredNow(other, ctx({}))).toBe(false);
   });
 
   it('loads each site\'s layout spec, and nothing outside the specs folder', async () => {

@@ -573,7 +573,9 @@
       "rows_min": "Bitte mindestens {min} Einträge.",
       "rows_max": "Höchstens {max} Einträge.",
       "date_weekend": "Bitte einen Wochentag wählen, Samstag und Sonntag gehen nicht.",
-      "date_past": "Dieses Datum liegt inzwischen in der Vergangenheit. Bitte wählen Sie {min} oder später."
+      "date_past": "Dieses Datum liegt inzwischen in der Vergangenheit. Bitte wählen Sie {min} oder später.",
+      "examples_min": "Bitte wählen Sie noch {left, plural, one {ein Beispiel} other {# Beispiele}}. Wir brauchen {count} insgesamt, eins für jeden Entwurf.",
+      "examples_max": "Sie haben {n} Beispiele gewählt. Bitte behalten Sie {count}, eins für jeden Entwurf, und entfernen Sie die übrigen."
     },
     "date": {
       "placeholder": "Datum wählen",
@@ -605,7 +607,45 @@
       "viewSite": "Website ansehen",
       "otherPlaceholder": "Bitte beschreiben",
       "charsLeft": "{n} Zeichen übrig",
-      "redacted": "Wir haben etwas entfernt, das wie ein Passwort aussah. Zugangsdaten tauschen wir später über einen sicheren Weg aus."
+      "redacted": "Wir haben etwas entfernt, das wie ein Passwort aussah. Zugangsdaten tauschen wir später über einen sicheren Weg aus.",
+      "examples": {
+        "title": "Ihre 2 Entwürfe",
+        "proposal": "Entwurf {n} orientiert sich an",
+        "notChosen": "Noch nicht gewählt",
+        "link": "Ihrer Website {site}",
+        "pictures": "Ihren Bildern ({n})",
+        "full": "Sie haben {count} Beispiele gewählt. Entfernen Sie eins, um ein anderes zu wählen."
+      },
+      "gallery": {
+        "open": "Galerie mit Beispiel-Websites öffnen",
+        "viewLayouts": "Seiten ansehen",
+        "title": "Beispiel-Websites",
+        "intro": "Klicken Sie auf eine Website, um ihre Seiten auf Laptop und Handy zu sehen. Wählen Sie die aus, die Ihnen gefallen: Jede gewählte Website wird zum Ausgangspunkt für einen Ihrer 2 Entwürfe.",
+        "back": "Zurück zum Formular",
+        "all": "Alle Beispiele",
+        "choose": "Als Beispiel wählen",
+        "chosen": "Gewählt",
+        "remove": "Entfernen",
+        "visit": "Website besuchen",
+        "laptop": "Laptop",
+        "phone": "Handy",
+        "homepage": "Startseite",
+        "counter": "{n} von {count} Beispielen gewählt",
+        "previous": "Vorherige Website",
+        "next": "Nächste Website",
+        "noPictures": "Von dieser Website haben wir noch keine Bilder. Sie können sie trotzdem besuchen.",
+        "viewOnly": "Ihr Formular ist bestätigt, die Beispiele lassen sich hier nicht mehr ändern.",
+        "cut": "Das Bild endet hier. Den Rest sehen Sie auf der Website selbst."
+      },
+      "pages": {
+        "search": "Seite suchen oder eintippen",
+        "add": "„{name}“ hinzufügen",
+        "noMatch": "Nicht in der Liste. Tippen Sie den ganzen Namen und drücken Sie Enter, um ihn als eigene Seite hinzuzufügen.",
+        "remove": "{name} entfernen",
+        "common": "Übliche Seiten",
+        "services": "Ihre Leistungen",
+        "chosen": "{n, plural, one {# Seite gewählt} other {# Seiten gewählt}}"
+      }
     },
     "review": {
       "title": "Einige kurze Fragen",

@@ -82,6 +82,8 @@ export function completeAnswers(): Answers {
     factual_claims: a('Zertifikate: Manuelle Therapie seit 2015, bestätigt von Lena'),
     tone_scale: a(3),
     personality_scale: a(2),
+    // Two design examples, one per proposal: a gallery site and the client's own link.
+    reference_sites: a(['conductlaw']),
     references: a([
       { _id: 'ref1', url: 'https://www.beispiel-physio.de', likes: 'Ruhige Farben, große Fotos der Praxisräume', dislikes: '' },
     ]),

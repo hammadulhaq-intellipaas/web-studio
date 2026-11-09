@@ -3,14 +3,17 @@
 import { useId } from 'react';
 import type { Locale } from '@/lib/types';
 import type { FieldError } from '@/lib/onboarding/logic';
-import { rowsOf, textOf } from '@/lib/onboarding/logic';
+import { entriesOf, linesOf, rowsOf, textOf } from '@/lib/onboarding/logic';
+import { chosenExamples, examplesRule } from '@/lib/onboarding/examples';
 import type { Answer, Answers, OnbField, OnboardingDefinition, RepeaterRow } from '@/lib/onboarding/types';
 import { AiAssist } from './AiAssist';
 import { CheckboxPills, RadioPills, SelectInput, TextAreaInput, TextInput } from './BasicInputs';
 import { DateInput } from './DateInput';
 import { FieldShell } from './FieldShell';
 import { PageCounter } from './PageCounter';
+import { PageSelect } from './PageSelect';
 import { Notice } from './Notice';
+import { ProposalExamples } from './ProposalExamples';
 import { RankingInput } from './RankingInput';
 import { ReferenceCards } from './ReferenceCards';
 import { initialRows, RepeaterInput } from './RepeaterInput';
@@ -38,7 +41,17 @@ export function FieldRenderer(props: FieldRendererProps) {
   const { field, answer, answers, errors, required, locale, definition, formId, files, onChange, onFiles, disabled } = props;
   const inputId = useId();
 
-  if (field.type === 'notice') return <Notice field={field} texts={definition.texts} locale={locale} />;
+  // What each upload field holds, for the design examples (all pictures count as one).
+  const fileCounts: Record<string, number> = {};
+  for (const f of files) if (f.field_key) fileCounts[f.field_key] = (fileCounts[f.field_key] ?? 0) + 1;
+  const examples = examplesRule(definition.fields);
+
+  if (field.type === 'notice') {
+    if (field.config.proposal_examples) {
+      return <ProposalExamples field={field} fields={definition.fields} answers={answers} fileCounts={fileCounts} errors={errors} locale={locale} />;
+    }
+    return <Notice field={field} texts={definition.texts} locale={locale} />;
+  }
 
   const invalid = errors.length > 0;
   const dk = !!answer?.dk;
@@ -92,7 +105,7 @@ export function FieldRenderer(props: FieldRendererProps) {
               onChange={(v) => (v === '' ? onChange(null) : set(v))}
             />
             {field.config.count_band && (
-              <PageCounter field={field} value={text} answers={answers} definition={definition} locale={locale} />
+              <PageCounter field={field} n={linesOf(text).length} answers={answers} definition={definition} locale={locale} />
             )}
             {field.config.ai_assist && <AiAssist formId={formId} fieldKey={field.id} value={text} onUse={set} />}
           </>
@@ -106,6 +119,8 @@ export function FieldRenderer(props: FieldRendererProps) {
         );
       case 'checkboxes':
         if (field.config.display === 'cards') {
+          // Without an examples rule (an older form definition) there is no limit and no counter.
+          const chosen = examples ? chosenExamples(examples.rule, answers, fileCounts).length : 0;
           return (
             <ReferenceCards
               field={field}
@@ -113,6 +128,10 @@ export function FieldRenderer(props: FieldRendererProps) {
               invalid={invalid}
               value={Array.isArray(answer?.v) && typeof answer.v[0] !== 'object' ? (answer.v as string[]) : []}
               onChange={(v) => (v.length ? set(v) : onChange(null))}
+              room={examples ? examples.rule.count - chosen : field.options.length}
+              count={examples?.rule.count ?? null}
+              chosenTotal={chosen}
+              disabled={!!disabled}
             />
           );
         }
@@ -143,6 +162,24 @@ export function FieldRenderer(props: FieldRendererProps) {
       }
       case 'upload':
         return <UploadInput field={field} formId={formId} files={files} onFiles={onFiles} disabled={disabled} />;
+      case 'multiselect': {
+        const entries = entriesOf(answer);
+        const from = field.config.options_from;
+        return (
+          <>
+            <PageSelect
+              field={field}
+              locale={locale}
+              invalid={invalid}
+              inputId={inputId}
+              value={entries}
+              services={from ? entriesOf(answers[from]) : []}
+              onChange={(v) => (v.length ? set(v) : onChange(null))}
+            />
+            {field.config.count_band && <PageCounter field={field} n={entries.length} answers={answers} definition={definition} locale={locale} />}
+          </>
+        );
+      }
       default:
         return null;
     }
@@ -164,7 +201,9 @@ export function FieldRenderer(props: FieldRendererProps) {
       settings={definition.settings}
       inputId={inputId}
     >
-      <div style={disabled ? { pointerEvents: 'none', opacity: 0.7 } : undefined}>{control}</div>
+      {/* A confirmed form freezes its inputs. The website cards handle that themselves, so their
+          "View layouts" buttons and the gallery keep working. */}
+      <div style={disabled && field.config.display !== 'cards' ? { pointerEvents: 'none', opacity: 0.7 } : undefined}>{control}</div>
     </FieldShell>
   );
 }

@@ -81,6 +81,9 @@ describe('fields', () => {
     for (const f of fields) {
       if (CHOICE_TYPES.has(f.type) || f.type === 'ranking') {
         expect(f.options.length, f.id).toBeGreaterThanOrEqual(f.type === 'checkboxes' ? 1 : 2);
+      } else if (f.type === 'multiselect') {
+        // Its list is a suggestion: the client can also type entries of their own.
+        expect(f.config.allow_custom || f.options.length > 0, f.id).toBe(true);
       } else {
         expect(f.options.length, f.id).toBe(0);
       }
@@ -126,6 +129,13 @@ describe('fields', () => {
 
   it('notices point at a text that exists in both locales', () => {
     for (const f of fields.filter((x) => x.type === 'notice')) {
+      // A heading or the examples summary carries its own wording in its label and help text.
+      if (f.config.tone === 'heading' || f.config.proposal_examples) {
+        expect(f.label_de && f.label_en, f.id).toBeTruthy();
+        const rule = f.config.proposal_examples;
+        if (rule) for (const id of [rule.picks, rule.links, rule.pictures]) expect(fieldById.has(id), `${f.id} counts ${id}`).toBe(true);
+        continue;
+      }
       const key = f.config.text_key;
       expect(key, f.id).toBeTruthy();
       expect(texts.filter((t) => t.key === key).map((t) => t.locale).sort()).toEqual(['de', 'en']);

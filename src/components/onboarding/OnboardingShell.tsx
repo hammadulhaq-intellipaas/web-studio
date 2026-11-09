@@ -90,7 +90,9 @@ export function OnboardingShell({
   const confirmed = record.status === 'confirmed';
 
   useEffect(() => {
-    window.history.replaceState({ onbStep: step?.id }, '');
+    // Keep what Next.js keeps in the entry (`__NA` and its tree): without it, its router reloads
+    // the whole page on the back button, and an answer not saved yet would be lost.
+    window.history.replaceState({ ...(window.history.state ?? {}), onbStep: step?.id }, '');
     const onPop = (ev: PopStateEvent) => {
       const id = (ev.state as { onbStep?: string } | null)?.onbStep;
       const i = steps.findIndex((s) => s.id === id);
@@ -111,7 +113,7 @@ export function OnboardingShell({
       setReturnTried(false);
       if (target.kind === 'review') setFixMode(false);
       queue({ changes: {}, current_step: target.id });
-      window.history.pushState({ onbStep: target.id }, '');
+      window.history.pushState({ ...(window.history.state ?? {}), onbStep: target.id }, '');
       window.scrollTo({ top: 0, behavior: 'instant' });
     },
     [queue, steps],

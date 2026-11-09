@@ -1,0 +1,435 @@
+{
+  "captured_at": "2026-11-09",
+  "sites": {
+    "atha-hot-yoga": [
+      {
+        "name": null,
+        "url": "https://www.athahotyoga.com/",
+        "laptop": {
+          "src": "/onboarding/gallery/atha-hot-yoga/home-laptop.webp",
+          "width": 1024,
+          "height": 4843,
+          "cut": false
+        },
+        "phone": {
+          "src": "/onboarding/gallery/atha-hot-yoga/home-phone.webp",
+          "width": 585,
+          "height": 10659,
+          "cut": false
+        }
+      },
+      {
+        "name": "About Us",
+        "url": "https://www.athahotyoga.com/about",
+        "laptop": {
+          "src": "/onboarding/gallery/atha-hot-yoga/page-1-laptop.webp",
+          "width": 1024,
+          "height": 3501,
+          "cut": false
+        },
+        "phone": null
+      },
+      {
+        "name": "Class Styles",
+        "url": "https://www.athahotyoga.com/classstyles",
+        "laptop": {
+          "src": "/onboarding/gallery/atha-hot-yoga/page-2-laptop.webp",
+          "width": 1024,
+          "height": 2123,
+          "cut": false
+        },
+        "phone": null
+      }
+    ],
+    "biograph": [
+      {
+        "name": null,
+        "url": "https://www.biograph.com/",
+        "laptop": {
+          "src": "/onboarding/gallery/biograph/home-laptop.webp",
+          "width": 1024,
+          "height": 8000,
+          "cut": true
+        },
+        "phone": {
+          "src": "/onboarding/gallery/biograph/home-phone.webp",
+          "width": 585,
+          "height": 15000,
+          "cut": true
+        }
+      },
+      {
+        "name": "How It Works",
+        "url": "https://www.biograph.com/how-biograph-works",
+        "laptop": {
+          "src": "/onboarding/gallery/biograph/page-1-laptop.webp",
+          "width": 1024,
+          "height": 4800,
+          "cut": true
+        },
+        "phone": null
+      },
+      {
+        "name": "Memberships",
+        "url": "https://www.biograph.com/memberships",
+        "laptop": {
+          "src": "/onboarding/gallery/biograph/page-2-laptop.webp",
+          "width": 1024,
+          "height": 4800,
+          "cut": true
+        },
+        "phone": null
+      }
+    ],
+    "pure-sports-medicine": [
+      {
+        "name": null,
+        "url": "https://puresportsmed.com/",
+        "laptop": {
+          "src": "/onboarding/gallery/pure-sports-medicine/home-laptop.webp",
+          "width": 1024,
+          "height": 8000,
+          "cut": true
+        },
+        "phone": {
+          "src": "/onboarding/gallery/pure-sports-medicine/home-phone.webp",
+          "width": 585,
+          "height": 15000,
+          "cut": true
+        }
+      },
+      {
+        "name": "Services",
+        "url": "https://puresportsmed.com/services/",
+        "laptop": {
+          "src": "/onboarding/gallery/pure-sports-medicine/page-1-laptop.webp",
+          "width": 1024,
+          "height": 4800,
+          "cut": true
+        },
+        "phone": null
+      },
+      {
+        "name": "Locations",
+        "url": "https://puresportsmed.com/locations/",
+        "laptop": {
+          "src": "/onboarding/gallery/pure-sports-medicine/page-2-laptop.webp",
+          "width": 1024,
+          "height": 4800,
+          "cut": true
+        },
+        "phone": null
+      }
+    ],
+    "lanserhof": [
+      {
+        "name": null,
+        "url": "https://lanserhof.com/en",
+        "laptop": {
+          "src": "/onboarding/gallery/lanserhof/home-laptop.webp",
+          "width": 1024,
+          "height": 5246,
+          "cut": false
+        },
+        "phone": null
+      },
+      {
+        "name": "Concept",
+        "url": "https://lanserhof.com/en/lanserhof-concept",
+        "laptop": {
+          "src": "/onboarding/gallery/lanserhof/page-1-laptop.webp",
+          "width": 1024,
+          "height": 4800,
+          "cut": true
+        },
+        "phone": null
+      },
+      {
+        "name": "Lans",
+        "url": "https://lanserhof.com/en/lanserhof-lans",
+        "laptop": {
+          "src": "/onboarding/gallery/lanserhof/page-2-laptop.webp",
+          "width": 1024,
+          "height": 4800,
+          "cut": true
+        },
+        "phone": null
+      }
+    ],
+    "neko-health": [
+      {
+        "name": null,
+        "url": "https://www.nekohealth.com/gb/en",
+        "laptop": {
+          "src": "/onboarding/gallery/neko-health/home-laptop.webp",
+          "width": 1024,
+          "height": 8000,
+          "cut": true
+        },
+        "phone": {
+          "src": "/onboarding/gallery/neko-health/home-phone.webp",
+          "width": 585,
+          "height": 15000,
+          "cut": true
+        }
+      },
+      {
+        "name": "Health scan",
+        "url": "https://www.nekohealth.com/gb/en/health-scan",
+        "laptop": {
+          "src": "/onboarding/gallery/neko-health/page-1-laptop.webp",
+          "width": 1024,
+          "height": 4800,
+          "cut": true
+        },
+        "phone": null
+      },
+      {
+        "name": "About us",
+        "url": "https://www.nekohealth.com/gb/en/about",
+        "laptop": {
+          "src": "/onboarding/gallery/neko-health/page-2-laptop.webp",
+          "width": 1024,
+          "height": 4800,
+          "cut": true
+        },
+        "phone": null
+      }
+    ],
+    "conductlaw": [
+      {
+        "name": null,
+        "url": "https://www.conductlaw.com/",
+        "laptop": {
+          "src": "/onboarding/gallery/conductlaw/home-laptop.webp",
+          "width": 1024,
+          "height": 8000,
+          "cut": true
+        },
+        "phone": {
+          "src": "/onboarding/gallery/conductlaw/home-phone.webp",
+          "width": 585,
+          "height": 15000,
+          "cut": true
+        }
+      },
+      {
+        "name": "Services",
+        "url": "https://www.conductlaw.com/services/what-we-do",
+        "laptop": {
+          "src": "/onboarding/gallery/conductlaw/page-1-laptop.webp",
+          "width": 1024,
+          "height": 3197,
+          "cut": false
+        },
+        "phone": null
+      },
+      {
+        "name": "Attorneys",
+        "url": "https://www.conductlaw.com/team-members",
+        "laptop": {
+          "src": "/onboarding/gallery/conductlaw/page-2-laptop.webp",
+          "width": 1024,
+          "height": 2023,
+          "cut": false
+        },
+        "phone": null
+      }
+    ],
+    "cote-et-ciel": [
+      {
+        "name": null,
+        "url": "https://www.coteetciel.com/",
+        "laptop": {
+          "src": "/onboarding/gallery/cote-et-ciel/home-laptop.webp",
+          "width": 1024,
+          "height": 4494,
+          "cut": false
+        },
+        "phone": {
+          "src": "/onboarding/gallery/cote-et-ciel/home-phone.webp",
+          "width": 585,
+          "height": 7664,
+          "cut": false
+        }
+      },
+      {
+        "name": "New Arrivals",
+        "url": "https://www.coteetciel.com/collections/fall-winter-26",
+        "laptop": {
+          "src": "/onboarding/gallery/cote-et-ciel/page-1-laptop.webp",
+          "width": 1024,
+          "height": 4640,
+          "cut": false
+        },
+        "phone": null
+      },
+      {
+        "name": "Seasonal News",
+        "url": "https://www.coteetciel.com/blogs/seasonal_news",
+        "laptop": {
+          "src": "/onboarding/gallery/cote-et-ciel/page-2-laptop.webp",
+          "width": 1024,
+          "height": 2090,
+          "cut": false
+        },
+        "phone": null
+      }
+    ],
+    "rivian": [
+      {
+        "name": null,
+        "url": "https://rivian.com/en-GB",
+        "laptop": {
+          "src": "/onboarding/gallery/rivian/home-laptop.webp",
+          "width": 1024,
+          "height": 640,
+          "cut": true
+        },
+        "phone": null
+      },
+      {
+        "name": "R2",
+        "url": "https://rivian.com/en-GB/r2",
+        "laptop": {
+          "src": "/onboarding/gallery/rivian/page-1-laptop.webp",
+          "width": 1024,
+          "height": 1299,
+          "cut": false
+        },
+        "phone": null
+      },
+      {
+        "name": "Our company",
+        "url": "https://rivian.com/en-GB/our-company",
+        "laptop": {
+          "src": "/onboarding/gallery/rivian/page-2-laptop.webp",
+          "width": 1024,
+          "height": 4800,
+          "cut": true
+        },
+        "phone": null
+      }
+    ],
+    "graza": [
+      {
+        "name": null,
+        "url": "https://www.graza.co/",
+        "laptop": {
+          "src": "/onboarding/gallery/graza/home-laptop.webp",
+          "width": 1024,
+          "height": 6542,
+          "cut": false
+        },
+        "phone": {
+          "src": "/onboarding/gallery/graza/home-phone.webp",
+          "width": 585,
+          "height": 12485,
+          "cut": false
+        }
+      },
+      {
+        "name": "About",
+        "url": "https://www.graza.co/pages/about-us",
+        "laptop": {
+          "src": "/onboarding/gallery/graza/page-1-laptop.webp",
+          "width": 1024,
+          "height": 4177,
+          "cut": false
+        },
+        "phone": null
+      },
+      {
+        "name": "Shop All Products",
+        "url": "https://www.graza.co/collections/all",
+        "laptop": {
+          "src": "/onboarding/gallery/graza/page-2-laptop.webp",
+          "width": 1024,
+          "height": 3189,
+          "cut": false
+        },
+        "phone": null
+      }
+    ],
+    "25hours-hotels": [
+      {
+        "name": null,
+        "url": "https://25hours-hotels.com/",
+        "laptop": {
+          "src": "/onboarding/gallery/25hours-hotels/home-laptop.webp",
+          "width": 1024,
+          "height": 5826,
+          "cut": false
+        },
+        "phone": {
+          "src": "/onboarding/gallery/25hours-hotels/home-phone.webp",
+          "width": 585,
+          "height": 10443,
+          "cut": false
+        }
+      },
+      {
+        "name": "About Us",
+        "url": "https://25hours-hotels.com/about-us/",
+        "laptop": {
+          "src": "/onboarding/gallery/25hours-hotels/page-1-laptop.webp",
+          "width": 1024,
+          "height": 4774,
+          "cut": false
+        },
+        "phone": null
+      },
+      {
+        "name": "Dis-loyalty",
+        "url": "https://25hours-hotels.com/offers/dis-loyalty/",
+        "laptop": {
+          "src": "/onboarding/gallery/25hours-hotels/page-2-laptop.webp",
+          "width": 1024,
+          "height": 2586,
+          "cut": false
+        },
+        "phone": null
+      }
+    ],
+    "devol": [
+      {
+        "name": null,
+        "url": "https://www.devolkitchens.co.uk/",
+        "laptop": {
+          "src": "/onboarding/gallery/devol/home-laptop.webp",
+          "width": 1024,
+          "height": 4557,
+          "cut": false
+        },
+        "phone": {
+          "src": "/onboarding/gallery/devol/home-phone.webp",
+          "width": 585,
+          "height": 15000,
+          "cut": true
+        }
+      },
+      {
+        "name": "Kitchens",
+        "url": "https://www.devolkitchens.co.uk/pages/kitchens",
+        "laptop": {
+          "src": "/onboarding/gallery/devol/page-1-laptop.webp",
+          "width": 1024,
+          "height": 2545,
+          "cut": false
+        },
+        "phone": null
+      },
+      {
+        "name": "Heirloom Accessories",
+        "url": "https://www.devolkitchens.co.uk/collections/heirloom-accessories",
+        "laptop": {
+          "src": "/onboarding/gallery/devol/page-2-laptop.webp",
+          "width": 1024,
+          "height": 4800,
+          "cut": true
+        },
+        "phone": null
+      }
+    ]
+  }
+}

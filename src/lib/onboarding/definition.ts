@@ -46,6 +46,17 @@ export function parseOnboardingSettings(settingsMap: Record<string, unknown>): O
 }
 
 /**
+ * Local testing only: with ONBOARDING_PREVIEW_DEFINITION=seed the questions come from the seed in
+ * supabase/seed/onboarding instead of the database, so a change to the form can be tried end to
+ * end before its migration has run. Never on Vercel, whatever the variable says.
+ */
+async function previewFields(): Promise<OnbField[] | null> {
+  if (process.env.VERCEL || process.env.ONBOARDING_PREVIEW_DEFINITION !== 'seed') return null;
+  const { fields } = await import('../../../supabase/seed/onboarding/fields');
+  return fields.filter((f) => f.active);
+}
+
+/**
  * The form definition the public form renders from — screens, fields, follow-ups, flag
  * rules, brief sections, texts and settings. Cached per request like `getCatalog()`.
  * Inactive rows are dropped here so nothing downstream has to check `active`.
@@ -74,7 +85,7 @@ export const getOnboardingDefinition = cache(async (): Promise<OnboardingDefinit
   const screenRows = (screens.data ?? []) as OnbScreen[];
   const screenOrder = new Map(screenRows.map((s) => [s.id, s.sort]));
   // Fields come back grouped by screen id (alphabetical); order them by screen sort instead.
-  const fieldRows = ((fields.data ?? []) as OnbField[])
+  const fieldRows = ((await previewFields()) ?? ((fields.data ?? []) as OnbField[]))
     .slice()
     .sort((a, b) => (screenOrder.get(a.screen_id) ?? 0) - (screenOrder.get(b.screen_id) ?? 0) || a.sort - b.sort);
 

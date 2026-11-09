@@ -138,9 +138,24 @@ team works from it; the client is simply not shown it.
 Long free-text fields carry two helpers: **"Help me say this better"** (`ai_assist`) sends that
 one answer for a single guardrailed rewrite the client can take or leave
 (`POST /api/onboarding/<id>/assist`), and a **page counter** (`count_band`) that counts the listed
-pages against the band the client booked. *I don't know* asks when they will know instead of just
+pages against the band the client booked. The page list itself is a searchable **multiselect**:
+common pages, the client's own services (`options_from`) or any page they type; a list typed
+before it became one is read line by line. *I don't know* asks when they will know instead of just
 recording the gap, and fields with a `none_label` get an explicit "we don't have one" tick so an
 empty answer and a deliberate none read differently.
+
+**Two design examples, one per proposal.** On the design screen the client chooses exactly two,
+in any mix: sites from our gallery of example websites (`reference_sites`), their own website
+links (`references`) and their own pictures (`reference_screenshots`, all together one example).
+The `design_examples_summary` notice shows which example each proposal follows and enforces the
+two (`src/lib/onboarding/examples.ts`). "View layouts" opens the gallery over the form, with its
+own address (`#gallery=<slug>`): every site's pages as pictures on laptop and phone, taken with
+`node scripts/capture-gallery.mts`. When the client confirms, both design prompts are written for
+the Developers page in the background (`src/lib/developer/auto.ts`).
+
+To try form changes before their migration has run, start a local server with
+`ONBOARDING_PREVIEW_DEFINITION=seed`: the questions then come from `supabase/seed/onboarding`
+instead of the database (never on Vercel).
 
 **Everything content-shaped is data** in the `onb_*` tables (screens, fields incl. `show_when`
 conditions, follow-up triggers, flag rules, brief sections, long-form texts, the five AI prompts,

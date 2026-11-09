@@ -46,6 +46,8 @@ interface Props {
   /** Migration 20261103000028 has run: the client's own references can be chosen. */
   specsReady: boolean;
   specs: Record<string, ReferenceSpecView>;
+  /** The client confirmed a moment ago and the automatic prompts are still being written. */
+  autoPending: boolean;
 }
 
 const NONE = '';
@@ -131,7 +133,7 @@ function SpecBlock({ spec, label, onRead, busy, disabled, testId }: { spec: Refe
   );
 }
 
-export function DesignPromptsPanel({ leadId, formReady, schemaReady, locked, notes, choices, defaults, prompts, specsReady, specs }: Props) {
+export function DesignPromptsPanel({ leadId, formReady, schemaReady, locked, notes, choices, defaults, prompts, specsReady, specs, autoPending }: Props) {
   const [refs, setRefs] = useState({ A: defaults.A ?? NONE, B: defaults.B ?? NONE });
   const [error, setError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
@@ -190,6 +192,12 @@ export function DesignPromptsPanel({ leadId, formReady, schemaReady, locked, not
       {!schemaReady && (
         <p className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800" data-testid="dev-migration-notice">
           Prompt generation needs migration <code>20261028000021_developer_prompts.sql</code> to be run in Supabase first.
+        </p>
+      )}
+      {autoPending && (
+        <p className="mb-4 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-900" data-testid="dev-auto-pending">
+          The client has just confirmed the form, so both prompts are being written automatically. This takes one to four minutes;
+          reload the page to see them. Generating here now would write them a second time.
         </p>
       )}
       <NotesEditor leadId={leadId} initial={notes} disabled={!schemaReady} />

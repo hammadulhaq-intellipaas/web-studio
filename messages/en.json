@@ -573,7 +573,9 @@
       "rows_min": "Please add at least {min} entries.",
       "rows_max": "At most {max} entries.",
       "date_weekend": "Please pick a weekday; Saturdays and Sundays are not available.",
-      "date_past": "This date has now passed. Please choose {min} or later."
+      "date_past": "This date has now passed. Please choose {min} or later.",
+      "examples_min": "Please choose {left, plural, one {one more example} other {# more examples}}. We need {count} in total, one for each proposal.",
+      "examples_max": "You have chosen {n} examples. Please keep {count}, one for each proposal, and remove the rest."
     },
     "date": {
       "placeholder": "Pick a date",
@@ -605,7 +607,45 @@
       "viewSite": "View website",
       "otherPlaceholder": "Please describe",
       "charsLeft": "{n} characters left",
-      "redacted": "We removed something that looked like a password. We exchange credentials later through a secure channel."
+      "redacted": "We removed something that looked like a password. We exchange credentials later through a secure channel.",
+      "examples": {
+        "title": "Your 2 proposals",
+        "proposal": "Proposal {n} is based on",
+        "notChosen": "Not chosen yet",
+        "link": "Your website {site}",
+        "pictures": "Your pictures ({n})",
+        "full": "You have chosen {count} examples. Remove one to choose another."
+      },
+      "gallery": {
+        "open": "Open the gallery of example websites",
+        "viewLayouts": "View layouts",
+        "title": "Example websites",
+        "intro": "Click a website to see its pages on a laptop and a phone. Tick the ones you like: each one you choose becomes the starting point for one of your 2 proposals.",
+        "back": "Back to the form",
+        "all": "All examples",
+        "choose": "Choose as an example",
+        "chosen": "Chosen",
+        "remove": "Remove",
+        "visit": "Visit the website",
+        "laptop": "Laptop",
+        "phone": "Phone",
+        "homepage": "Homepage",
+        "counter": "{n} of {count} examples chosen",
+        "previous": "Previous website",
+        "next": "Next website",
+        "noPictures": "We have no pictures of this website yet. You can still visit it.",
+        "viewOnly": "Your form is confirmed, so your examples can no longer change here.",
+        "cut": "The picture ends here. Visit the website to see the rest."
+      },
+      "pages": {
+        "search": "Search or type a page name",
+        "add": "Add “{name}”",
+        "noMatch": "Not in the list. Type the full name and press Enter to add it as your own page.",
+        "remove": "Remove {name}",
+        "common": "Common pages",
+        "services": "Your services",
+        "chosen": "{n, plural, one {# page chosen} other {# pages chosen}}"
+      }
     },
     "review": {
       "title": "A few brief questions",

@@ -129,6 +129,13 @@ test.describe('onboarding form', () => {
     await page.click('[data-testid=onb-next]');
     await expect(page.locator('[data-testid=onb-fix-errors]')).toBeVisible(); // likes missing
     await page.fill('[data-testid=f-references-0-likes]', 'Ruhige Farben, große Fotos der Praxisräume');
+    // Two design examples, one per proposal: their own link so far, then one site from our gallery.
+    await expect(page.getByTestId('proposal-example-1')).toContainText('beispiel-physio.de');
+    await expect(page.getByTestId('proposal-example-2')).toContainText('Noch nicht gewählt');
+    await expect(page.getByTestId('err-design_examples_summary')).toContainText('noch ein Beispiel');
+    await page.click('[data-testid=opt-reference_sites-conductlaw]');
+    await expect(page.getByTestId('proposal-example-1')).toContainText('ConductLaw');
+    await expect(page.getByTestId('proposal-example-2')).toContainText('beispiel-physio.de');
     await page.click('[data-testid=none-avoid]');
     await page.click('[data-testid=opt-colour_mood-light]');
     await page.click('[data-testid=opt-colour_mood-muted]');
@@ -144,7 +151,20 @@ test.describe('onboarding form', () => {
 
     // ---- Screen 5 · Pages: the live counter, one main action, the language reveal chain
     await page.fill('[data-testid=f-catalogue]', 'Krankengymnastik\nManuelle Therapie\nLymphdrainage');
-    await page.fill('[data-testid=f-page_list]', 'Startseite\nLeistungen\n- Krankengymnastik\n- Manuelle Therapie\nTeam\nKontakt');
+    // The page list: search the common pages, pick their own services, or type any page.
+    const pageSearch = page.locator('[data-testid=f-page_list]');
+    // Enter takes the first match: "Star" adds "Startseite".
+    for (const name of ['Startseite', 'Leistungen', 'Team', 'Kontakt']) {
+      await pageSearch.fill(name.slice(0, 4));
+      await expect(page.locator('[data-testid=ms-option-page_list]').first()).toHaveText(name);
+      await pageSearch.press('Enter');
+    }
+    await pageSearch.fill('Manuelle');
+    await expect(page.locator('[data-testid=ms-option-page_list]').first()).toHaveText('Manuelle Therapie');
+    await pageSearch.press('Enter');
+    await pageSearch.fill('Rückenschule');
+    await pageSearch.press('Enter');
+    await expect(page.locator('[data-testid=ms-chip-page_list]')).toHaveCount(6);
     await expect(page.locator('[data-testid=count-page_list]')).toContainText('6 Seiten');
     await page.click('[data-testid=opt-visitor_action-booking]');
     await page.click('[data-testid=opt-languages-de_en]');

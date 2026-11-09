@@ -15,7 +15,7 @@ import {
   splitClientSummary,
 } from '@/lib/developer/messages';
 import { DEV_BUILD_PROMPT, DEV_DESIGN_PROMPT, DEV_HANDOVER_PROMPT, DEV_REVISION_PROMPT } from '@/lib/developer/prompt-defaults';
-import { cmsBooked, setupCommands } from '@/lib/developer/setup';
+import { cmsBooked, setupCommands, siteAccess } from '@/lib/developer/setup';
 import { entryPage, unzip } from '@/lib/developer/unzip';
 
 /** A minimal zip writer for the tests: stored or deflated entries, no CRC (the reader ignores it). */
@@ -170,7 +170,27 @@ describe('project setup', () => {
     expect(setup).toContain('supabase projects create mueller --region eu-central-1');
     expect(setup).toContain('fizrafarid+mueller@intellipaas.io');
     expect(setup.trim().split('\n').pop()).toBe('claude');
-    expect(setup).not.toMatch(/password|token|key=/i);
+    expect(setup).not.toMatch(/token|key=/i);
+  });
+
+  it('puts every site behind a password, with the values only in comments, never in a command', () => {
+    const access = { username: 'user.example', password: 'pass.example', cmsPassword: 'Cms!' };
+    const plain = setupCommands('mueller', false, access);
+    expect(plain).toContain('vercel env add SITE_USERNAME');
+    expect(plain).toContain('vercel env add SITE_PASSWORD');
+    expect(plain).not.toContain('CMS_ADMIN_PASSWORD');
+    const withCms = setupCommands('mueller', true, access);
+    expect(withCms).toContain('vercel env add CMS_ADMIN_PASSWORD');
+    expect(withCms).toContain('vercel env pull .env.local');
+    for (const value of Object.values(access)) {
+      for (const line of withCms.split('\n').filter((l) => l.includes(value))) expect(line.startsWith('#')).toBe(true);
+    }
+    expect(withCms).toContain('#    CMS_ADMIN_PASSWORD = Cms!');
+  });
+
+  it('reads the access values from Web Studio settings and says when one is missing', () => {
+    expect(siteAccess({ CLIENT_SITE_USERNAME: 'u', CLIENT_SITE_PASSWORD: ' p ', CLIENT_CMS_PASSWORD: 'c' })).toEqual({ username: 'u', password: 'p', cmsPassword: 'c' });
+    expect(siteAccess({}).password).toBe('<CLIENT_SITE_PASSWORD is not set in Web Studio>');
   });
 });
 
@@ -192,6 +212,7 @@ const context: PromptContext = {
   referenceSites: [],
   clientReferences: [],
   referenceShots: [],
+  examples: [],
   files: [{ question: 'Logo', name: 'logo.svg', type: 'image/svg+xml' }],
   status: 'confirmed',
   confirmedAt: '2026-10-28T10:00:00Z',
@@ -247,10 +268,39 @@ describe('revision, build and handover inputs', () => {
   });
 
   it('leaves the CMS link out of the handover without a CMS', () => {
-    const input = JSON.parse(handoverPromptInput(context, { cms: false, liveUrl: 'https://mueller.de', cmsUrl: 'https://x/admin', design: null, internalNotes: '' }));
+    const input = JSON.parse(
+      handoverPromptInput(context, { cms: false, liveUrl: 'https://mueller.de', cmsUrl: 'https://x/admin', design: null, buildPrompt: null, handoverInstructions: '', internalNotes: '' }),
+    );
     expect(input.live_url).toBe('https://mueller.de');
     expect(input.cms_url).toBeNull();
     expect(input.approved_design).toBeNull();
+    expect(input.site_plan).toBeNull();
+    expect(input.handover_instructions).toBeNull();
+  });
+
+  it('gives the handover the site voice, the owner, the site plan and the team instructions', () => {
+    const voiced: PromptContext = {
+      ...context,
+      sections: [
+        {
+          screen: 'design',
+          title: 'How your site should look and sound',
+          answers: [
+            { key: 'business_one_liner', question: 'In one sentence, what do you do?', answer: 'Wir bauen Bäder.' },
+            { key: 'tone_scale', question: 'How should your site feel?', answer: 'Warm and informal' },
+            { key: 'personality_note', question: 'What exactly do you mean by that?', answer: 'Wie unser Transporter' },
+          ],
+        },
+      ],
+    };
+    const build = ['# Build: Müller', '## Goal', 'x', '## Pages', '### From the design', '- Startseite', '### Built in the same style', '- Team', '## Features and add-ons', 'y', '## CMS', 'Projects and blog posts.', '## Languages, SEO and accessibility', 'z'].join('\n');
+    const input = JSON.parse(
+      handoverPromptInput(voiced, { cms: true, liveUrl: '', cmsUrl: '', design: null, buildPrompt: build, handoverInstructions: ' Write it in English. ', internalNotes: '' }),
+    );
+    expect(input.owner).toBe('Anna Meier');
+    expect(input.voice).toEqual({ what_they_do: 'Wir bauen Bäder.', feel: 'Warm and informal', boldness_in_their_words: 'Wie unser Transporter' });
+    expect(input.site_plan).toBe(['## Pages', '### From the design', '- Startseite', '### Built in the same style', '- Team', '## CMS', 'Projects and blog posts.'].join('\n'));
+    expect(input.handover_instructions).toBe('Write it in English.');
   });
 });
 
@@ -322,6 +372,18 @@ describe('the design, improvement, build and handover instructions', () => {
     expect(DEV_HANDOVER_PROMPT).toMatch(/## 8\. Go-live requirements/);
     expect(DEV_HANDOVER_PROMPT).toMatch(/## 9\. Using your CMS/);
   });
+  it('protect every site until go-live, with the passwords only as environment variables', () => {
+    expect(DEV_BUILD_PROMPT).toMatch(/HTTP basic auth in middleware, with the username from SITE_USERNAME and the password from SITE_PASSWORD/);
+    expect(DEV_BUILD_PROMPT).toMatch(/When either one is empty the site is public/);
+    expect(DEV_BUILD_PROMPT).toMatch(/starting password from the CMS_ADMIN_PASSWORD environment variable/);
+    expect(DEV_BUILD_PROMPT).toMatch(/## Password protection/);
+    expect(DEV_BUILD_PROMPT).not.toMatch(/intellipaas\.io|Access!/);
+  });
+  it('write the handover in the client website voice, with the team instructions on top', () => {
+    expect(DEV_HANDOVER_PROMPT).toMatch(/Write it the way this client's own website speaks/);
+    expect(DEV_HANDOVER_PROMPT).toMatch(/handover_instructions: instructions from the team/);
+    expect(DEV_HANDOVER_PROMPT).toMatch(/password protection taken off the website/);
+  });
   it('write the design, improvement and build prompts in English, whatever the form language', () => {
     expect(DEV_DESIGN_PROMPT).toMatch(/Write the whole prompt in English, whatever language the client filled in the form in/);
     expect(DEV_DESIGN_PROMPT).not.toMatch(/Design the pages in the site's main language/);
@@ -342,8 +404,10 @@ describe('the design, improvement, build and handover instructions', () => {
     }));
     expect(swaps.map((s) => s.id)).toEqual(['dev_design', 'dev_design', 'dev_build']);
     const code: Record<string, string> = { dev_design: DEV_DESIGN_PROMPT, dev_build: DEV_BUILD_PROMPT };
+    // Migration 030 renumbers the build prompt's rules, so the rule number is left out here.
+    const unnumbered = (rule: string) => rule.replace(/^\d+\. /, '');
     for (const s of swaps) {
-      expect(code[s.id]).toContain(s.after);
+      expect(code[s.id]).toContain(unnumbered(s.after));
       expect(code[s.id]).not.toContain(s.before);
     }
   });

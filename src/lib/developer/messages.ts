@@ -4,14 +4,15 @@ export type Proposal = 'A' | 'B';
 export const PROPOSALS: Proposal[] = ['A', 'B'];
 
 /**
- * The reference each proposal starts from: the client's first and second pick from our library.
- * Their own references (a link they typed, their screenshots) fill a proposal the library picks
- * leave open. One source means both proposals start on it (the team switches one in the Design
- * tab); none means both work from the client's answers alone.
+ * The reference each proposal starts from: the client's first and second design example, in the
+ * form's order (gallery ticks, then their own links, then their pictures; see exampleChoices).
+ * One example means both proposals start on it (the team switches one in the Design tab); none
+ * means both work from the client's answers alone. `usable` leaves out the client's own sources
+ * while the reference-spec migration has not run.
  */
-export function defaultReferences(picks: string[], clientSources: string[] = []): Record<Proposal, string | null> {
-  if (picks.length) return { A: picks[0], B: picks[1] ?? clientSources[0] ?? picks[0] };
-  return { A: clientSources[0] ?? null, B: clientSources[1] ?? clientSources[0] ?? null };
+export function defaultReferences(examples: string[], usable: (value: string) => boolean = () => true): Record<Proposal, string | null> {
+  const ok = examples.filter(usable);
+  return { A: ok[0] ?? null, B: ok[1] ?? ok[0] ?? null };
 }
 
 /** Proposal A and B are shown and sent to the model as 1 and 2. */
@@ -205,21 +206,67 @@ export function buildPromptInput(
   );
 }
 
+/** The answers that say how the client's website should come across, for the handover's tone. */
+const VOICE_KEYS: Record<string, string> = {
+  tone_scale: 'feel',
+  tone_note: 'feel_in_their_words',
+  personality_scale: 'boldness',
+  personality_note: 'boldness_in_their_words',
+  tagline: 'slogan',
+  business_one_liner: 'what_they_do',
+};
+
+export function voiceOf(context: PromptContext): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const a of context.sections.flatMap((s) => s.answers)) if (VOICE_KEYS[a.key]) out[VOICE_KEYS[a.key]] = a.answer;
+  return out;
+}
+
+/**
+ * The Pages and CMS sections of a build prompt (its "## Pages" with every subsection, and "## CMS"):
+ * what the site has and what the client edits, for the handover document.
+ */
+export function sitePlanFromBuild(md: string | null): string | null {
+  if (!md) return null;
+  const lines = md.replace(/\r\n/g, '\n').split('\n');
+  const keep: string[] = [];
+  let inside = false;
+  for (const line of lines) {
+    if (/^##\s/.test(line)) inside = /^##\s+(Pages|CMS)\b/i.test(line);
+    if (inside) keep.push(line);
+  }
+  const text = keep.join('\n').trim();
+  return text || null;
+}
+
 /** The model's input for the client's handover document. */
 export function handoverPromptInput(
   context: PromptContext,
-  input: { cms: boolean; liveUrl: string; cmsUrl: string; design: DesignForPrompt | null; internalNotes: string },
+  input: {
+    cms: boolean;
+    liveUrl: string;
+    cmsUrl: string;
+    design: DesignForPrompt | null;
+    /** The newest build prompt: its Pages and CMS sections go in as the site plan. */
+    buildPrompt: string | null;
+    handoverInstructions: string;
+    internalNotes: string;
+  },
 ): string {
   return JSON.stringify(
     {
       client: context.client,
+      owner: context.client.contact,
       quote: context.quote,
       cms_booked: input.cms,
       live_url: input.liveUrl.trim() || null,
       cms_url: input.cms ? input.cmsUrl.trim() || null : null,
       approved_design: input.design ? designForModel(input.design) : null,
+      voice: voiceOf(context),
+      site_plan: sitePlanFromBuild(input.buildPrompt),
       answers: allAnswers(context),
       uploaded_files: context.files,
+      handover_instructions: input.handoverInstructions.trim() || null,
       internal_notes: input.internalNotes.trim() || null,
     },
     null,

@@ -173,6 +173,18 @@ export async function saveHandoverLinks(leadId: string, liveUrl: string, cmsUrl:
   }
 }
 
+/** The team's instructions for the handover document: its language, sections to leave out, anything to add. */
+export async function saveHandoverInstructions(leadId: string, text: string): Promise<Result> {
+  const by = await requireAdmin();
+  try {
+    await saveProject(leadId, { handover_instructions: text.slice(0, 5000) }, by);
+    revalidatePath(`/admin/developer/${leadId}`);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: message(err) };
+  }
+}
+
 export async function generateHandoverDoc(leadId: string): Promise<Result> {
   const by = await requireAdmin();
   const result = await generateHandover(leadId, by);

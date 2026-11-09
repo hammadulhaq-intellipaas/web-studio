@@ -180,7 +180,8 @@ describe('validateField', () => {
 
   it('validates repeater rows and their sub-fields', () => {
     const f = field('references');
-    expect(validateField(f, ctx({ references: a([]) }))).toEqual([{ field: 'references', code: 'required' }]);
+    // One of the three design-example questions: empty is fine on its own, the examples summary counts.
+    expect(validateField(f, ctx({ references: a([]) }))).toEqual([]);
     const missingLikes = ctx({ references: a([{ _id: 'r1', url: 'https://x.de', likes: '' }]) });
     expect(validateField(f, missingLikes)).toEqual([{ field: 'references', code: 'required', row_id: 'r1', sub: 'likes' }]);
     const badUrl = ctx({ references: a([{ _id: 'r1', url: 'nope', likes: 'Schöne Farben überall' }]) });
@@ -188,7 +189,7 @@ describe('validateField', () => {
     const tooMany = ctx({
       references: a([1, 2, 3, 4].map((i) => ({ _id: `r${i}`, url: 'https://x.de', likes: 'Schöne Farben überall' }))),
     });
-    expect(validateField(f, tooMany)[0]).toMatchObject({ code: 'rows_max', params: { max: 3 } });
+    expect(validateField(f, tooMany)[0]).toMatchObject({ code: 'rows_max', params: { max: 2 } });
     const badEmail = ctx({ notification_routing: a([{ _id: 'n1', type: 'Anfrage', address: 'not-an-email' }]) });
     expect(validateField(field('notification_routing'), badEmail)[0]).toMatchObject({ code: 'invalid_email', sub: 'address' });
   });

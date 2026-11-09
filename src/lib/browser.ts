@@ -7,19 +7,10 @@ import { chromium as playwright, type Browser } from 'playwright-core';
  * outputFileTracingIncludes (next.config.ts).
  */
 
-/**
- * Hides the usual cookie and consent banners, so a picture shows the page and not the banner
- * over it. Only in our browser; the site itself is not changed.
- */
-export const HIDE_BANNERS = `
-#CybotCookiebotDialog, #usercentrics-root, #onetrust-consent-sdk, #cmplz-cookiebanner-container,
-.cky-consent-container, .cc-window, .cookie-notice-container, #cookie-notice, #BorlabsCookieBox,
-[id*="cookie" i][role="dialog"], [class*="cookie-banner" i], [class*="cookiebanner" i],
-[id*="cookie-banner" i], [id*="consent-banner" i], [class*="consent-banner" i] {
-  display: none !important;
-}
-html, body { overflow: auto !important; }
-`;
+export { HIDE_BANNERS } from './hide-banners';
+
+/** Where @sparticuz/chromium unpacked the browser, once per running function. */
+let executable: Promise<string> | null = null;
 
 /**
  * On Vercel: the Chromium packaged with @sparticuz/chromium (unpacked to /tmp on a cold start).
@@ -28,7 +19,12 @@ html, body { overflow: auto !important; }
 export async function launchBrowser(): Promise<Browser> {
   if (process.env.VERCEL) {
     const { default: chromium } = await import('@sparticuz/chromium');
-    return playwright.launch({ args: chromium.args, executablePath: await chromium.executablePath(), headless: true });
+    // Two websites read side by side share one unpacking instead of writing the same file twice.
+    executable ??= chromium.executablePath().catch((err) => {
+      executable = null;
+      throw err;
+    });
+    return playwright.launch({ args: chromium.args, executablePath: await executable, headless: true });
   }
   return playwright.launch({ headless: true });
 }

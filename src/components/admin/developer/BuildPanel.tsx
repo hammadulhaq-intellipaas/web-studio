@@ -148,7 +148,8 @@ export function BuildPanel({ leadId, schemaReady, formReady, approved, pages, in
         <Step n={3} title="Set up the project">
           <p className="mb-2 text-xs text-slate-500">
             Run these in a terminal, one folder per client. You need the gh, vercel, supabase and claude command line tools,
-            each signed in. The tools ask for anything secret themselves; nothing secret goes into a prompt.
+            each signed in. The tools ask for anything secret themselves, and the comments say what to type for the site&apos;s
+            password protection{cms ? ' and the CMS starting password' : ''}. Nothing secret goes into the code or the prompt.
           </p>
           <SetupBlock setup={setup} />
         </Step>

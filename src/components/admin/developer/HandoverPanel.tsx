@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { generateHandoverDoc, saveHandoverLinks, setDraftLinksOffline } from '@/app/admin/developer/[id]/actions';
+import { generateHandoverDoc, saveHandoverInstructions, saveHandoverLinks, setDraftLinksOffline } from '@/app/admin/developer/[id]/actions';
 import { PromptHistory, type GeneratedRow } from './PromptView';
 
 interface Props {
@@ -16,13 +16,18 @@ interface Props {
   hasDrafts: boolean;
   fileName: string;
   docs: GeneratedRow[];
+  /** The team's instructions for the document (language, sections, extras). */
+  instructions: string;
 }
 
 const inputClass = 'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none';
 
-export function HandoverPanel({ leadId, schemaReady, formReady, liveUrl, cmsUrl, cms, offline, hasDrafts, fileName, docs }: Props) {
+export function HandoverPanel({ leadId, schemaReady, formReady, liveUrl, cmsUrl, cms, offline, hasDrafts, fileName, docs, instructions }: Props) {
   const [live, setLive] = useState(liveUrl);
   const [admin, setAdmin] = useState(cmsUrl);
+  const [text, setText] = useState(instructions);
+  const [textSaved, setTextSaved] = useState<'idle' | 'saved' | string>('idle');
+  const [savingText, startSaveText] = useTransition();
   const [saved, setSaved] = useState<'idle' | 'saved' | string>('idle');
   const [error, setError] = useState<string | null>(null);
   const [saving, startSave] = useTransition();
@@ -49,6 +54,10 @@ export function HandoverPanel({ leadId, schemaReady, formReady, liveUrl, cmsUrl,
       if (dirty) {
         const r = await saveHandoverLinks(leadId, live, admin);
         if (!r.ok) return setError(r.error ?? 'Saving the links failed');
+      }
+      if (text !== instructions) {
+        const r = await saveHandoverInstructions(leadId, text);
+        if (!r.ok) return setError(r.error ?? 'Saving the instructions failed');
       }
       const r = await generateHandoverDoc(leadId);
       if (!r.ok) setError(r.error ?? 'Generating failed');
@@ -111,6 +120,42 @@ export function HandoverPanel({ leadId, schemaReady, formReady, liveUrl, cmsUrl,
         {saved !== 'idle' && saved !== 'saved' && <span className="text-xs font-semibold text-red-600">{saved}</span>}
       </div>
 
+      <div className="mb-5">
+        <label htmlFor="dev-handover-instructions" className="mb-1 block text-xs font-semibold text-slate-500">
+          Instructions for the document
+        </label>
+        <textarea
+          id="dev-handover-instructions"
+          rows={3}
+          value={text}
+          onChange={(e) => {
+            setText(e.target.value);
+            setTextSaved('idle');
+          }}
+          data-testid="dev-handover-instructions"
+          placeholder="Optional. For example: Write it in English. Mention the training session on 12 March. Leave out the performance section."
+          className={inputClass}
+        />
+        <div className="mt-2 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() =>
+              startSaveText(async () => {
+                const r = await saveHandoverInstructions(leadId, text);
+                setTextSaved(r.ok ? 'saved' : r.error ?? 'Saving failed');
+              })
+            }
+            disabled={savingText || text === instructions}
+            data-testid="dev-handover-instructions-save"
+            className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+          >
+            {savingText ? 'Saving…' : 'Save instructions'}
+          </button>
+          {textSaved === 'saved' && <span className="text-xs font-semibold text-emerald-700">Saved</span>}
+          {textSaved !== 'idle' && textSaved !== 'saved' && <span className="text-xs font-semibold text-red-600">{textSaved}</span>}
+        </div>
+      </div>
+
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"
@@ -122,7 +167,9 @@ export function HandoverPanel({ leadId, schemaReady, formReady, liveUrl, cmsUrl,
           {generating ? 'Generating…' : docs.length ? 'Generate a new version' : 'Generate the handover document'}
         </button>
         <span className="text-xs text-slate-500">
-          {generating ? 'This takes about a minute.' : 'Written in the language the client used in the form. Logins are never part of it.'}
+          {generating
+            ? 'This takes about a minute.'
+            : 'Written in the client’s website voice and form language, unless the instructions say otherwise. Logins are never part of it.'}
         </span>
       </div>
       {error && (

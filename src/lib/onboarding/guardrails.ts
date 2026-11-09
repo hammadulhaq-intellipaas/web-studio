@@ -62,6 +62,8 @@ export function redactAnswers(answers: Answers): { answers: Answers; count: numb
     if (!answer) continue;
     let v = answer.v;
     if (typeof v === 'string') v = clean(v);
+    // A list the client typed into (the page list): every entry is their own text.
+    else if (Array.isArray(v) && v.length && typeof v[0] === 'string') v = (v as string[]).map(clean);
     else if (Array.isArray(v) && v.length && typeof v[0] === 'object') {
       v = (v as RepeaterRow[]).map((row) => {
         const next: RepeaterRow = { _id: row._id };

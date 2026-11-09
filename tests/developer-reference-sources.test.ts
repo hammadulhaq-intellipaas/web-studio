@@ -6,6 +6,7 @@ import {
   CLIENT_SHOTS,
   clientChoices,
   clientLinkIndex,
+  exampleChoices,
   clientSourceLabel,
   isClientSource,
   isReadableShot,
@@ -132,10 +133,15 @@ describe('checking a spec', () => {
 });
 
 describe('defaults and the design prompt input', () => {
-  it('fills an open proposal with the client source', () => {
-    expect(defaultReferences(['graza'], ['client-link-1'])).toEqual({ A: 'graza', B: 'client-link-1' });
-    expect(defaultReferences([], ['client-link-1', 'client-screenshots'])).toEqual({ A: 'client-link-1', B: 'client-screenshots' });
-    expect(defaultReferences([], ['client-link-1'])).toEqual({ A: 'client-link-1', B: 'client-link-1' });
+  it('maps the form examples to Design tab choices in the form order', () => {
+    const choices = exampleChoices([
+      { kind: 'library', value: 'graza' },
+      { kind: 'link', index: 0, url: 'https://bloom-mothers.de' },
+      { kind: 'pictures', count: 3 },
+    ]);
+    expect(choices).toEqual(['graza', 'client-link-1', 'client-screenshots']);
+    expect(defaultReferences(choices)).toEqual({ A: 'graza', B: 'client-link-1' });
+    expect(defaultReferences(['client-link-1'])).toEqual({ A: 'client-link-1', B: 'client-link-1' });
   });
 
   it('tells the model when a reference is the client own and how its spec was made', () => {
@@ -146,6 +152,7 @@ describe('defaults and the design prompt input', () => {
       referenceSites: [],
       clientReferences: refs,
       referenceShots: [],
+      examples: [],
       files: [],
       status: 'confirmed',
       confirmedAt: null,
