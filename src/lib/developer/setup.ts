@@ -15,9 +15,11 @@ export const supabaseAlias = (project: string) => `fizrafarid+${project}@intelli
 
 /**
  * The username and password every client site sits behind until go-live, and the CMS starting
- * password. The values live in Web Studio's own environment (Vercel settings and .env.local),
- * never in the code: CLIENT_SITE_USERNAME, CLIENT_SITE_PASSWORD and CLIENT_CMS_PASSWORD. A value
- * that is not set shows as a reminder instead.
+ * password: the same for every client, shown in the Build tab's setup commands (the team's
+ * decision, 10 Nov 2026). They never go into the build prompt or the client's code: the client
+ * site reads them from its own Vercel settings, and at go-live they are deleted or changed.
+ * Web Studio's environment can override them (CLIENT_SITE_USERNAME, CLIENT_SITE_PASSWORD,
+ * CLIENT_CMS_PASSWORD).
  */
 export interface SiteAccess {
   username: string;
@@ -25,9 +27,14 @@ export interface SiteAccess {
   cmsPassword: string;
 }
 
+const DEFAULT_ACCESS: SiteAccess = { username: 'intellipaas.io', password: 'intellipaas.io', cmsPassword: 'Access!' };
+
 export function siteAccess(env: Record<string, string | undefined> = process.env): SiteAccess {
-  const value = (name: string) => env[name]?.trim() || `<${name} is not set in Web Studio>`;
-  return { username: value('CLIENT_SITE_USERNAME'), password: value('CLIENT_SITE_PASSWORD'), cmsPassword: value('CLIENT_CMS_PASSWORD') };
+  return {
+    username: env.CLIENT_SITE_USERNAME?.trim() || DEFAULT_ACCESS.username,
+    password: env.CLIENT_SITE_PASSWORD?.trim() || DEFAULT_ACCESS.password,
+    cmsPassword: env.CLIENT_CMS_PASSWORD?.trim() || DEFAULT_ACCESS.cmsPassword,
+  };
 }
 
 /**

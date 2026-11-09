@@ -17,6 +17,11 @@
   var layer = null;
   var drag = null;
   var skipClick = false;
+  // Comment notes beside their marks, and how much the review page shrinks the design (laptop
+  // view), so a note reads at the same size on screen whatever the scale.
+  var notes = true;
+  var scale = 1;
+  var frozen = null;
 
   function post(msg) {
     msg[TAG] = 1;
@@ -130,6 +135,63 @@
     });
     return b;
   }
+  /*
+   * The comment itself, as a small note beside its mark: to the right of it, or to the left when
+   * the page ends there, or below it. Sized for the screen, not for the shrunken design.
+   */
+  function note(p, color, left, top, width, height) {
+    if (!notes || p.pending || !p.text) return;
+    var px = function (n) { return Math.round(n / scale) + 'px'; };
+    var w = docWidth();
+    var cardW = Math.min(260 / scale, w - 16);
+    var gap = 10 / scale;
+    var x = left + width + gap;
+    var y = top;
+    if (x + cardW > w - 8) {
+      x = left - gap - cardW;
+      if (x < 8) {
+        x = Math.min(Math.max(8, left), w - cardW - 8);
+        y = top + height + gap;
+      }
+    }
+    var card = document.createElement('div');
+    card.setAttribute('data-wsr-note', p.id);
+    card.style.cssText = [
+      'all:initial', 'position:absolute', 'box-sizing:border-box', 'left:' + x + 'px', 'top:' + y + 'px', 'width:' + cardW + 'px',
+      'background:#ffffff', 'border:' + px(p.active ? 2 : 1) + ' solid ' + (p.active ? ACTIVE : '#C9D6F2'), 'border-left:' + px(4) + ' solid ' + color,
+      'border-radius:' + px(8), 'padding:' + px(8) + ' ' + px(10), 'box-shadow:0 ' + px(4) + ' ' + px(14) + ' rgba(15,36,64,.18)',
+      'font:400 ' + px(13) + '/1.4 system-ui,-apple-system,Segoe UI,Arial,sans-serif', 'color:#0F2440', 'cursor:pointer', 'pointer-events:auto',
+      'text-align:left', 'z-index:1',
+    ].join(';');
+    var head = document.createElement('div');
+    head.style.cssText = 'all:initial;display:block;font:700 ' + px(12) + '/1.3 system-ui,-apple-system,Segoe UI,Arial,sans-serif;color:' + color + ';margin-bottom:' + px(2) + ';';
+    head.textContent = p.n + (p.author ? ' · ' + p.author : '');
+    var body = document.createElement('div');
+    body.style.cssText = [
+      'all:initial', 'display:-webkit-box', '-webkit-box-orient:vertical', '-webkit-line-clamp:' + (p.active ? 12 : 4), 'overflow:hidden',
+      'font:400 ' + px(13) + '/1.4 system-ui,-apple-system,Segoe UI,Arial,sans-serif', 'color:#0F2440', 'white-space:pre-wrap', 'word-break:break-word',
+    ].join(';');
+    body.textContent = p.text;
+    card.appendChild(head);
+    card.appendChild(body);
+    card.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      post({ type: 'open', id: p.id });
+    });
+    layer.appendChild(card);
+  }
+  /* While the client writes a comment, the page holds still, so the box stays beside the comment field. */
+  function freeze(on) {
+    var root = document.documentElement;
+    if (on && frozen === null) {
+      frozen = root.style.overflow;
+      root.style.overflow = 'hidden';
+    } else if (!on && frozen !== null) {
+      root.style.overflow = frozen;
+      frozen = null;
+    }
+  }
   function draw() {
     ensureLayer();
     var w = docWidth();
@@ -151,6 +213,7 @@
         b.style.borderRadius = '50%';
         box.appendChild(b);
         layer.appendChild(box);
+        note(p, color, left, p.y, (p.w / 100) * w, p.h);
       } else {
         var size = p.active ? 30 : 26;
         var pin = badge(p, color, size);
@@ -159,23 +222,38 @@
         pin.style.margin = '-' + size / 2 + 'px 0 0 -' + size / 2 + 'px';
         pin.style.borderRadius = '50% 50% 50% 0';
         layer.appendChild(pin);
+        note(p, color, left + size / 2, p.y - size / 2, 0, size);
       }
     });
   }
 
+  /* Where a marked box sits in the visible window, for the review page to open the comment field beside it. */
+  function view(left, top, width, height) {
+    return { vx: Math.round(left - window.scrollX), vy: Math.round(top - window.scrollY), vw: Math.round(width), vh: Math.round(height) };
+  }
+  function assign(target, source) {
+    for (var k in source) target[k] = source[k];
+    return target;
+  }
+
   function pickSpot(target, pageX, pageY) {
-    post({
-      type: 'pick',
-      page: pageKey(),
-      pageTitle: pageTitle(),
-      width: window.innerWidth,
-      x: Math.round((pageX / docWidth()) * 1000) / 10,
-      y: Math.round(pageY),
-      w: 0,
-      h: 0,
-      near: nearSpot(target, pageY),
-      place: place(pageY),
-    });
+    post(
+      assign(
+        {
+          type: 'pick',
+          page: pageKey(),
+          pageTitle: pageTitle(),
+          width: window.innerWidth,
+          x: Math.round((pageX / docWidth()) * 1000) / 10,
+          y: Math.round(pageY),
+          w: 0,
+          h: 0,
+          near: nearSpot(target, pageY),
+          place: place(pageY),
+        },
+        view(pageX - 13, pageY - 13, 26, 26),
+      ),
+    );
   }
 
   // Mouse and pen: press, drag a box, let go. A press without dragging marks a spot.
@@ -221,18 +299,23 @@
       var height = Math.abs(e.pageY - d.y0);
       if (width < 12 || height < 12) return pickSpot(d.target, d.x0, d.y0);
       var dw = docWidth();
-      post({
-        type: 'pick',
-        page: pageKey(),
-        pageTitle: pageTitle(),
-        width: window.innerWidth,
-        x: Math.round((left / dw) * 1000) / 10,
-        y: Math.round(top),
-        w: Math.round((width / dw) * 1000) / 10,
-        h: Math.round(height),
-        near: nearArea(left, top, left + width, top + height),
-        place: place(top + height / 2),
-      });
+      post(
+        assign(
+          {
+            type: 'pick',
+            page: pageKey(),
+            pageTitle: pageTitle(),
+            width: window.innerWidth,
+            x: Math.round((left / dw) * 1000) / 10,
+            y: Math.round(top),
+            w: Math.round((width / dw) * 1000) / 10,
+            h: Math.round(height),
+            near: nearArea(left, top, left + width, top + height),
+            place: place(top + height / 2),
+          },
+          view(left, top, width, height),
+        ),
+      );
     },
     true,
   );
@@ -264,6 +347,9 @@
     }
     if (d.type === 'pins') {
       pins = Array.isArray(d.pins) ? d.pins : [];
+      notes = d.notes !== false;
+      scale = typeof d.scale === 'number' && d.scale > 0.2 ? d.scale : 1;
+      freeze(pins.some(function (p) { return p.pending; }));
       draw();
     }
     if (d.type === 'scrollTo') {

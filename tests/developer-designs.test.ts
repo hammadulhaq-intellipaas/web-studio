@@ -188,9 +188,13 @@ describe('project setup', () => {
     expect(withCms).toContain('#    CMS_ADMIN_PASSWORD = Cms!');
   });
 
-  it('reads the access values from Web Studio settings and says when one is missing', () => {
+  it('shows the team access values in the setup commands, and Web Studio settings can override them', () => {
+    const defaults = siteAccess({});
+    expect(defaults.username).toBe('intellipaas.io');
+    expect(defaults.password).toBe('intellipaas.io');
+    expect(defaults.cmsPassword).toBe('Access!');
+    expect(setupCommands('mueller', true, defaults)).toContain('#    CMS_ADMIN_PASSWORD = Access!');
     expect(siteAccess({ CLIENT_SITE_USERNAME: 'u', CLIENT_SITE_PASSWORD: ' p ', CLIENT_CMS_PASSWORD: 'c' })).toEqual({ username: 'u', password: 'p', cmsPassword: 'c' });
-    expect(siteAccess({}).password).toBe('<CLIENT_SITE_PASSWORD is not set in Web Studio>');
   });
 });
 

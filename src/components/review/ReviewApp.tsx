@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { LanguagePills } from '@/components/LanguagePills';
 import type { Proposal } from '@/lib/developer/messages';
 import type { ReviewComment, ReviewState, ReviewVersion } from '@/lib/developer/review';
+import { composerPlace } from '@/lib/developer/review-place';
 
 /**
  * The client's review page: both design proposals in tabs, the design in a sandboxed frame,
@@ -16,7 +17,22 @@ import type { ReviewComment, ReviewState, ReviewVersion } from '@/lib/developer/
  */
 
 type Device = 'laptop' | 'phone';
-type Pick = { page: string; pageTitle: string; x: number; y: number; w: number; h: number; near: string; device: Device; place: 'top' | 'bottom' };
+type Pick = {
+  page: string;
+  pageTitle: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  near: string;
+  device: Device;
+  place: 'top' | 'bottom';
+  /** Where the comment field opens: beside the marked box, in the design area. */
+  at: { left: number; top: number; width: number } | null;
+};
+
+/** About how tall the comment field is, with and without the name field above it. */
+const COMPOSER = { width: 340, height: 210, withName: 262 };
 
 const T = {
   de: {
@@ -56,6 +72,7 @@ const T = {
     guide3Title: 'Senden und entscheiden', guide3: 'Senden Sie uns Ihr Feedback. Wenn Ihnen ein Entwurf gefällt, wählen Sie ihn aus.',
     guideGo: "Los geht's",
     soon: 'Ihre Entwürfe sind bald hier.', error: 'Das hat nicht geklappt. Bitte versuchen Sie es noch einmal.',
+    notesHide: 'Kommentare ausblenden', notesShow: 'Kommentare einblenden',
   },
   en: {
     title: 'Your website designs', howItWorks: 'How it works',
@@ -94,6 +111,7 @@ const T = {
     guide3Title: 'Send and decide', guide3: 'Send us your feedback. When you like a proposal, choose it.',
     guideGo: "Let's start",
     soon: 'Your designs will be here soon.', error: 'That did not work. Please try again.',
+    notesHide: 'Hide comments', notesShow: 'Show comments',
   },
 };
 const fill = (s: string, vars: Record<string, string | number>) => Object.entries(vars).reduce((a, [k, v]) => a.replaceAll(`{${k}}`, String(v)), s);
@@ -150,6 +168,14 @@ function HelpIcon() {
     </svg>
   );
 }
+/** A speech bubble: the comment notes on the design. */
+function CommentIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 5h16v11H9l-5 4z" />
+    </svg>
+  );
+}
 /** A box drawn around a spot, with its number: what "Mark a spot" makes. */
 function MarkIcon({ size = 18 }: { size?: number }) {
   return (
@@ -185,6 +211,8 @@ export function ReviewApp({ initial, api }: { initial: ReviewState; api: string 
   const [commenting, setCommenting] = useState(false);
   const [pending, setPending] = useState<Pick | null>(null);
   const [draft, setDraft] = useState('');
+  // Each comment's text beside its mark on the design; the client can hide them to see the design clean.
+  const [showNotes, setShowNotes] = useState(true);
   const [general, setGeneral] = useState('');
   const remembered = useSyncExternalStore(onStorage, storedName, () => '');
   const [typedName, setName] = useState<string | null>(null);
@@ -212,6 +240,8 @@ export function ReviewApp({ initial, api }: { initial: ReviewState; api: string 
     return () => ro.disconnect();
   }, []);
 
+  // The laptop view is 1280 px wide, shrunk to fit the design area.
+  const scale = device === 'laptop' ? Math.min(1, box.w / 1280) : 1;
   const versions = useMemo(() => data.versions.filter((v) => v.proposal === tab).sort((a, b) => b.iteration - a.iteration), [data.versions, tab]);
   const version: ReviewVersion | undefined = versions.find((v) => v.id === picked[tab]) ?? versions[0];
   const isLatest = !!version && version.id === versions[0]?.id;
@@ -268,14 +298,29 @@ export function ReviewApp({ initial, api }: { initial: ReviewState; api: string 
       if (d.type === 'pick') {
         setPending({
           page: String(d.page), pageTitle: String(d.pageTitle ?? ''), x: Number(d.x), y: Number(d.y), w: Number(d.w) || 0, h: Number(d.h) || 0,
-          near: String(d.near ?? ''), device, place: d.place === 'top' ? 'top' : 'bottom',
+          near: String(d.near ?? ''), device, place: d.place === 'top' ? 'top' : 'bottom', at: besideBox(d),
         });
-        setTimeout(() => composer.current?.focus(), 50);
+        setTimeout(() => composer.current?.focus({ preventScroll: true }), 50);
       }
+    };
+    // The marked box in the design area's pixels: the bridge says where it sits in the design's
+    // window, the frame's position and scale on this page turn that into the area's coordinates.
+    const besideBox = (d: Record<string, unknown>): Pick['at'] => {
+      const iframe = frame.current;
+      const area = stage.current;
+      if (!iframe || !area || typeof d.vx !== 'number' || typeof d.vy !== 'number') return null;
+      const f = iframe.getBoundingClientRect();
+      const s = area.getBoundingClientRect();
+      const k = f.width / (iframe.offsetWidth || f.width || 1);
+      return composerPlace(
+        { left: f.left - s.left + d.vx * k, top: f.top - s.top + d.vy * k, width: Number(d.vw ?? 0) * k, height: Number(d.vh ?? 0) * k },
+        { width: s.width, height: s.height },
+        { width: COMPOSER.width, height: name.trim() ? COMPOSER.height : COMPOSER.withName },
+      );
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, [device, frameKey]);
+  }, [device, frameKey, name]);
 
   // What the design frame should show: comment mode and the marks of this page on this device.
   useEffect(() => {
@@ -283,11 +328,12 @@ export function ReviewApp({ initial, api }: { initial: ReviewState; api: string 
     if (!win || !page) return;
     const pins: Record<string, unknown>[] = comments
       .filter((c) => c.kind === 'pin' && c.page === page.key && (c.device ?? 'laptop') === device && c.x != null && c.y != null)
-      .map((c) => ({ id: c.id, n: pinNumber.get(c.id), x: c.x, y: c.y, w: c.w, h: c.h, active: c.id === active }));
+      .map((c) => ({ id: c.id, n: pinNumber.get(c.id), x: c.x, y: c.y, w: c.w, h: c.h, active: c.id === active, text: c.body, author: c.author }));
     if (pending && pending.page === page.key) pins.push({ id: 'pending', n: '+', x: pending.x, y: pending.y, w: pending.w, h: pending.h, pending: true });
     win.postMessage({ __wsr: 1, type: 'mode', on: commenting && !approved }, '*');
-    win.postMessage({ __wsr: 1, type: 'pins', pins }, '*');
-  }, [comments, pinNumber, page, device, commenting, active, pending, approved]);
+    // The scale lets the design draw the comment notes at the same size on screen as this page's text.
+    win.postMessage({ __wsr: 1, type: 'pins', pins, notes: showNotes, scale }, '*');
+  }, [comments, pinNumber, page, device, commenting, active, pending, approved, showNotes, scale]);
 
   const focusComment = (c: ReviewComment) => {
     setActive(c.id);
@@ -343,8 +389,8 @@ export function ReviewApp({ initial, api }: { initial: ReviewState; api: string 
     } catch { say(t.error); }
   };
 
-  const scale = device === 'laptop' ? Math.min(1, box.w / 1280) : 1;
   const frameW = device === 'laptop' ? 1280 : 390;
+  const pagePins = page ? comments.filter((c) => c.kind === 'pin' && c.page === page.key && (c.device ?? 'laptop') === device).length : 0;
   const frameH = device === 'laptop' ? box.h / scale : box.h;
   const summary = version ? data.summaries[version.id] : undefined;
   const marking = commenting && !approved;
@@ -434,8 +480,25 @@ export function ReviewApp({ initial, api }: { initial: ReviewState; api: string 
                 <button type="button" onClick={toggleMarking} className="rounded-lg bg-white/15 px-3 py-1.5 font-semibold hover:bg-white/25">{t.done}</button>
               </div>
             )}
+            {pagePins > 0 && !pending && (
+              <button
+                type="button"
+                onClick={() => setShowNotes(!showNotes)}
+                aria-pressed={!showNotes}
+                data-testid="review-notes-toggle"
+                className="absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-full border border-[#D5DCE8] bg-white/95 px-3 py-1.5 text-xs font-semibold text-[#0F2440] shadow-sm hover:border-[#1E5EFF]"
+              >
+                <CommentIcon />
+                {showNotes ? t.notesHide : t.notesShow}
+              </button>
+            )}
             {pending && (
-              <div className={`absolute left-1/2 w-[min(440px,calc(100%-24px))] -translate-x-1/2 rounded-xl border-2 bg-white p-4 shadow-xl ${pending.place === 'top' ? 'top-4' : 'bottom-4'}`} style={{ borderColor: RED }}>
+              // Beside the marked box when the bridge told us where it is; otherwise centred at the top or bottom.
+              <div
+                data-testid="review-composer"
+                className={`absolute z-20 rounded-xl border-2 bg-white p-4 shadow-xl ${pending.at ? '' : `left-1/2 w-[min(440px,calc(100%-24px))] -translate-x-1/2 ${pending.place === 'top' ? 'top-4' : 'bottom-4'}`}`}
+                style={{ borderColor: RED, ...(pending.at ? { left: pending.at.left, top: pending.at.top, width: pending.at.width } : {}) }}
+              >
                 <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
                   <span className="h-3 w-3 rounded-sm border-2" style={{ borderColor: RED }} />
                   {t.composerTitle}
