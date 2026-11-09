@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { deflateRawSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 import type { PromptContext } from '@/lib/developer/context';
@@ -319,5 +321,30 @@ describe('the design, improvement, build and handover instructions', () => {
     expect(DEV_HANDOVER_PROMPT).toMatch(/Never write a password/);
     expect(DEV_HANDOVER_PROMPT).toMatch(/## 8\. Go-live requirements/);
     expect(DEV_HANDOVER_PROMPT).toMatch(/## 9\. Using your CMS/);
+  });
+  it('write the design, improvement and build prompts in English, whatever the form language', () => {
+    expect(DEV_DESIGN_PROMPT).toMatch(/Write the whole prompt in English, whatever language the client filled in the form in/);
+    expect(DEV_DESIGN_PROMPT).not.toMatch(/Design the pages in the site's main language/);
+    expect(DEV_REVISION_PROMPT).toMatch(/Write the prompt in English/);
+    expect(DEV_BUILD_PROMPT).toMatch(/Write the prompt in English, whatever language the client filled in the form in/);
+    // The handover document is for the client, so it stays in the client's language.
+    expect(DEV_HANDOVER_PROMPT).toMatch(/Write the whole document in the language the client filled in the form in/);
+  });
+  it('migration 029 swaps in exactly the rules the code has', () => {
+    const sql = readFileSync(join(process.cwd(), 'supabase/migrations/20261109000029_developer_prompts_english.sql'), 'utf8');
+    // Each replace(content, old, new) ... where id = '<row>': the old text is gone from the code
+    // and the new text is in it, so after the migration the row says what the code says.
+    const unquote = (s: string) => s.replace(/''/g, "'");
+    const swaps = [...sql.matchAll(/replace\(\s*content,\s*'((?:[^']|'')*)',\s*'((?:[^']|'')*)'\s*\),[\s\S]*?where id = '(\w+)'/g)].map((m) => ({
+      before: unquote(m[1]),
+      after: unquote(m[2]),
+      id: m[3],
+    }));
+    expect(swaps.map((s) => s.id)).toEqual(['dev_design', 'dev_design', 'dev_build']);
+    const code: Record<string, string> = { dev_design: DEV_DESIGN_PROMPT, dev_build: DEV_BUILD_PROMPT };
+    for (const s of swaps) {
+      expect(code[s.id]).toContain(s.after);
+      expect(code[s.id]).not.toContain(s.before);
+    }
   });
 });

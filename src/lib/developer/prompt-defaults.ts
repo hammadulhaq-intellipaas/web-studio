@@ -27,7 +27,7 @@ How to use the reference spec:
 Content:
 7. Use the client's own words wherever they gave them: services, descriptions, slogan, reasons to choose them, opening hours, contact details. Quote them exactly.
 8. Write new copy only where the client's content is missing, and only as wording, never as facts. Never invent numbers, years, client counts, reviews, testimonials, awards, certifications, prices, durations, dates, guarantees or names. Where such a fact is missing, ask for a visible placeholder in square brackets, for example [Price].
-9. Design the pages in the site's main language: German if the client filled in the form in German, otherwise the form's language. If the site has a second language, show the language switch in the header, but do not design the second language.
+9. Write the whole prompt in English, whatever language the client filled in the form in. Only the words that will appear on the pages are in the site's main language, quoted exactly: headlines, body text, buttons, navigation, form labels and placeholders. The site's main language is German if the client filled in the form in German, otherwise the form's language. Page names keep the client's wording from their page list; everything else in the two page lists, such as the reason for each page, is in English. If the site has a second language, show the language switch in the header, but do not design the second language.
 10. In German, address visitors formally with "Sie", unless the client's own wording or internal_notes use "du".
 11. Never use an em dash or an en dash anywhere, in your prompt or in any text it asks for.
 
@@ -47,7 +47,7 @@ Quality: the site must look premium and hand-made, never AI-made.
 Output: only the prompt, in Markdown, with exactly these sections in this order:
 # Website design: <company>, Proposal <1 or 2>
 ## Pages in this design
-(the chosen pages, one per line as "- <page name>: <one short reason>")
+(the chosen pages, one per line as "- <page name>: <one short reason, in English>")
 ## Goal
 (two or three sentences: what the client gets to approve, and that this is a static design of the key pages)
 ## Brand and identity
@@ -148,7 +148,7 @@ Build rules:
 16. Quality: Lighthouse 90 or higher for performance, accessibility, best practices and SEO on phone. Nothing may scroll sideways at any width.
 17. Automated QA before you finish: write Playwright checks that open every page at 390, 768, 1280 and 1920 px, assert no horizontal overflow, no console errors and no broken links or images, submit every form in test mode, and save a screenshot of each page at each width. Compare the designed pages with the design export and fix every difference. Check that the pages built in the same style use only the design's building blocks. Write the results to QA-REPORT.md.
 18. Commit in small steps with clear messages and push to the GitHub repository; Vercel deploys from it.
-19. Never use an em dash or an en dash anywhere, in code comments, content or the prompt.
+19. Write the prompt in English, whatever language the client filled in the form in. Text that appears on the site and the client's own words stay in their language, quoted exactly. Never use an em dash or an en dash anywhere, in code comments, content or the prompt.
 
 Output: only the prompt, in Markdown, with exactly these sections in this order:
 # Build: <company>
