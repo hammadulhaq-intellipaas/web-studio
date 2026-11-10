@@ -196,8 +196,9 @@ export function DesignPromptsPanel({ leadId, formReady, schemaReady, locked, not
       )}
       {autoPending && (
         <p className="mb-4 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-900" data-testid="dev-auto-pending">
-          The client has just confirmed the form, so both prompts are being written automatically. This takes one to four minutes;
-          reload the page to see them. Generating here now would write them a second time.
+          The client has just confirmed the form, so both prompts are being written automatically. This takes one to seven minutes,
+          longest when their own website has to be read first; reload the page to see them. Generating here now would write them a
+          second time.
         </p>
       )}
       <NotesEditor leadId={leadId} initial={notes} disabled={!schemaReady} />

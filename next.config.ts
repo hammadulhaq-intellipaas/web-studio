@@ -34,12 +34,10 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     // The Design tab also reads a client's own reference website in the same browser.
     '/admin/developer/**': ['./docs/reference-specs/**/*', packageFiles('@sparticuz/chromium', 'bin/**'), packageFiles('playwright-core', '**')],
-    '/api/developer/**': ['./docs/reference-specs/**/*'],
+    // The automatic design prompts after the client confirms (/api/developer/auto): the library
+    // specs, and the same browser for a client's own reference website.
+    '/api/developer/**': ['./docs/reference-specs/**/*', packageFiles('@sparticuz/chromium', 'bin/**'), packageFiles('playwright-core', '**')],
     '/api/showcase/screenshot': [packageFiles('@sparticuz/chromium', 'bin/**'), packageFiles('playwright-core', '**')],
-    // Confirming the onboarding form writes the design prompts: the library specs, and the same
-    // browser for a client's own reference website. The key is a glob: "[id]" would mean "i or
-    // d", so the dynamic segment is a "*".
-    '/api/onboarding/*/confirm': ['./docs/reference-specs/**/*', packageFiles('@sparticuz/chromium', 'bin/**'), packageFiles('playwright-core', '**')],
   },
   images: {
     remotePatterns: supabaseHost
