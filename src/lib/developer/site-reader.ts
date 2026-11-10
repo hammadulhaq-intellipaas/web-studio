@@ -68,6 +68,10 @@ const pathOf = (url: string) => {
 export async function readSite(url: string): Promise<SiteReading> {
   let browser: Browser | null = null;
   let timer: ReturnType<typeof setTimeout> | undefined;
+  // How long each step took, for the log: on a slow read it shows where the time went.
+  const started = Date.now();
+  const trail: string[] = [];
+  const mark = (what: string) => trail.push(`${what} ${Math.round((Date.now() - started) / 1000)}s`);
   const stop = new Promise<never>((_, reject) => {
     timer = setTimeout(() => {
       // Closing the browser ends every step still waiting on it.
@@ -76,14 +80,19 @@ export async function readSite(url: string): Promise<SiteReading> {
     }, HARD_LIMIT_MS);
   });
   try {
-    return await Promise.race([read(url, (b) => (browser = b)), stop]);
+    const reading = await Promise.race([read(url, (b) => (browser = b), mark), stop]);
+    console.info(`[developer/read] ${url}: ${trail.join(', ')}`);
+    return reading;
+  } catch (err) {
+    console.warn(`[developer/read] ${url} stopped (${err instanceof Error ? err.message : String(err)}): ${trail.join(', ')}`);
+    throw err;
   } finally {
     clearTimeout(timer);
     await (browser as Browser | null)?.close().catch(() => undefined);
   }
 }
 
-async function read(url: string, opened: (browser: Browser) => void): Promise<SiteReading> {
+async function read(url: string, opened: (browser: Browser) => void, mark: (what: string) => void): Promise<SiteReading> {
   const started = Date.now();
   let browser: Browser | null = null;
   const skipped: string[] = [];
@@ -91,18 +100,23 @@ async function read(url: string, opened: (browser: Browser) => void): Promise<Si
   try {
     browser = await launchBrowser();
     opened(browser);
+    mark('browser');
     const laptop = await browser.newContext({ viewport: LAPTOP, deviceScaleFactor: 1, locale: 'de-DE', userAgent: desktopUserAgent(browser) });
     const page = await laptop.newPage();
     await open(page, url);
+    mark('home open');
     const home = page.url();
     pictures.push({ label: 'the homepage at 1280 px, top of the page', image: await picture(page), mediaType: 'image/jpeg' });
-    const links = (await page.evaluate(PAGE_LINKS)) as Links;
+    mark('picture');
+    const links = (await within(page.evaluate(PAGE_LINKS), STEP_MS, 'Reading the menu')) as Links;
     const pages = [await measure(page)];
+    mark('home measured');
     // A second look further down the homepage, where the sections after the hero are.
     if (pages[0].height_px > LAPTOP.height * 2) {
       await page.evaluate(`window.scrollTo(0, ${Math.round(pages[0].height_px * 0.35)})`).catch(() => undefined);
       await page.waitForTimeout(500);
       pictures.push({ label: 'the homepage at 1280 px, about a third of the way down', image: await picture(page), mediaType: 'image/jpeg' });
+      mark('picture');
     }
 
     for (const next of pickPages(home, [...links.nav, ...links.footer], MORE_PAGES)) {
@@ -116,8 +130,10 @@ async function read(url: string, opened: (browser: Browser) => void): Promise<Si
           pictures.push({ label: `the page ${pathOf(page.url())} at 1280 px, top of the page`, image: await picture(page), mediaType: 'image/jpeg' });
         }
         pages.push(await measure(page));
+        mark(pathOf(next.url));
       } catch (err) {
         skipped.push(`${pathOf(next.url)} (${err instanceof SiteReadError ? err.message : explainBrowserError(err, 'could not be opened')})`);
+        mark(`${pathOf(next.url)} failed`);
       }
     }
     await laptop.close().catch(() => undefined);
@@ -132,8 +148,10 @@ async function read(url: string, opened: (browser: Browser) => void): Promise<Si
         await open(p, home);
         pictures.push({ label: 'the homepage at 390 px (phone), top of the page', image: await picture(p), mediaType: 'image/jpeg' });
         phone = await measure(p);
+        mark('phone');
       } catch (err) {
         skipped.push(`the homepage at 390 px (${err instanceof SiteReadError ? err.message : explainBrowserError(err, 'could not be opened')})`);
+        mark('phone failed');
       }
     }
 
