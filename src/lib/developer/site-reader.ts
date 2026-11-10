@@ -15,28 +15,44 @@ export class SiteReadError extends Error {}
 const LAPTOP = { width: 1280, height: 800 };
 const PHONE = { width: 390, height: 844 };
 const MORE_PAGES = 3;
-/** After this no further pages are opened: the spec and the design prompts still need their time. */
-const BUDGET_MS = 100_000;
+/**
+ * Time limits. On Vercel a request ends after 300 s, and the spec still has to be written after
+ * the read, so the read stops opening pages after BUDGET_MS and is cut off at HARD_LIMIT_MS
+ * whatever happens. Every step inside a page has its own limit too: a page that never finishes
+ * scrolling or measuring must not take the whole read with it.
+ */
+const BUDGET_MS = 60_000;
+const HARD_LIMIT_MS = 110_000;
+const STEP_MS = 25_000;
 const MAX_PICTURES = 5;
 
 type Links = { nav: { href: string; text: string }[]; footer: { href: string; text: string }[] };
+
+/** A step of the read, stopped with a clear reason when it takes too long. */
+function within<T>(run: Promise<T>, ms: number, what: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new SiteReadError(`${what} took too long.`)), ms);
+  });
+  return Promise.race([run, late]).finally(() => clearTimeout(timer));
+}
 
 async function open(page: Page, url: string): Promise<void> {
   const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 25_000 });
   if (response && response.status() >= 400) throw new SiteReadError(`The website answered with error ${response.status()}.`);
   await page.waitForLoadState('load', { timeout: 10_000 }).catch(() => undefined);
   await page.addStyleTag({ content: HIDE_BANNERS }).catch(() => undefined);
-  await page.evaluate('document.fonts ? document.fonts.ready.then(() => true) : true').catch(() => undefined);
+  await within(page.evaluate('document.fonts ? document.fonts.ready.then(() => true) : true'), 5_000, 'Loading the fonts').catch(() => undefined);
   // Let entrance animations and the first lazy images finish.
   await page.waitForTimeout(1200);
 }
 
 async function measure(page: Page): Promise<PageMeasure> {
-  await page.evaluate(SCROLL_THROUGH).catch(() => undefined);
-  return (await page.evaluate(MEASURE_PAGE)) as PageMeasure;
+  await within(page.evaluate(SCROLL_THROUGH), STEP_MS, 'Scrolling through the page').catch(() => undefined);
+  return (await within(page.evaluate(MEASURE_PAGE), STEP_MS, 'Measuring the page')) as PageMeasure;
 }
 
-const picture = async (page: Page) => page.screenshot({ type: 'jpeg', quality: 70 });
+const picture = async (page: Page) => page.screenshot({ type: 'jpeg', quality: 70, timeout: 20_000 });
 const pathOf = (url: string) => {
   try {
     return new URL(url).pathname || '/';
@@ -45,14 +61,36 @@ const pathOf = (url: string) => {
   }
 };
 
-/** Opens the site and measures it. Throws SiteReadError with a reason the team can act on. */
+/**
+ * Opens the site and measures it, within HARD_LIMIT_MS. Throws SiteReadError with a reason the
+ * team can act on.
+ */
 export async function readSite(url: string): Promise<SiteReading> {
+  let browser: Browser | null = null;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const stop = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      // Closing the browser ends every step still waiting on it.
+      void browser?.close().catch(() => undefined);
+      reject(new SiteReadError('The website took too long to read.'));
+    }, HARD_LIMIT_MS);
+  });
+  try {
+    return await Promise.race([read(url, (b) => (browser = b)), stop]);
+  } finally {
+    clearTimeout(timer);
+    await (browser as Browser | null)?.close().catch(() => undefined);
+  }
+}
+
+async function read(url: string, opened: (browser: Browser) => void): Promise<SiteReading> {
   const started = Date.now();
   let browser: Browser | null = null;
   const skipped: string[] = [];
   const pictures: SiteReading['pictures'] = [];
   try {
     browser = await launchBrowser();
+    opened(browser);
     const laptop = await browser.newContext({ viewport: LAPTOP, deviceScaleFactor: 1, locale: 'de-DE', userAgent: desktopUserAgent(browser) });
     const page = await laptop.newPage();
     await open(page, url);
@@ -85,14 +123,18 @@ export async function readSite(url: string): Promise<SiteReading> {
     await laptop.close().catch(() => undefined);
 
     let phone: PageMeasure | null = null;
-    try {
-      const mobile = await browser.newContext({ viewport: PHONE, deviceScaleFactor: 1, isMobile: true, hasTouch: true, locale: 'de-DE', userAgent: phoneUserAgent(browser) });
-      const p = await mobile.newPage();
-      await open(p, home);
-      pictures.push({ label: 'the homepage at 390 px (phone), top of the page', image: await picture(p), mediaType: 'image/jpeg' });
-      phone = await measure(p);
-    } catch (err) {
-      skipped.push(`the homepage at 390 px (${explainBrowserError(err, 'could not be opened')})`);
+    if (Date.now() - started > BUDGET_MS + 20_000) {
+      skipped.push('the homepage at 390 px (no time left)');
+    } else {
+      try {
+        const mobile = await browser.newContext({ viewport: PHONE, deviceScaleFactor: 1, isMobile: true, hasTouch: true, locale: 'de-DE', userAgent: phoneUserAgent(browser) });
+        const p = await mobile.newPage();
+        await open(p, home);
+        pictures.push({ label: 'the homepage at 390 px (phone), top of the page', image: await picture(p), mediaType: 'image/jpeg' });
+        phone = await measure(p);
+      } catch (err) {
+        skipped.push(`the homepage at 390 px (${err instanceof SiteReadError ? err.message : explainBrowserError(err, 'could not be opened')})`);
+      }
     }
 
     return {

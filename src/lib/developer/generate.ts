@@ -52,6 +52,14 @@ import { designsSchemaReady, developerSchemaReady, insertPrompts, loadProject, l
 
 export type GenerateResult = { ok: true } | { ok: false; error: string };
 
+/**
+ * Time limits for the model, so a request ends with an error the team can see instead of being
+ * cut off silently at Vercel's 300 s. The spec gets what the site read left, up to SPEC_MODEL_MS.
+ */
+const SPEC_TOTAL_MS = 265_000;
+const SPEC_MODEL_MS = 180_000;
+const DESIGN_MODEL_MS = 250_000;
+
 type DevPromptId = Extract<PromptId, 'dev_design' | 'dev_revision' | 'dev_build' | 'dev_handover' | 'dev_reference_spec'>;
 
 const DEFAULTS: Record<DevPromptId, string> = {
@@ -124,8 +132,15 @@ async function runModel(opts: {
   pictures?: { image: Buffer; mediaType: string }[];
   fixture: string;
   check?: (text: string) => string | null;
+  /**
+   * The longest the model may take, rewrite included; then the call is stopped with an error. A
+   * request on Vercel ends after 300 s, and a call cut off there leaves no trace at all.
+   */
+  timeoutMs?: number;
 }): Promise<string> {
   const started = Date.now();
+  const left = () => (opts.timeoutMs ? Math.max(1, opts.timeoutMs - (Date.now() - started)) : undefined);
+  const stopAt = (ms: number | undefined) => (ms ? AbortSignal.timeout(ms) : undefined);
   const pictures = opts.pictures ?? [];
   // The log keeps the text; the pictures are only counted.
   const logged = pictures.length ? `${opts.prompt}\n\n[${pictures.length} pictures attached]` : opts.prompt;
@@ -139,21 +154,31 @@ async function runModel(opts: {
     try {
       const model = getLanguageModel(opts.modelId);
       // A full multi-page brief runs to about 10k output tokens plus reasoning; leave headroom.
-      const first = await generateText({ model, system: opts.system, messages: [question], maxOutputTokens: 20000 });
+      const first = await generateText({ model, system: opts.system, messages: [question], maxOutputTokens: 20000, abortSignal: stopAt(left()) });
       if (first.finishReason === 'length') throw new Error('the model ran out of room before finishing; try again');
       content = first.text;
       const correction = opts.check?.(content);
-      if (correction) {
-        const again = await generateText({
-          model,
-          system: opts.system,
-          messages: [question, { role: 'assistant', content }, { role: 'user', content: correction }],
-          maxOutputTokens: 20000,
-        });
-        if (again.finishReason !== 'length' && again.text.trim()) content = again.text;
+      // The rewrite only when there is time for it; otherwise the first answer stands.
+      const firstTook = Date.now() - started;
+      if (correction && (!opts.timeoutMs || (left() ?? 0) > firstTook * 1.2)) {
+        try {
+          const again = await generateText({
+            model,
+            system: opts.system,
+            messages: [question, { role: 'assistant', content }, { role: 'user', content: correction }],
+            maxOutputTokens: 20000,
+            abortSignal: stopAt(left()),
+          });
+          if (again.finishReason !== 'length' && again.text.trim()) content = again.text;
+        } catch (err) {
+          // Out of time for the rewrite: keep the first answer.
+          if (!(err instanceof Error && /abort|timeout/i.test(err.name + err.message))) throw err;
+        }
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
+      const raw = err instanceof Error ? err.message : String(err);
+      const message =
+        err instanceof Error && /abort|timeout/i.test(err.name + raw) ? `the model took longer than ${Math.round((opts.timeoutMs ?? 0) / 1000)} s` : raw;
       await logCall(opts.formId, opts.job, opts.system, logged, opts.modelId, false, { error: message }, Date.now() - started);
       throw new Error(message);
     }
@@ -261,6 +286,8 @@ export async function generateReferenceSpec(leadId: string, value: string, force
     return { ok: false, error: source ? `"${source.typed}" is not a public web address, so it cannot be read.` : "This reference is not in the client's form." };
   }
 
+  const began = Date.now();
+  const seconds = (ms: number) => `${Math.round(ms / 100) / 10} s`;
   try {
     if (!force) {
       const cached = await latestSpec(source.key, source.kind === 'link' ? SPEC_MAX_AGE_DAYS : undefined);
@@ -271,6 +298,9 @@ export async function generateReferenceSpec(leadId: string, value: string, force
     let summary: string;
     if (source.kind === 'link') {
       const reading = await readSite(source.url!);
+      console.info(
+        `[developer/spec] ${domainOf(source.url!)} read in ${seconds(Date.now() - began)}: ${reading.pages.length} pages, ${reading.pictures.length} pictures${reading.skipped.length ? `, skipped ${reading.skipped.join('; ')}` : ''}`,
+      );
       input = siteInput(reading);
       pictures = reading.pictures;
       summary = readingSummary(reading);
@@ -284,6 +314,7 @@ export async function generateReferenceSpec(leadId: string, value: string, force
       pictures = loaded.pictures;
       summary = `Made from ${loaded.pictures.length} ${loaded.pictures.length === 1 ? 'picture' : 'pictures'}${skipped.length ? `; not used: ${skipped.join(', ')}` : ''}.`;
     }
+    const writing = Date.now();
     const content = await runModel({
       formId: onboarding.id,
       job: 'dev_reference_spec',
@@ -293,7 +324,10 @@ export async function generateReferenceSpec(leadId: string, value: string, force
       pictures,
       fixture: fixtureText('dev_reference_spec', company, source.label),
       check: specCheck,
+      // Whatever the read left of the request's 300 s, less room to save.
+      timeoutMs: Math.max(30_000, Math.min(SPEC_MODEL_MS, SPEC_TOTAL_MS - (writing - began))),
     });
+    console.info(`[developer/spec] ${source.label}: spec written in ${seconds(Date.now() - writing)}`);
     await saveSpec({
       source_key: source.key,
       kind: source.kind,
@@ -366,6 +400,7 @@ export async function generateDesignProposals(
           prompt,
           fixture: `${fixtureText('dev_design', company, `Proposal ${proposalNumber(proposal)}`)}\n\n## Layout direction\n${reference ? `Follows ${reference.name}.` : "From the client's answers."}`,
           check: designLanguageCheck,
+          timeoutMs: DESIGN_MODEL_MS,
         }).catch((err) => {
           throw new Error(`Proposal ${proposalNumber(proposal)}: ${err instanceof Error ? err.message : String(err)}`);
         });
