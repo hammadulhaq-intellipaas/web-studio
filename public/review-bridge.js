@@ -104,6 +104,99 @@
     if (!texts.length && !images) parts.push('Marked area');
     return parts.join(' · ');
   }
+
+  /*
+   * The address of what was marked: in words for people and prompts ('Section 3 of 7 ("Unsere
+   * Kurse") > button "Jetzt buchen"') and as a CSS selector for a model that edits the page's code.
+   */
+  var BLOCKS = /^(SECTION|HEADER|FOOTER|NAV|ASIDE|ARTICLE)$/;
+  function visible(el) {
+    var r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0 && !/^(SCRIPT|STYLE|LINK|META|TEMPLATE|NOSCRIPT)$/.test(el.tagName) && el !== layer;
+  }
+  /* The page-level block an element sits in: a section, the header or footer, or a top-level box. */
+  function blockOf(el) {
+    var top = null;
+    for (var e = el; e && e !== document.body && e !== document.documentElement; e = e.parentElement) {
+      if (BLOCKS.test(e.tagName)) return e;
+      if (e.parentElement === document.body || (e.parentElement && e.parentElement.tagName === 'MAIN')) top = top || e;
+    }
+    return top;
+  }
+  function kind(el) {
+    var t = el.tagName;
+    if (t === 'BUTTON' || el.getAttribute('role') === 'button') return 'button';
+    if (t === 'A') return /btn|button|cta/i.test(typeof el.className === 'string' ? el.className : '') ? 'button' : 'link';
+    if (t === 'IMG' || t === 'PICTURE' || t === 'svg' || t === 'SVG') return 'image';
+    if (t === 'VIDEO') return 'video';
+    if (/^H[1-6]$/.test(t)) return 'heading';
+    if (/^(P|SPAN|BLOCKQUOTE|B|STRONG|EM|I|SMALL|LABEL)$/.test(t)) return 'text';
+    if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT') return 'form field';
+    if (t === 'FORM') return 'form';
+    if (t === 'UL' || t === 'OL') return 'list';
+    if (t === 'LI') return 'list item';
+    if (t === 'NAV') return 'menu';
+    return 'area';
+  }
+  function label(el) {
+    return clean(el.innerText || (el.getAttribute && (el.getAttribute('alt') || el.getAttribute('aria-label') || el.getAttribute('placeholder'))) || '', 60);
+  }
+  function selectorOf(el) {
+    var parts = [];
+    for (var e = el; e && e.nodeType === 1 && e !== document.documentElement; e = e.parentElement) {
+      if (e === document.body) { parts.unshift('body'); break; }
+      if (e.id && /^[A-Za-z][\w-]*$/.test(e.id) && document.querySelectorAll('#' + e.id).length === 1) { parts.unshift('#' + e.id); break; }
+      var tag = e.tagName.toLowerCase();
+      var same = 0;
+      var index = 0;
+      var kids = e.parentElement ? e.parentElement.children : [];
+      for (var i = 0; i < kids.length; i++) if (kids[i].tagName === e.tagName) { same++; if (kids[i] === e) index = same; }
+      parts.unshift(same > 1 ? tag + ':nth-of-type(' + index + ')' : tag);
+    }
+    return parts.join(' > ');
+  }
+  function locate(el) {
+    if (!el || el.nodeType !== 1 || el === document.body || el === document.documentElement) return { place: 'The whole page', selector: 'body' };
+    var block = blockOf(el);
+    var where = '';
+    if (block) {
+      if (block.tagName === 'HEADER' || block.tagName === 'NAV') where = 'Header';
+      else if (block.tagName === 'FOOTER') where = 'Footer';
+      else {
+        var siblings = [];
+        var kids = block.parentElement ? block.parentElement.children : [];
+        for (var i = 0; i < kids.length; i++) if (visible(kids[i]) && kids[i].tagName !== 'HEADER' && kids[i].tagName !== 'FOOTER') siblings.push(kids[i]);
+        var n = siblings.indexOf(block) + 1;
+        var h = block.querySelector('h1, h2, h3');
+        where = 'Section ' + (n || '?') + ' of ' + siblings.length + (h && clean(h.textContent, 60) ? ' ("' + clean(h.textContent, 60) + '")' : '');
+      }
+    }
+    var what = '';
+    if (el === block) what = 'the whole ' + (where === 'Header' || where === 'Footer' ? where.toLowerCase() : 'section');
+    else {
+      var text = label(el);
+      what = kind(el) + (text ? ' "' + text + '"' : '');
+    }
+    return { place: (where ? where + ' > ' : '') + what, selector: selectorOf(el) };
+  }
+  /* The smallest element that holds the whole drawn box (page coordinates). */
+  function holder(left, top, right, bottom) {
+    var cx = (left + right) / 2 - window.scrollX;
+    var cy = (top + bottom) / 2 - window.scrollY;
+    var el = document.elementFromPoint(Math.max(0, Math.min(window.innerWidth - 1, cx)), Math.max(0, Math.min(window.innerHeight - 1, cy)));
+    if (el && layer && layer.contains(el)) {
+      layer.style.display = 'none';
+      el = document.elementFromPoint(Math.max(0, cx), Math.max(0, cy));
+      layer.style.display = '';
+    }
+    for (var e = el; e && e !== document.body; e = e.parentElement) {
+      var r = e.getBoundingClientRect();
+      var l = r.left + window.scrollX;
+      var t = r.top + window.scrollY;
+      if (l <= left + 8 && t <= top + 8 && l + r.width >= right - 8 && t + r.height >= bottom - 8) return e;
+    }
+    return document.body;
+  }
   /* Where the box sits in the visible window, so the review page opens its comment box elsewhere. */
   function place(pageY) {
     return pageY - window.scrollY > window.innerHeight * 0.55 ? 'top' : 'bottom';
@@ -231,9 +324,14 @@
   function view(left, top, width, height) {
     return { vx: Math.round(left - window.scrollX), vy: Math.round(top - window.scrollY), vw: Math.round(width), vh: Math.round(height) };
   }
-  function assign(target, source) {
+  function assign(target, source, more) {
     for (var k in source) target[k] = source[k];
+    if (more) for (var m in more) target[m] = more[m];
     return target;
+  }
+  /* The address under its own names: "place" is already the side the comment field opens on. */
+  function address(found) {
+    return { where: found.place, selector: found.selector };
   }
 
   function pickSpot(target, pageX, pageY) {
@@ -251,6 +349,7 @@
           near: nearSpot(target, pageY),
           place: place(pageY),
         },
+        address(locate(target)),
         view(pageX - 13, pageY - 13, 26, 26),
       ),
     );
@@ -313,6 +412,7 @@
             near: nearArea(left, top, left + width, top + height),
             place: place(top + height / 2),
           },
+          address(locate(holder(left, top, left + width, top + height))),
           view(left, top, width, height),
         ),
       );

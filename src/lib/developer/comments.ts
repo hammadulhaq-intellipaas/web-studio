@@ -1,5 +1,6 @@
 import 'server-only';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import type { ReviewDevice } from './comment-order';
 
 /** One comment from the client's review link (or one the team added there). */
 export interface DesignComment {
@@ -10,7 +11,7 @@ export interface DesignComment {
   /** The design page the pin sits on (its file in the export), and its title as the client saw it. */
   page_path: string | null;
   page_title: string | null;
-  device: 'laptop' | 'phone' | null;
+  device: CommentDevice | null;
   /**
    * x as a percentage of the page width, y in px from the top, at that device's width. With w
    * (percentage of the width) and h (px) they are the top-left corner of a box the client drew.
@@ -21,6 +22,15 @@ export interface DesignComment {
   h?: number | null;
   /** The heading and the text closest to the pin, so the model knows where it is. */
   near_text: string | null;
+  /**
+   * Where the marked thing sits in the page: in words ('Section 3 of 7, "Unsere Kurse" > button
+   * "Jetzt buchen"') and as a CSS selector, for a model that edits the page's code later. Both
+   * arrive with migration 20261117000031, like shot_path.
+   */
+  place?: string | null;
+  selector?: string | null;
+  /** A picture of the marked place with the box drawn in, in the designs bucket, made after saving. */
+  shot_path?: string | null;
   body: string;
   author_name: string;
   /** Left on the other proposal, about something the client wants in theirs. */
@@ -32,9 +42,11 @@ export interface DesignComment {
   created_at: string;
 }
 
+export type CommentDevice = ReviewDevice;
+
 export type NewComment = Pick<
   DesignComment,
-  'lead_id' | 'version_id' | 'kind' | 'page_path' | 'page_title' | 'device' | 'x' | 'y' | 'w' | 'h' | 'near_text' | 'body' | 'author_name' | 'carry_over'
+  'lead_id' | 'version_id' | 'kind' | 'page_path' | 'page_title' | 'device' | 'x' | 'y' | 'w' | 'h' | 'near_text' | 'place' | 'selector' | 'body' | 'author_name' | 'carry_over'
 >;
 
 /** A column a migration adds, not there yet. */
@@ -57,14 +69,32 @@ export async function addComment(row: NewComment): Promise<DesignComment> {
   const since = new Date(Date.now() - 3600_000).toISOString();
   const { count } = await db().from('design_comments').select('id', { count: 'exact', head: true }).eq('lead_id', row.lead_id).gte('created_at', since);
   if ((count ?? 0) >= HOURLY_LIMIT) throw new Error('Too many comments in a short time. Please try again later.');
-  const { w, h, ...spot } = row;
+  const { w, h, place, selector, ...spot } = row;
   const insert = (values: Record<string, unknown>) => db().from('design_comments').insert(values).select('*').single();
   const area = w != null && h != null && spot.x != null && spot.y != null;
-  let { data, error } = await insert(area ? { ...spot, w, h } : spot);
-  // Before migration 20261101000025 there is no w/h: keep the box as a spot at its centre.
-  if (area && missingColumn(error)) ({ data, error } = await insert({ ...spot, x: spot.x! + w / 2, y: spot.y! + h / 2 }));
+  const located = { ...spot, place: place ?? null, selector: selector ?? null };
+  let { data, error } = await insert(area ? { ...located, w, h } : located);
+  // Before migration 20261117000031 there is no place, selector or tablet view: save the comment
+  // without them, a tablet comment as a laptop one (the nearest view the old check allows).
+  if (error && (missingColumn(error) || error.code === '23514')) {
+    const old = { ...spot, device: spot.device === 'tablet' ? 'laptop' : spot.device };
+    ({ data, error } = await insert(area ? { ...old, w, h } : old));
+    // Before migration 20261101000025 there is no w/h either: keep the box as a spot at its centre.
+    if (area && missingColumn(error)) ({ data, error } = await insert({ ...old, x: spot.x! + w / 2, y: spot.y! + h / 2 }));
+  }
   if (error || !data) throw new Error(`Saving the comment failed: ${error?.message ?? 'unknown'}`);
   return data as DesignComment;
+}
+
+/** Whether migration 20261117000031 has run: places, screenshots and the tablet view. */
+export async function commentShotsReady(): Promise<boolean> {
+  const { error } = await db().from('design_comments').select('shot_path').limit(1);
+  return !error;
+}
+
+export async function setCommentShot(id: string, path: string): Promise<void> {
+  const { error } = await db().from('design_comments').update({ shot_path: path }).eq('id', id);
+  if (error) throw new Error(`Saving the screenshot failed: ${error.message}`);
 }
 
 export async function setCommentStatus(leadId: string, id: string, status: DesignComment['status']): Promise<void> {

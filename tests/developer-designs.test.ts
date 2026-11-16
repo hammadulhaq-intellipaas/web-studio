@@ -222,7 +222,16 @@ const context: PromptContext = {
   confirmedAt: '2026-10-28T10:00:00Z',
 };
 const design = { proposal: 'A' as const, iteration: 2, reference: 'Graza' };
-const pin = { page: 'Startseite', device: 'laptop', near: 'Heading: "Unsere Kurse"', comment: 'Bitte heller.', author: 'Anna' };
+const pin = {
+  number: 1,
+  page: 'Startseite',
+  device: 'laptop',
+  place: 'Section 2 of 6 ("Unsere Kurse") > button "Jetzt buchen"',
+  near: 'Heading: "Unsere Kurse"',
+  screenshot: 'comment-01.jpg',
+  comment: 'Bitte heller.',
+  author: 'Anna',
+};
 
 describe('revision, build and handover inputs', () => {
   it('gives the improvement prompt the comments, the carry-overs and the pasted feedback', () => {

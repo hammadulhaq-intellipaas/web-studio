@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { LanguagePills } from '@/components/LanguagePills';
+import { DEVICE_WIDTH, type ReviewDevice } from '@/lib/developer/comment-order';
 import type { Proposal } from '@/lib/developer/messages';
 import type { ReviewComment, ReviewState, ReviewVersion } from '@/lib/developer/review';
 import { composerPlace } from '@/lib/developer/review-place';
@@ -16,7 +17,7 @@ import { composerPlace } from '@/lib/developer/review-place';
  * (public/review-bridge.js).
  */
 
-type Device = 'laptop' | 'phone';
+type Device = ReviewDevice;
 type Pick = {
   page: string;
   pageTitle: string;
@@ -25,6 +26,9 @@ type Pick = {
   w: number;
   h: number;
   near: string;
+  /** The address of what was marked: in words, and as a CSS selector. */
+  where: string;
+  selector: string;
   device: Device;
   place: 'top' | 'bottom';
   /** Where the comment field opens: beside the marked box, in the design area. */
@@ -38,7 +42,7 @@ const T = {
   de: {
     title: 'Ihre Website-Entwürfe', howItWorks: "So funktioniert's",
     proposal: 'Entwurf', iteration: 'Iteration', latest: 'aktuell', yourChoice: 'Ihre Wahl',
-    laptop: 'Laptop', phone: 'Handy', loading: 'Der Entwurf wird geladen …',
+    laptop: 'Laptop', tablet: 'Tablet', phone: 'Handy', loading: 'Der Entwurf wird geladen …',
     intro: 'Ein Entwurf zeigt die wichtigsten Seiten Ihrer Website, damit Sie Schrift, Farben und Aufbau beurteilen können. Die übrigen Seiten bauen wir später im gleichen Stil.',
     otherNote: 'Zum Vergleich. Gefällt Ihnen hier etwas? Markieren Sie es, dann übernehmen wir es in Entwurf {n}.',
     approvedNote: 'Freigegeben von {name}. Vielen Dank, wir bauen jetzt Ihre Website.', approvedChip: 'Freigegeben',
@@ -53,7 +57,7 @@ const T = {
     generalPh: 'Zum Beispiel: Die Farben gefallen mir, die Schrift ist mir zu klein.',
     save: 'Speichern', cancel: 'Abbrechen',
     sendTitle: 'Feedback senden', comments: 'Ihre Kommentare zu diesem Entwurf', none: 'Noch keine Kommentare.',
-    generalLabel: 'Allgemein', carry: 'In Ihren Entwurf übernehmen', addressed: 'Umgesetzt', onPhone: 'Handy-Ansicht',
+    generalLabel: 'Allgemein', carry: 'In Ihren Entwurf übernehmen', addressed: 'Umgesetzt', onPhone: 'Handy-Ansicht', onTablet: 'Tablet-Ansicht',
     send: 'Feedback an Web Studio senden', sendHint: 'Wir bekommen alle neuen Kommentare auf einmal. Danach können Sie weiter kommentieren.',
     sent: 'Danke! Ihr Feedback ist bei uns.', nothing: 'Es gibt keine neuen Kommentare zum Senden.',
     decideTitle: 'Entscheiden', chooseHint: 'Haben Sie sich entschieden? Dann wählen Sie Ihren Entwurf. Danach arbeiten wir nur noch mit ihm weiter.',
@@ -66,7 +70,7 @@ const T = {
     approveModal: 'Diesen Entwurf freigeben?', approveText: 'Mit der Freigabe ist das Design abgeschlossen, und wir bauen Ihre Website auf dieser Grundlage. Die Seiten, die hier noch fehlen, gestalten wir im gleichen Stil.',
     approveYes: 'Ja, freigeben',
     guideTitle: 'So geben Sie uns Feedback',
-    guide1Title: 'Entwürfe ansehen', guide1: 'Oben wechseln Sie zwischen den Entwürfen und zwischen Laptop- und Handy-Ansicht. Im Entwurf können Sie sich durch die Seiten klicken.',
+    guide1Title: 'Entwürfe ansehen', guide1: 'Oben wechseln Sie zwischen den Entwürfen und zwischen Laptop-, Tablet- und Handy-Ansicht. Im Entwurf können Sie sich durch die Seiten klicken.',
     guide2Title: 'Stellen markieren', guide2: 'Klicken Sie auf „Stelle markieren“ und ziehen Sie einen Rahmen um das, was Sie meinen. Dann schreiben Sie dazu, was sich ändern soll oder was Ihnen gefällt.',
     guide2Touch: 'Tippen Sie auf „Stelle markieren“ und dann auf die Stelle, die Sie meinen. Dann schreiben Sie dazu, was sich ändern soll oder was Ihnen gefällt.',
     guide3Title: 'Senden und entscheiden', guide3: 'Senden Sie uns Ihr Feedback. Wenn Ihnen ein Entwurf gefällt, wählen Sie ihn aus.',
@@ -77,7 +81,7 @@ const T = {
   en: {
     title: 'Your website designs', howItWorks: 'How it works',
     proposal: 'Proposal', iteration: 'Iteration', latest: 'latest', yourChoice: 'Your choice',
-    laptop: 'Laptop', phone: 'Phone', loading: 'Loading the design …',
+    laptop: 'Laptop', tablet: 'Tablet', phone: 'Phone', loading: 'Loading the design …',
     intro: 'A proposal shows the key pages of your website, so you can judge the fonts, colours and layout. We build the other pages later in the same style.',
     otherNote: 'For comparison. Like something here? Mark it and we will bring it into Proposal {n}.',
     approvedNote: 'Approved by {name}. Thank you, we are building your website now.', approvedChip: 'Approved',
@@ -92,7 +96,7 @@ const T = {
     generalPh: 'For example: I like the colours, the text is too small for me.',
     save: 'Save', cancel: 'Cancel',
     sendTitle: 'Send feedback', comments: 'Your comments on this design', none: 'No comments yet.',
-    generalLabel: 'General', carry: 'Bring into your design', addressed: 'Done', onPhone: 'Phone view',
+    generalLabel: 'General', carry: 'Bring into your design', addressed: 'Done', onPhone: 'Phone view', onTablet: 'Tablet view',
     send: 'Send feedback to Web Studio', sendHint: 'We receive all new comments at once. You can keep commenting afterwards.',
     sent: 'Thank you! We have your feedback.', nothing: 'There are no new comments to send.',
     decideTitle: 'Decide', chooseHint: 'Made up your mind? Then choose your proposal. From then on we only work on that one.',
@@ -105,7 +109,7 @@ const T = {
     approveModal: 'Approve this design?', approveText: 'Approving completes the design, and we build your website on it. The pages not shown here are designed later in the same style.',
     approveYes: 'Yes, approve',
     guideTitle: 'How to give us feedback',
-    guide1Title: 'Look at the designs', guide1: 'At the top you switch between the proposals and between the laptop and phone view. Inside the design you can click through the pages.',
+    guide1Title: 'Look at the designs', guide1: 'At the top you switch between the proposals and between the laptop, tablet and phone view. Inside the design you can click through the pages.',
     guide2Title: 'Mark spots', guide2: 'Click "Mark a spot" and drag a box around what you mean. Then write what should change, or what you like.',
     guide2Touch: 'Tap "Mark a spot", then tap the spot you mean. Then write what should change, or what you like.',
     guide3Title: 'Send and decide', guide3: 'Send us your feedback. When you like a proposal, choose it.',
@@ -151,6 +155,13 @@ function LaptopIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
       <rect x="4" y="5" width="16" height="11" rx="1.5" /><path d="M2 19h20" />
+    </svg>
+  );
+}
+function TabletIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <rect x="4.5" y="2.5" width="15" height="19" rx="2" /><path d="M11 18.5h2" />
     </svg>
   );
 }
@@ -240,8 +251,9 @@ export function ReviewApp({ initial, api }: { initial: ReviewState; api: string 
     return () => ro.disconnect();
   }, []);
 
-  // The laptop view is 1280 px wide, shrunk to fit the design area.
-  const scale = device === 'laptop' ? Math.min(1, box.w / 1280) : 1;
+  // The laptop (1280 px) and tablet (768 px) views are shrunk to fit the design area; the phone view is shown as it is.
+  const framed = device !== 'phone';
+  const scale = framed ? Math.min(1, box.w / DEVICE_WIDTH[device]) : 1;
   const versions = useMemo(() => data.versions.filter((v) => v.proposal === tab).sort((a, b) => b.iteration - a.iteration), [data.versions, tab]);
   const version: ReviewVersion | undefined = versions.find((v) => v.id === picked[tab]) ?? versions[0];
   const isLatest = !!version && version.id === versions[0]?.id;
@@ -298,7 +310,8 @@ export function ReviewApp({ initial, api }: { initial: ReviewState; api: string 
       if (d.type === 'pick') {
         setPending({
           page: String(d.page), pageTitle: String(d.pageTitle ?? ''), x: Number(d.x), y: Number(d.y), w: Number(d.w) || 0, h: Number(d.h) || 0,
-          near: String(d.near ?? ''), device, place: d.place === 'top' ? 'top' : 'bottom', at: besideBox(d),
+          near: String(d.near ?? ''), where: String(d.where ?? ''), selector: String(d.selector ?? ''),
+          device, place: d.place === 'top' ? 'top' : 'bottom', at: besideBox(d),
         });
         setTimeout(() => composer.current?.focus({ preventScroll: true }), 50);
       }
@@ -359,7 +372,8 @@ export function ReviewApp({ initial, api }: { initial: ReviewState; api: string 
     try {
       setData(await call({
         action: 'comment', versionId: version.id, kind: 'pin', page: pending.page, pageTitle: pending.pageTitle, device: pending.device,
-        x: pending.x, y: pending.y, w: pending.w || undefined, h: pending.h || undefined, near: pending.near, body: draft,
+        x: pending.x, y: pending.y, w: pending.w || undefined, h: pending.h || undefined, near: pending.near,
+        place: pending.where, selector: pending.selector, body: draft,
       }));
       setPending(null);
       setDraft('');
@@ -389,9 +403,11 @@ export function ReviewApp({ initial, api }: { initial: ReviewState; api: string 
     } catch { say(t.error); }
   };
 
-  const frameW = device === 'laptop' ? 1280 : 390;
+  const frameW = DEVICE_WIDTH[device];
   const pagePins = page ? comments.filter((c) => c.kind === 'pin' && c.page === page.key && (c.device ?? 'laptop') === device).length : 0;
-  const frameH = device === 'laptop' ? box.h / scale : box.h;
+  const frameH = framed ? box.h / scale : box.h;
+  // The tablet view arrives with migration 20261117000031; before it, a tablet comment could not be kept.
+  const devices: Device[] = data.tablet ? ['laptop', 'tablet', 'phone'] : ['laptop', 'phone'];
   const summary = version ? data.summaries[version.id] : undefined;
   const marking = commenting && !approved;
   const btn = 'rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-40';
@@ -440,10 +456,10 @@ export function ReviewApp({ initial, api }: { initial: ReviewState; api: string 
               </select>
             )}
             <div className="ml-auto flex gap-1 rounded-xl bg-[#EEF2F8] p-1">
-              {(['laptop', 'phone'] as Device[]).map((d) => (
+              {devices.map((d) => (
                 <button key={d} type="button" aria-pressed={device === d} onClick={() => switchTo({ device: d })}
                   className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold ${device === d ? 'bg-white text-[#0F2440] shadow-sm' : 'text-[#4A5872]'}`}>
-                  {d === 'laptop' ? <LaptopIcon /> : <PhoneIcon />}{d === 'laptop' ? t.laptop : t.phone}
+                  {d === 'laptop' ? <LaptopIcon /> : d === 'tablet' ? <TabletIcon /> : <PhoneIcon />}{t[d]}
                 </button>
               ))}
             </div>
@@ -451,7 +467,7 @@ export function ReviewApp({ initial, api }: { initial: ReviewState; api: string 
 
           <div ref={stage} className={`relative h-[72dvh] min-w-0 shrink-0 overflow-hidden bg-[#E9EDF4] lg:h-auto lg:min-h-0 lg:flex-1 ${device === 'phone' ? 'flex justify-center pt-3' : ''}`}>
             {version && (
-              <div style={{ width: frameW * scale, height: device === 'laptop' ? box.h : box.h - 12 }} className={device === 'laptop' ? 'mx-auto' : ''}>
+              <div style={{ width: frameW * scale, height: framed ? box.h : box.h - 12 }} className={framed ? 'mx-auto' : ''}>
                 <iframe
                   key={frameKey}
                   ref={frame}
@@ -459,7 +475,7 @@ export function ReviewApp({ initial, api }: { initial: ReviewState; api: string 
                   title={`${t.proposal} ${num(version.proposal)} · ${t.iteration} ${version.iteration}`}
                   sandbox="allow-scripts allow-popups allow-forms"
                   onLoad={() => setLoadedKey(frameKey)}
-                  style={{ width: frameW, height: device === 'laptop' ? frameH : box.h - 12, transform: `scale(${scale})`, transformOrigin: '0 0', border: 0, background: '#fff' }}
+                  style={{ width: frameW, height: framed ? frameH : box.h - 12, transform: `scale(${scale})`, transformOrigin: '0 0', border: 0, background: '#fff' }}
                   className={device === 'phone' ? 'rounded-t-2xl shadow-lg' : ''}
                 />
               </div>
@@ -562,7 +578,7 @@ export function ReviewApp({ initial, api }: { initial: ReviewState; api: string 
                         <div className="flex items-center gap-2 text-xs text-[#7A879B]">
                           <span className={`grid h-5 min-w-5 place-items-center rounded-full px-1 text-[11px] font-bold text-white ${c.kind === 'pin' ? 'bg-[#1E5EFF]' : 'bg-[#9AA7BC]'}`}>{c.kind === 'pin' ? pinNumber.get(c.id) : '·'}</span>
                           <span className="font-semibold text-[#0F2440]">{c.author}</span>
-                          <span className="truncate">{c.kind === 'pin' ? c.pageTitle || '' : t.generalLabel}{c.device === 'phone' ? ` · ${t.onPhone}` : ''}</span>
+                          <span className="truncate">{c.kind === 'pin' ? c.pageTitle || '' : t.generalLabel}{c.device === 'phone' ? ` · ${t.onPhone}` : c.device === 'tablet' ? ` · ${t.onTablet}` : ''}</span>
                         </div>
                         <p className="mt-1 whitespace-pre-wrap text-sm text-[#0F2440]">{c.body}</p>
                         <div className="mt-1 flex flex-wrap gap-1.5">

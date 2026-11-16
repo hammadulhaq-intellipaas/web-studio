@@ -17,6 +17,7 @@ import type {
 
 export const SETTINGS: OnboardingSettings = {
   model: 'gpt-4o',
+  revisionModel: 'gpt-6-sol',
   maxFollowups: 12,
   maxRounds: 2,
   maxAiCalls: 20,

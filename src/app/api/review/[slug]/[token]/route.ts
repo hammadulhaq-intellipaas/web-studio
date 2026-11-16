@@ -1,4 +1,5 @@
-import { NextResponse, type NextRequest } from 'next/server';
+import { after, NextResponse, type NextRequest } from 'next/server';
+import { captureCommentShot } from '@/lib/developer/comment-shot';
 import { addComment, COMMENT_MAX, NAME_MAX, takeUnsent } from '@/lib/developer/comments';
 import { clientApprove, clientChoose, loadVersions, resolveReview } from '@/lib/developer/designs';
 import { versionName } from '@/lib/developer/drafts';
@@ -8,6 +9,8 @@ import { loadReviewState } from '@/lib/developer/review';
 import { loadProject, reviewSchemaReady } from '@/lib/developer/store';
 
 export const dynamic = 'force-dynamic';
+// A marked comment gets its picture after the answer is sent: the browser needs up to a minute.
+export const maxDuration = 90;
 
 /**
  * The client's review link, as an API: read the state, leave a comment, choose a proposal,
@@ -58,22 +61,30 @@ export async function POST(request: NextRequest, { params }: Params) {
       const w = pin ? num(body.w) : null;
       const h = pin ? num(body.h) : null;
       const area = w != null && h != null && w > 0 && w <= 100 && h > 0 && h <= 100_000;
-      await addComment({
+      const saved = await addComment({
         lead_id: leadId,
         version_id: version.id,
         kind: pin ? 'pin' : 'general',
         page_path: pin ? text(body.page, 300) || null : null,
         page_title: pin ? text(body.pageTitle, 200) || null : null,
-        device: pin ? (body.device === 'phone' ? 'phone' : 'laptop') : null,
+        device: pin ? (body.device === 'phone' || body.device === 'tablet' ? body.device : 'laptop') : null,
         x: pin ? num(body.x) : null,
         y: pin ? num(body.y) : null,
         w: area ? w : null,
         h: area ? h : null,
         near_text: pin ? text(body.near, 400) || null : null,
+        place: pin ? text(body.place, 300) || null : null,
+        selector: pin ? text(body.selector, 500) || null : null,
         body: comment,
         author_name: author,
         carry_over: !!project.chosen_proposal && version.proposal !== project.chosen_proposal,
       });
+      // Only a design page of this client's own drafts is opened for the picture, and only once
+      // migration 20261117000031 gave the row somewhere to keep it (the saved row then has the column).
+      if (pin && 'shot_path' in saved && saved.page_path?.startsWith(`/drafts/${slug}/`)) {
+        const origin = request.nextUrl.origin;
+        after(() => captureCommentShot(origin, saved));
+      }
       return json(await loadReviewState(leadId, slug));
     }
 

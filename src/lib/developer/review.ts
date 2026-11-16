@@ -1,6 +1,6 @@
 import 'server-only';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
-import { loadComments, type DesignComment } from './comments';
+import { commentShotsReady, loadComments, type CommentDevice, type DesignComment } from './comments';
 import { loadVersions } from './designs';
 import { draftPath } from './drafts';
 import type { Proposal } from './messages';
@@ -22,13 +22,17 @@ export interface ReviewComment {
   kind: 'pin' | 'general';
   page: string | null;
   pageTitle: string | null;
-  device: 'laptop' | 'phone' | null;
+  device: CommentDevice | null;
   x: number | null;
   y: number | null;
   /** Set when the client drew a box: x and y are then its top-left corner. */
   w: number | null;
   h: number | null;
   near: string | null;
+  /** Where the marked thing sits, in words ("Section 3 of 7 … > button …"). */
+  place: string | null;
+  /** The team's Design tab only: a short-lived link to the picture of the marked place. */
+  shotUrl?: string | null;
   body: string;
   author: string;
   carryOver: boolean;
@@ -46,6 +50,8 @@ export interface ReviewState {
   comments: ReviewComment[];
   /** Per iteration: the "what changed" list the improvement prompt wrote for it. */
   summaries: Record<string, string>;
+  /** Whether the tablet view is offered (migration 20261117000031 has run). */
+  tablet: boolean;
 }
 
 export const toReviewComment = (c: DesignComment): ReviewComment => ({
@@ -60,6 +66,7 @@ export const toReviewComment = (c: DesignComment): ReviewComment => ({
   w: c.w ?? null,
   h: c.h ?? null,
   near: c.near_text,
+  place: c.place ?? null,
   body: c.body,
   author: c.author_name,
   carryOver: c.carry_over,
@@ -74,13 +81,14 @@ export const toReviewComment = (c: DesignComment): ReviewComment => ({
  */
 export async function loadReviewState(leadId: string, slug: string): Promise<ReviewState> {
   const db = createSupabaseAdminClient();
-  const [project, versions, comments, revisions, leadRes, formRes] = await Promise.all([
+  const [project, versions, comments, revisions, leadRes, formRes, tablet] = await Promise.all([
     loadProject(leadId),
     loadVersions(leadId),
     loadComments(leadId),
     loadPrompts(leadId, 'revision'),
     db.from('leads').select('firma, vorname, nachname, locale').eq('id', leadId).maybeSingle(),
     db.from('onboarding_forms').select('locale, company').eq('lead_id', leadId).order('created_at', { ascending: false }).limit(1).maybeSingle(),
+    commentShotsReady(),
   ]);
   const lead = leadRes.data as { firma: string | null; vorname: string | null; nachname: string | null; locale: string | null } | null;
   const form = formRes.data as { locale: string | null; company: string | null } | null;
@@ -104,5 +112,6 @@ export async function loadReviewState(leadId: string, slug: string): Promise<Rev
       : null,
     comments: comments.filter((c) => c.status !== 'resolved').map(toReviewComment),
     summaries,
+    tablet,
   };
 }

@@ -8,6 +8,8 @@ import { redactSecrets, stripDashes } from '@/lib/onboarding/guardrails';
 import { normalizeSiteUrl } from '@/lib/showcase/shared';
 import type { PromptId } from '@/lib/onboarding/types';
 import { loadDeveloperClient } from './clients';
+import { promptOrder, shotName } from './comment-order';
+import { loadCommentShots } from './comment-shot';
 import { loadComments, markAddressed, type DesignComment } from './comments';
 import { buildPromptContext, loadReferenceSpec, REFERENCE_FIELD, REFERENCE_SHOTS_FIELD, type PromptContext } from './context';
 import { loadVersions } from './designs';
@@ -430,13 +432,20 @@ async function latestDesignPrompt(leadId: string, proposal: Proposal) {
   return (await loadPrompts(leadId, 'design')).find((p) => p.proposal === proposal) ?? null;
 }
 
-const commentForPrompt = (c: DesignComment): CommentForPrompt => ({
+/** A comment as the improvement prompt reads it; `index` is its place in promptOrder, or null. */
+const commentForPrompt = (c: DesignComment, index: number | null, hasShot: boolean): CommentForPrompt => ({
+  number: index === null ? null : index + 1,
   page: c.page_title || c.page_path || '',
   device: c.device ?? '',
+  place: c.place ?? '',
   near: c.near_text ?? '',
+  screenshot: index !== null && hasShot ? shotName(index) : null,
   comment: c.body,
   author: c.author_name,
 });
+
+/** At most this many pictures of marked places go to the model with one improvement prompt. */
+const MAX_COMMENT_SHOTS = 12;
 
 /**
  * Turns everything the client said about one iteration into the prompt for the next one: their
@@ -446,8 +455,10 @@ const commentForPrompt = (c: DesignComment): CommentForPrompt => ({
 export async function generateRevision(leadId: string, versionId: string, pastedFeedback: string, by: string | null): Promise<GenerateResult> {
   const ready = await prepare(leadId, true);
   if ('error' in ready) return { ok: false, error: ready.error as string };
-  const { onboarding, context, project, modelId, company, referenceName } = ready;
+  const { onboarding, context, definition, project, company, referenceName } = ready;
   if (project.approved_version_id) return { ok: false, error: 'The design is approved and locked. Reopen it first.' };
+  // A stronger model than the form's: it reads the pictures of the marked places too.
+  const revisionModelId = fixtureMode() ? 'fixture' : definition.settings.revisionModel;
 
   try {
     const versions = await loadVersions(leadId);
@@ -470,25 +481,35 @@ export async function generateRevision(leadId: string, versionId: string, pasted
       .reverse()
       .map((p) => p.content);
     const design: DesignForPrompt = { proposal: version.proposal, iteration: version.version, reference: referenceName(brief?.reference_slug ?? null) };
+    // The marked comments are numbered once, here; their pictures are named and sent in that order.
+    const numbered = promptOrder([...mine, ...carry], version.id);
+    const shots = await loadCommentShots(numbered.slice(0, MAX_COMMENT_SHOTS));
+    const indexOf = (c: DesignComment) => {
+      const i = numbered.indexOf(c);
+      return i < 0 ? null : i;
+    };
+    const asPrompt = (c: DesignComment) => commentForPrompt(c, indexOf(c), shots.has(c.id));
     const prompt = revisionPromptInput({
       company,
       formLanguage: context.client.formLanguage,
       design,
       designBrief: brief?.content ?? null,
       earlierImprovements: earlier,
-      comments: mine.filter((c) => c.kind === 'pin').map(commentForPrompt),
+      comments: numbered.filter((c) => c.version_id === version.id).map(asPrompt),
       generalFeedback: mine.filter((c) => c.kind === 'general').map((c) => ({ comment: c.body, author: c.author_name })),
-      carryOver: carry.map(commentForPrompt),
+      carryOver: [...numbered.filter((c) => c.version_id !== version.id), ...carry.filter((c) => c.kind !== 'pin')].map(asPrompt),
       otherProposalBrief: otherBrief,
       pastedFeedback: pastedFeedback.slice(0, 8000),
       internalNotes: project.internal_notes,
     });
+    const pictures = numbered.flatMap((c) => (shots.has(c.id) ? [{ image: shots.get(c.id)!, mediaType: 'image/jpeg' }] : []));
     const raw = await runModel({
       formId: onboarding.id,
       job: 'dev_revision',
-      modelId,
+      modelId: revisionModelId,
       system: await instructionFor('dev_revision'),
       prompt,
+      pictures,
       fixture: fixtureText('dev_revision', company, `Proposal ${proposalNumber(version.proposal)}, iteration ${version.version + 1}`),
       check: designLanguageCheck,
     });
@@ -503,7 +524,7 @@ export async function generateRevision(leadId: string, versionId: string, pasted
         design_version_id: version.id,
         content,
         client_summary: summary,
-        model: modelId,
+        model: revisionModelId,
         created_by: by,
       },
     ]);

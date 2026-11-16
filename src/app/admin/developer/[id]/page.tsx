@@ -5,6 +5,7 @@ import { LocalTime } from '@/components/admin/LocalTime';
 import { ONB_STATUS_COLORS, STATUS_COLORS } from '@/lib/admin/format';
 import { loadDeveloperClient, type DeveloperOnboarding } from '@/lib/developer/clients';
 import { buildPromptContext, REFERENCE_FIELD, type PromptContext } from '@/lib/developer/context';
+import { signedShotUrls } from '@/lib/developer/comment-shot';
 import { loadComments } from '@/lib/developer/comments';
 import { ensureReviewToken, loadVersions, type DesignVersion } from '@/lib/developer/designs';
 import { toReviewComment, type ReviewComment } from '@/lib/developer/review';
@@ -315,7 +316,9 @@ export default async function DeveloperClientPage({
     // The client's review link and comments arrive with migration 20261101000024.
     const reviewReady = designsReady && (await reviewSchemaReady());
     const token = reviewReady && project.draft_slug ? await ensureReviewToken(lead.id) : null;
-    const comments = reviewReady ? (await loadComments(lead.id)).filter((c) => c.status !== 'resolved').map(toReviewComment) : [];
+    const openComments = reviewReady ? (await loadComments(lead.id)).filter((c) => c.status !== 'resolved') : [];
+    const shots = await signedShotUrls(openComments);
+    const comments = openComments.map((c) => ({ ...toReviewComment(c), shotUrl: shots[c.id] ?? null }));
     const review: ReviewInfo = {
       ready: reviewReady,
       url: token && project.draft_slug ? `${origin}/review/${project.draft_slug}/${token}` : null,

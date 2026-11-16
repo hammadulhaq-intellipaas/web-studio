@@ -417,6 +417,7 @@ export const SETTINGS: SettingDef[] = [
   { key: 'next_steps', label: 'Confirmation next steps', type: 'json', description: 'Array of {de,en}.' },
   // Onboarding form
   { key: 'onb_model', label: 'Onboarding: AI model', type: 'text', description: 'Model id for the completeness pass, the brief writer and "help me say this better" (e.g. "gpt-6-luna", or "openai/gpt-6-luna" on OpenRouter).' },
+  { key: 'dev_revision_model', label: 'Developers: design improvement model', type: 'text', description: 'Model id that writes the design improvement prompts from the client\'s comments and their screenshots (default "gpt-6-sol"; "openai/gpt-6-sol" on OpenRouter).' },
   { key: 'onb_max_followups', label: 'Onboarding: max follow-up questions', type: 'number', description: 'Total follow-up questions per form across all rounds (spec: 12).' },
   { key: 'onb_max_rounds', label: 'Onboarding: max follow-up rounds', type: 'number', description: 'Gap-check rounds at review time (spec: 2).' },
   { key: 'onb_max_ai_calls', label: 'Onboarding: max model calls per form', type: 'number', description: 'Hard cost cap per form; further calls fall back to the plain rendering.' },

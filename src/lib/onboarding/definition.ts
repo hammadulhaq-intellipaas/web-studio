@@ -30,6 +30,7 @@ export function parseOnboardingSettings(settingsMap: Record<string, unknown>): O
     settingsMap[key] == null ? fallback : String(settingsMap[key]);
   return {
     model: str('onb_model', 'gpt-6-luna'),
+    revisionModel: str('dev_revision_model', 'gpt-6-sol'),
     maxFollowups: num('onb_max_followups', 12),
     maxRounds: num('onb_max_rounds', 2),
     maxAiCalls: num('onb_max_ai_calls', 20),

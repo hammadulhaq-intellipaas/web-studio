@@ -38,6 +38,8 @@ const nextConfig: NextConfig = {
     // specs, and the same browser for a client's own reference website.
     '/api/developer/**': ['./docs/reference-specs/**/*', packageFiles('@sparticuz/chromium', 'bin/**'), packageFiles('playwright-core', '**')],
     '/api/showcase/screenshot': [packageFiles('@sparticuz/chromium', 'bin/**'), packageFiles('playwright-core', '**')],
+    // The review link takes a picture of every marked comment in the same browser.
+    '/api/review/**': [packageFiles('@sparticuz/chromium', 'bin/**'), packageFiles('playwright-core', '**')],
   },
   images: {
     remotePatterns: supabaseHost

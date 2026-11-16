@@ -310,6 +310,8 @@ export interface OnbExample {
 
 export interface OnboardingSettings {
   model: string;
+  /** The model that writes design improvement prompts (Developers, Design tab): it reads the screenshots too. */
+  revisionModel: string;
   maxFollowups: number;
   maxRounds: number;
   maxAiCalls: number;

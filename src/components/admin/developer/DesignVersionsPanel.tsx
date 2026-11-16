@@ -234,10 +234,17 @@ function CommentsList({ leadId, versions, comments }: { leadId: string; versions
                     <div className="min-w-0 flex-1">
                       <div className="text-xs text-slate-500">
                         <strong className="text-slate-700">{c.author}</strong> · {c.kind === 'pin' ? c.pageTitle || c.page || 'Pin' : 'General'}
-                        {c.device === 'phone' ? ' · phone' : ''} · <LocalTime iso={c.createdAt} />
+                        {c.device === 'phone' || c.device === 'tablet' ? ` · ${c.device}` : ''} · <LocalTime iso={c.createdAt} />
                       </div>
+                      {c.place && <div className="text-xs text-slate-500">Marked: {c.place}</div>}
                       {c.near && <div className="text-xs text-slate-400">Near: {c.near}</div>}
                       <p className="mt-0.5 whitespace-pre-wrap text-slate-800">{c.body}</p>
+                      {c.shotUrl && (
+                        <a href={c.shotUrl} target="_blank" rel="noreferrer" className="mt-1.5 block w-fit" title="Open the picture of the marked place">
+                          {/* eslint-disable-next-line @next/next/no-img-element -- a short-lived signed storage link */}
+                          <img src={c.shotUrl} alt="The marked place, with the client's box in red" className="max-h-40 rounded border border-slate-200" />
+                        </a>
+                      )}
                       <div className="mt-1 flex flex-wrap gap-1.5">
                         {c.carryOver && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-800">Carry over to the chosen proposal</span>}
                         {c.status === 'addressed' && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-700">In an improvement prompt</span>}
@@ -504,6 +511,15 @@ export function DesignVersionsPanel({ leadId, schemaReady, formReady, draftBase,
                   <div className="mb-1 text-xs font-bold text-slate-500">The client sees this as &quot;What changed&quot; on Iteration {v.version + 1}:</div>
                   <p className="whitespace-pre-wrap">{rows[0].client_summary}</p>
                 </div>
+              )}
+              {rows[0] && /comment-\d{2}\.jpg/.test(rows[0].content) && (
+                <a
+                  href={`/admin/developer/${leadId}/comment-shots?prompt=${rows[0].id}`}
+                  className="mt-2 inline-block rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                  data-testid={`dev-revision-shots-${v.label}`}
+                >
+                  Download the screenshots (zip) to attach in Claude Design
+                </a>
               )}
               <PromptHistory rows={rows} testId={`dev-revisions-${v.label}`} />
             </div>

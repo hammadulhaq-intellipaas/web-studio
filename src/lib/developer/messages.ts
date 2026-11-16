@@ -83,9 +83,15 @@ const designForModel = (d: DesignForPrompt) => ({ proposal: proposalNumber(d.pro
 
 /** One client comment, as the improvement prompt reads it. */
 export interface CommentForPrompt {
+  /** Its number in this prompt, the same as in its screenshot's name; null for a general comment. */
+  number: number | null;
   page: string;
   device: string;
+  /** Where the marked thing sits, in words: 'Section 3 of 7 ("Unsere Kurse") > button "Jetzt buchen"'. */
+  place: string;
   near: string;
+  /** The picture of the marked place (comment-03.jpg), attached in the order of the numbers; null if there is none. */
+  screenshot: string | null;
   comment: string;
   author: string;
 }
