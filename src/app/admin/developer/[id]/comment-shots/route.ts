@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { promptOrder, shotName } from '@/lib/developer/comment-order';
-import { loadCommentShots } from '@/lib/developer/comment-shot';
+import { loadCommentShots } from '@/lib/developer/comment-shot-files';
 import { loadComments } from '@/lib/developer/comments';
 import { zip } from '@/lib/developer/zip';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';

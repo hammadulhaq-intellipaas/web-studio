@@ -1,5 +1,4 @@
 import { after, NextResponse, type NextRequest } from 'next/server';
-import { captureCommentShot } from '@/lib/developer/comment-shot';
 import { addComment, COMMENT_MAX, NAME_MAX, takeUnsent } from '@/lib/developer/comments';
 import { clientApprove, clientChoose, loadVersions, resolveReview } from '@/lib/developer/designs';
 import { versionName } from '@/lib/developer/drafts';
@@ -83,7 +82,15 @@ export async function POST(request: NextRequest, { params }: Params) {
       // migration 20261117000031 gave the row somewhere to keep it (the saved row then has the column).
       if (pin && 'shot_path' in saved && saved.page_path?.startsWith(`/drafts/${slug}/`)) {
         const origin = request.nextUrl.origin;
-        after(() => captureCommentShot(origin, saved));
+        // Loaded only here: the review link must keep working even if the browser cannot start.
+        after(async () => {
+          try {
+            const { captureCommentShot } = await import('@/lib/developer/comment-shot');
+            await captureCommentShot(origin, saved);
+          } catch (err) {
+            console.warn(`[review/shot] ${saved.id}: ${err instanceof Error ? err.message : String(err)}`);
+          }
+        });
       }
       return json(await loadReviewState(leadId, slug));
     }

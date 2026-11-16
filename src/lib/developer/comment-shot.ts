@@ -3,11 +3,9 @@ import type { Browser } from 'playwright-core';
 import { desktopUserAgent, HIDE_BANNERS, launchBrowser, phoneUserAgent } from '@/lib/browser';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { DEVICE_WIDTH, shotGeometry } from './comment-order';
+import { shotPath } from './comment-shot-files';
 import { setCommentShot, type DesignComment } from './comments';
 import { DESIGN_BUCKET } from './drafts';
-
-/** Where a comment's picture is stored in the designs bucket. */
-export const shotPath = (leadId: string, commentId: string) => `comments/${leadId}/${commentId}.jpg`;
 
 /**
  * A picture of the place a client marked on the review link: the design page opened at the same
@@ -65,32 +63,3 @@ export async function captureCommentShot(origin: string, comment: DesignComment)
   }
 }
 
-/** The stored pictures of some comments, for the model or the zip; missing ones are left out. */
-export async function loadCommentShots(comments: Pick<DesignComment, 'id' | 'shot_path'>[]): Promise<Map<string, Buffer>> {
-  const storage = createSupabaseAdminClient().storage.from(DESIGN_BUCKET);
-  const out = new Map<string, Buffer>();
-  await Promise.all(
-    comments
-      .filter((c) => c.shot_path)
-      .map(async (c) => {
-        const { data } = await storage.download(c.shot_path!);
-        if (data) out.set(c.id, Buffer.from(await data.arrayBuffer()));
-      }),
-  );
-  return out;
-}
-
-/** Short-lived links to comment pictures, for the team's Design tab. */
-export async function signedShotUrls(comments: Pick<DesignComment, 'id' | 'shot_path'>[]): Promise<Record<string, string>> {
-  const withShot = comments.filter((c) => c.shot_path);
-  if (!withShot.length) return {};
-  const { data } = await createSupabaseAdminClient()
-    .storage.from(DESIGN_BUCKET)
-    .createSignedUrls(withShot.map((c) => c.shot_path!), 3600);
-  const out: Record<string, string> = {};
-  for (const row of data ?? []) {
-    const c = withShot.find((x) => x.shot_path === row.path);
-    if (c && row.signedUrl) out[c.id] = row.signedUrl;
-  }
-  return out;
-}

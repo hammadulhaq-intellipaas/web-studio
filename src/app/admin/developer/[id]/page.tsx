@@ -5,7 +5,7 @@ import { LocalTime } from '@/components/admin/LocalTime';
 import { ONB_STATUS_COLORS, STATUS_COLORS } from '@/lib/admin/format';
 import { loadDeveloperClient, type DeveloperOnboarding } from '@/lib/developer/clients';
 import { buildPromptContext, REFERENCE_FIELD, type PromptContext } from '@/lib/developer/context';
-import { signedShotUrls } from '@/lib/developer/comment-shot';
+import { signedShotUrls } from '@/lib/developer/comment-shot-files';
 import { loadComments } from '@/lib/developer/comments';
 import { ensureReviewToken, loadVersions, type DesignVersion } from '@/lib/developer/designs';
 import { toReviewComment, type ReviewComment } from '@/lib/developer/review';

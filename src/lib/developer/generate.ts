@@ -9,7 +9,7 @@ import { normalizeSiteUrl } from '@/lib/showcase/shared';
 import type { PromptId } from '@/lib/onboarding/types';
 import { loadDeveloperClient } from './clients';
 import { promptOrder, shotName } from './comment-order';
-import { loadCommentShots } from './comment-shot';
+import { loadCommentShots } from './comment-shot-files';
 import { loadComments, markAddressed, type DesignComment } from './comments';
 import { buildPromptContext, loadReferenceSpec, REFERENCE_FIELD, REFERENCE_SHOTS_FIELD, type PromptContext } from './context';
 import { loadVersions } from './designs';
