@@ -136,18 +136,18 @@ async function read(url: string, opened: (browser: Browser) => void, mark: (what
         mark(`${pathOf(next.url)} failed`);
       }
     }
-    await laptop.close().catch(() => undefined);
-
     let phone: PageMeasure | null = null;
     if (Date.now() - started > BUDGET_MS + 20_000) {
       skipped.push('the homepage at 390 px (no time left)');
     } else {
       try {
-        const mobile = await browser.newContext({ viewport: PHONE, deviceScaleFactor: 1, isMobile: true, hasTouch: true, locale: 'de-DE', userAgent: phoneUserAgent(browser) });
-        const p = await mobile.newPage();
-        await open(p, home);
-        pictures.push({ label: 'the homepage at 390 px (phone), top of the page', image: await picture(p), mediaType: 'image/jpeg' });
-        phone = await measure(p);
+        // The same tab, narrowed to a phone. On Vercel, Chromium runs as a single process, where a
+        // second browser context cannot open a page at all, so a separate phone context always failed.
+        await page.setExtraHTTPHeaders({ 'User-Agent': phoneUserAgent(browser) });
+        await page.setViewportSize(PHONE);
+        await open(page, home);
+        pictures.push({ label: 'the homepage at 390 px (phone), top of the page', image: await picture(page), mediaType: 'image/jpeg' });
+        phone = await measure(page);
         mark('phone');
       } catch (err) {
         skipped.push(`the homepage at 390 px (${err instanceof SiteReadError ? err.message : explainBrowserError(err, 'could not be opened')})`);

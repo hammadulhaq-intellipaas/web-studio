@@ -23,12 +23,12 @@ describe('the two design examples', () => {
       reference_sites: a(['graza']),
       references: a([
         { _id: 'r1', url: '', likes: '' },
-        { _id: 'r2', url: 'https://make.com', likes: 'Klare Grafiken' },
+        { _id: 'r2', url: 'https://www.example-yoga.de', likes: 'Klare Grafiken' },
       ]),
     };
     expect(chosenExamples(PROPOSAL_EXAMPLES, answers, { reference_screenshots: 3 })).toEqual([
       { kind: 'library', value: 'graza' },
-      { kind: 'link', index: 0, url: 'https://make.com' },
+      { kind: 'link', index: 0, url: 'https://www.example-yoga.de' },
       { kind: 'pictures', count: 3 },
     ]);
   });
@@ -49,8 +49,8 @@ describe('the two design examples', () => {
   it('blocks the design screen until two are chosen, and none of the three questions is required on its own', () => {
     const definition = { fields } as Pick<OnboardingDefinition, 'fields'>;
     const examplesErrors = (answers: Answers) => validateScreen(definition, 'design', answers, {}, today).filter((e) => e.field === summary.id);
-    expect(examplesErrors({ references: a([{ _id: 'r1', url: 'https://make.com', likes: 'Die klaren Grafiken' }]) })).toHaveLength(1);
-    expect(examplesErrors({ reference_sites: a(['conductlaw']), references: a([{ _id: 'r1', url: 'https://make.com', likes: 'Die klaren Grafiken' }]) })).toHaveLength(0);
+    expect(examplesErrors({ references: a([{ _id: 'r1', url: 'https://www.example-yoga.de', likes: 'Die klaren Grafiken' }]) })).toHaveLength(1);
+    expect(examplesErrors({ reference_sites: a(['conductlaw']), references: a([{ _id: 'r1', url: 'https://www.example-yoga.de', likes: 'Die klaren Grafiken' }]) })).toHaveLength(0);
     for (const id of ['reference_sites', 'references', 'reference_screenshots']) {
       expect(field(id).required, id).toBe(false);
       expect(field(id).config.hide_optional, id).toBe(true);
