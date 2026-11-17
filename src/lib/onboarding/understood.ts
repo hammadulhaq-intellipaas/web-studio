@@ -2,6 +2,7 @@ import type { Locale } from '@/lib/types';
 import { textFor } from './texts';
 import { linesOf, sliderPhrase, textOf } from './logic';
 import { stripDashes } from './guardrails';
+import { tickValues } from './examples';
 import { loc, type Answers, type OnbField, type OnboardingDefinition, type RepeaterRow } from './types';
 
 function labelOf(field: OnbField | undefined, value: unknown, locale: Locale): string {
@@ -46,6 +47,14 @@ export function understoodTokens(definition: OnboardingDefinition, answers: Answ
 
   const references = Array.isArray(value('references')) ? (value('references') as RepeaterRow[]) : [];
   const firstReference = references.find((r) => String(r.url ?? '').trim()) ?? references[0];
+  // What they wrote about it, or else what they ticked ("Layout, Colours").
+  const ticks = field('references')?.config.fields?.find((s) => s.type === 'ticks');
+  const tickedLikes = tickValues(ticks ? firstReference?.[ticks.key] : null)
+    .map((v) => {
+      const option = ticks?.options?.find((o) => o.value === v);
+      return option ? loc(option as unknown as Record<string, unknown>, 'label', locale) : v;
+    })
+    .join(', ');
   const noneTicked = (id: string) => !!answers[id]?.none;
   const avoid = noneTicked('avoid') ? (locale === 'de' ? 'nichts Bestimmtes' : 'nothing in particular') : text('avoid');
   const colours = noneTicked('brand_colours') ? '' : text('brand_colours');
@@ -71,7 +80,7 @@ export function understoodTokens(definition: OnboardingDefinition, answers: Answ
     homepage_density: pick('homepage_density'),
     reference_sites: picks('reference_sites'),
     reference_1_link: String(firstReference?.url ?? ''),
-    reference_1_likes: inline(String(firstReference?.likes ?? '')),
+    reference_1_likes: inline(String(firstReference?.likes ?? '')) || tickedLikes,
     do_not_want: avoid,
     proof_to_show: picks('proof_to_show'),
   };

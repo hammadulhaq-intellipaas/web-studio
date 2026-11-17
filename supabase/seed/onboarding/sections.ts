@@ -75,7 +75,7 @@ const rows: Omit<OnbBriefSection, 'sort' | 'active'>[] = [
     title_de: 'Wie sie aussehen und sich anfühlen soll',
     title_en: 'What it should look and feel like',
     instructions:
-      'Give both slider values WITH their captions, and the note the client added to each where they gave one. Name the example websites they picked from our list. List each reference site with what the client liked and disliked about it, verbatim where possible. Include brand colours, brand guideline availability and the "do not want" list. If the client has a website, say whether they keep its logo and colours (brand_keep). Say whether visitors are addressed with Sie or du. Mention premises photos and screenshots only if files were provided.',
+      'Give both slider values WITH their captions, and the note the client added to each where they gave one. List every design example: the websites they picked from our gallery and the websites they gave themselves, each with what they ticked that they like (layout, colours, fonts, photos, overall feel), what they wrote about it and what they do not like, verbatim where possible. Say which two are their favourites (Proposal 1 and Proposal 2); without favourites, the first two examples are. Include brand colours, brand guideline availability and the "do not want" list. If the client has a website, say whether they keep its logo and colours (brand_keep). Say whether visitors are addressed with Sie or du. Mention premises photos and screenshots only if files were provided.',
     source_fields: [
       'brand_keep',
       'address_form',
@@ -84,8 +84,11 @@ const rows: Omit<OnbBriefSection, 'sort' | 'active'>[] = [
       'personality_scale',
       'personality_note',
       'reference_sites',
+      'reference_likes',
       'references',
       'reference_screenshots',
+      'favourite_examples',
+      'example_sources',
       'avoid',
       'brand_guidelines',
       'brand_guidelines_link',

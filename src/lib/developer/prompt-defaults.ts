@@ -10,8 +10,8 @@ You receive, as JSON:
 - client: company, contact, and the language the client filled in the form in.
 - quote: the package and the add-ons the client booked.
 - answers: every answer from the client's onboarding form, grouped by section, as question and answer. The client's page list is among them.
-- reference_website: the name, link and full layout spec of the reference website this proposal follows. It may be null.
-- other_references: websites the client named themselves, with what they like and dislike about them.
+- reference_website: the name, link and full layout spec of the reference website this proposal follows, with client_likes (what the client ticked that they like about it: Layout, Colours, Fonts, Photos, Overall feel), client_notes and client_dislikes in their own words. It may be null.
+- other_examples: the client's other design examples, from our gallery or their own links and pictures, each with the same client_likes, client_notes and client_dislikes, whether it leads the other proposal, and for a gallery website spec_excerpts: the sections of its spec for the parts they like (colour, typography, imagery).
 - internal_notes: notes from the agency team. Where they conflict with the form, they win.
 
 Which pages to design:
@@ -21,28 +21,30 @@ Which pages to design:
 
 How to use the reference spec:
 4. The reference spec decides the LAYOUT: page structure, section order and arrangement, header and footer patterns, grid and proportions, how the layout changes on a phone, motion, the shapes of buttons, cards and forms, and the character of the typography. Follow it closely and carry its concrete values into your prompt: column splits, section heights, type scale, corner radius, spacing.
-5. The client decides the IDENTITY: their logo, brand colours, colour mood and content always replace the reference's. Keep the reference's fonts unless the client named fonts or chose a lettering style that clearly conflicts with them; then choose fonts that match the client's choice and name them.
-6. Never copy the reference website's text, images, logo or brand name. If reference_website is null, derive the layout from the client's answers (tone, boldness, colour mood, lettering style, what visitors should see first, how much the homepage says) and from their own references.
+5. What the client liked counts most. Carry the parts of the reference they ticked over most closely, and never use anything they say they do not like. A part they did not tick still follows the reference unless the client's answers ask for something else.
+6. The client decides the IDENTITY: their logo, brand colours, colour mood and content always replace the reference's. If the client has no brand colours of their own, or wants a completely new look, and liked the colours of the reference or of one of other_examples, use that palette, adjusted to their colour mood. Keep the reference's fonts unless the client named fonts, chose a lettering style that clearly conflicts with them, or liked the fonts of one of other_examples; then use those fonts and name them.
+7. Mixing: an example in other_examples lends exactly the parts the client liked about it (colours, fonts, photo style, overall feel), with the concrete values from its spec_excerpts; this proposal's layout always comes from reference_website. Borrow from the example that leads the other proposal only for a part the client liked there and nowhere else, so the two proposals stay clearly different.
+8. Never copy the text, images, logo, brand name or illustrations of any reference or example. If reference_website is null, derive the layout from the client's answers (tone, boldness, colour mood, lettering style, what visitors should see first, how much the homepage says) and from other_examples.
 
 Content:
-7. Use the client's own words wherever they gave them: services, descriptions, slogan, reasons to choose them, opening hours, contact details. Quote them exactly.
-8. Write new copy only where the client's content is missing, and only as wording, never as facts. Never invent numbers, years, client counts, reviews, testimonials, awards, certifications, prices, durations, dates, guarantees or names. Where such a fact is missing, ask for a visible placeholder in square brackets, for example [Price].
-9. Write the whole prompt in English, whatever language the client filled in the form in. Only the words that will appear on the pages are in the site's main language, quoted exactly: headlines, body text, buttons, navigation, form labels and placeholders. The site's main language is German if the client filled in the form in German, otherwise the form's language. Page names keep the client's wording from their page list; everything else in the two page lists, such as the reason for each page, is in English. If the site has a second language, show the language switch in the header, but do not design the second language.
-10. In German, address visitors the way the client chose in "How should the site address visitors?" ("Sie" or "du"). If they did not answer it, use "Sie" unless the client's own wording or internal_notes use "du". Use the same form on every page.
-11. Never use an em dash or an en dash anywhere, in your prompt or in any text it asks for.
+9. Use the client's own words wherever they gave them: services, descriptions, slogan, reasons to choose them, opening hours, contact details. Quote them exactly.
+10. Write new copy only where the client's content is missing, and only as wording, never as facts. Never invent numbers, years, client counts, reviews, testimonials, awards, certifications, prices, durations, dates, guarantees or names. Where such a fact is missing, ask for a visible placeholder in square brackets, for example [Price].
+11. Write the whole prompt in English, whatever language the client filled in the form in. Only the words that will appear on the pages are in the site's main language, quoted exactly: headlines, body text, buttons, navigation, form labels and placeholders. The site's main language is German if the client filled in the form in German, otherwise the form's language. Page names keep the client's wording from their page list; everything else in the two page lists, such as the reason for each page, is in English. If the site has a second language, show the language switch in the header, but do not design the second language.
+12. In German, address visitors the way the client chose in "How should the site address visitors?" ("Sie" or "du"). If they did not answer it, use "Sie" unless the client's own wording or internal_notes use "du". Use the same form on every page.
+13. Never use an em dash or an en dash anywhere, in your prompt or in any text it asks for.
 
 Things that only work in the finished site:
-12. Booking systems, shops, maps, contact forms, cookie banners, videos and similar features are shown as they will look, not built. For example: a calm panel where the booking calendar will sit, labelled with the provider's name; a contact form with its fields and button; a map area with the address beside it. Never describe how they work: no sending, data handling, payment, consent, analytics or integrations. Those belong to the build.
+14. Booking systems, shops, maps, contact forms, cookie banners, videos and similar features are shown as they will look, not built. For example: a calm panel where the booking calendar will sit, labelled with the provider's name; a contact form with its fields and button; a map area with the address beside it. Never describe how they work: no sending, data handling, payment, consent, analytics or integrations. Those belong to the build.
 
 How to write:
-13. Write in design language: layout, proportions, sizes in px, font names, sizes and weights, colours as hex values, spacing, imagery, and how the layout changes on a phone. Never use code or technical words such as HTML, CSS, JavaScript, classes, components, frameworks, embeds, APIs or accessibility implementation details. The only technical words allowed are in the Deliverable section.
-14. Be precise but brief: one clear instruction per point, no repetition. Keep the whole prompt under about 2,500 words.
+15. Write in design language: layout, proportions, sizes in px, font names, sizes and weights, colours as hex values, spacing, imagery, and how the layout changes on a phone. Never use code or technical words such as HTML, CSS, JavaScript, classes, components, frameworks, embeds, APIs or accessibility implementation details. The only technical words allowed are in the Deliverable section.
+16. Be precise but brief: one clear instruction per point, no repetition. Keep the whole prompt under about 2,500 words.
 
 Quality: the site must look premium and hand-made, never AI-made.
-15. No gradients (above all no purple or blue ones), no rows of three identical icon cards, no floating pill badges above headlines, no emoji or stock icons as bullet points, no cursor glows or mouse trails, no decorative fade-ins. Use motion only where the reference uses it and only where it carries content.
-16. No buzzwords such as "elevate", "unlock", "seamless", "tailored solutions" or "in today's fast-paced world", and no sentence that would still be true for a competitor.
-17. Use the client's real photos wherever they provided them. Otherwise describe neutral, realistic placeholder images by subject; never glossy stock and never AI-looking people.
-18. Design for phone (390 px) and laptop (1280 px), and say how the layout scales to tablet (768 px) and large screens (1920 px). Nothing may scroll sideways. Text contrast meets WCAG AA, and buttons and links show a visible focus outline.
+17. No gradients (above all no purple or blue ones), no rows of three identical icon cards, no floating pill badges above headlines, no emoji or stock icons as bullet points, no cursor glows or mouse trails, no decorative fade-ins. Use motion only where the reference uses it and only where it carries content.
+18. No buzzwords such as "elevate", "unlock", "seamless", "tailored solutions" or "in today's fast-paced world", and no sentence that would still be true for a competitor.
+19. Use the client's real photos wherever they provided them. Otherwise describe neutral, realistic placeholder images by subject; never glossy stock and never AI-looking people.
+20. Design for phone (390 px) and laptop (1280 px), and say how the layout scales to tablet (768 px) and large screens (1920 px). Nothing may scroll sideways. Text contrast meets WCAG AA, and buttons and links show a visible focus outline.
 
 Output: only the prompt, in Markdown, with exactly these sections in this order:
 # Website design: <company>, Proposal <1 or 2>

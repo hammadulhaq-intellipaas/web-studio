@@ -7,13 +7,16 @@ import { redesignPageList } from '@/lib/onboarding/logic';
 import { loadFiles, loadForm, publicFiles } from '@/lib/onboarding/records';
 import type { Locale } from '@/lib/types';
 import type { Lead } from '@/lib/types';
-import { chosenExamples, examplesRule } from '@/lib/onboarding/examples';
+import { chosenExamples, examplesRule, tickValues } from '@/lib/onboarding/examples';
+import type { OnbField, RepeaterRow } from '@/lib/onboarding/types';
 import { exampleChoices, type ClientReference, type ClientShot } from './reference-sources';
 
 /** The onboarding field holding the client's picks from our reference websites. */
 export const REFERENCE_FIELD = 'reference_sites';
-/** The client's own reference links (up to 3, with likes and dislikes) and pictures. */
+/** The client's own reference links (with likes and dislikes) and pictures. */
 export const CLIENT_REFERENCES_FIELD = 'references';
+/** What the client likes about each gallery pick: one row per pick (site, liked, dislikes). */
+export const REFERENCE_LIKES_FIELD = 'reference_likes';
 export const REFERENCE_SHOTS_FIELD = 'reference_screenshots';
 
 const SLUG = /^[a-z0-9-]+$/;
@@ -49,6 +52,19 @@ export interface ContextReference {
   url: string | null;
   /** The full layout spec, or null when no spec file exists for this site. */
   spec: string | null;
+  /** What the client ticked that they like about it (English labels: "Layout", "Colours" …). */
+  liked: string[];
+  dislikes: string;
+}
+
+/**
+ * The English labels of a row's `ticks` column ("layout,colours" → ["Layout", "Colours"]),
+ * read from the question itself so a renamed option needs no code change.
+ */
+function likedLabels(field: OnbField | undefined, row: RepeaterRow | Record<string, unknown> | undefined): string[] {
+  const sub = field?.config.fields?.find((f) => f.type === 'ticks');
+  if (!sub || !row) return [];
+  return tickValues(row[sub.key]).map((v) => sub.options?.find((o) => o.value === v)?.label_en ?? v);
 }
 
 /** Everything the design and build prompts are generated from, built in code (no model). */
@@ -100,16 +116,34 @@ export async function buildPromptContext(lead: Lead, formId: string): Promise<Pr
 
   const picked = record.answers[REFERENCE_FIELD]?.v;
   const pickerField = definition.fields.find((f) => f.id === REFERENCE_FIELD);
+  const likesField = definition.fields.find((f) => f.id === REFERENCE_LIKES_FIELD);
+  const likeRows = record.answers[REFERENCE_LIKES_FIELD]?.v;
+  const likeRow = (slug: string) =>
+    (Array.isArray(likeRows) ? (likeRows as RepeaterRow[]) : []).find((r) => r && typeof r === 'object' && r.site === slug);
   const referenceSites = await Promise.all(
     (Array.isArray(picked) ? (picked as string[]) : []).map(async (slug) => {
       const option = pickerField?.options.find((o) => o.value === slug);
-      return { slug, name: option?.label_en ?? slug, url: option?.url ?? null, spec: await loadReferenceSpec(slug) };
+      const row = likeRow(slug);
+      return {
+        slug,
+        name: option?.label_en ?? slug,
+        url: option?.url ?? null,
+        spec: await loadReferenceSpec(slug),
+        liked: likedLabels(likesField, row),
+        dislikes: String(row?.dislikes ?? '').trim(),
+      };
     }),
   );
 
   const rows = record.answers[CLIENT_REFERENCES_FIELD]?.v;
+  const linksField = definition.fields.find((f) => f.id === CLIENT_REFERENCES_FIELD);
   const clientReferences: ClientReference[] = (Array.isArray(rows) ? (rows as Record<string, unknown>[]) : [])
-    .map((r) => ({ url: String(r?.url ?? '').trim(), likes: String(r?.likes ?? '').trim(), dislikes: String(r?.dislikes ?? '').trim() }))
+    .map((r) => ({
+      url: String(r?.url ?? '').trim(),
+      liked: likedLabels(linksField, r),
+      likes: String(r?.likes ?? '').trim(),
+      dislikes: String(r?.dislikes ?? '').trim(),
+    }))
     .filter((r) => r.url);
   const referenceShots: ClientShot[] = stored
     .filter((f) => f.field_key === REFERENCE_SHOTS_FIELD)

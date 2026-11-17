@@ -1,5 +1,5 @@
 import type { RuleCondition } from '../../../src/lib/types.ts';
-import type { FieldOption, FieldType, OnbField } from '../../../src/lib/onboarding/types.ts';
+import type { FieldOption, FieldType, OnbField, RepeaterSubField } from '../../../src/lib/onboarding/types.ts';
 
 /* ------------------------------------------------------------------ tiny DSL */
 
@@ -394,8 +394,46 @@ const inboxes: OnbField[] = [
 const heading = (id: string, screen: string, de: string, en: string, help_de: string, help_en: string) =>
   field(id, screen, 'notice', de, en, { help_de, help_en, config: { tone: 'heading' } });
 
-/** The design examples each proposal is based on: exactly two, from these three questions. */
-export const PROPOSAL_EXAMPLES = { count: 2, picks: 'reference_sites', links: 'references', pictures: 'reference_screenshots' };
+/**
+ * The design examples the proposals are based on: at least two, from the gallery, the client's
+ * own links and their pictures. With more than two, the client's two favourites lead.
+ */
+export const PROPOSAL_EXAMPLES = {
+  count: 2,
+  picks: 'reference_sites',
+  links: 'references',
+  pictures: 'reference_screenshots',
+  favourites: 'favourite_examples',
+  likes: 'reference_likes',
+};
+
+/** "What do you like about it?" on every example, gallery or link. */
+export const LIKE_OPTIONS = [
+  opt('layout', 'Aufbau', 'Layout'),
+  opt('colours', 'Farben', 'Colours'),
+  opt('fonts', 'Schrift', 'Fonts'),
+  opt('photos', 'Bilder', 'Photos'),
+  opt('feel', 'Gesamteindruck', 'Overall feel'),
+];
+const LIKED: RepeaterSubField = {
+  key: 'liked',
+  type: 'ticks',
+  label_de: 'Was gefällt Ihnen daran?',
+  label_en: 'What do you like about it?',
+  required: true,
+  // "layout,colours,fonts,photos,feel" at most.
+  max_chars: 60,
+  options: LIKE_OPTIONS,
+};
+const DISLIKES: RepeaterSubField = {
+  key: 'dislikes',
+  type: 'text',
+  label_de: 'Was gefällt Ihnen nicht?',
+  label_en: 'Anything you do not like?',
+  max_chars: 200,
+  placeholder_de: 'Zu viel Blau',
+  placeholder_en: 'Too much blue',
+};
 
 const design: OnbField[] = [
   // Form B: whether the new site keeps the old one's look. It comes first, because the brand
@@ -606,24 +644,36 @@ const design: OnbField[] = [
   heading(
     'design_part_examples',
     'design',
-    'Ihre 2 Gestaltungsbeispiele',
-    'Your 2 design examples',
-    'Wir gestalten 2 Entwürfe für Sie. Jeder orientiert sich an einem Beispiel, das Sie wählen. Bitte wählen Sie insgesamt 2, ganz wie Sie möchten: aus unserer Galerie, eine Website, die Ihnen gefällt, oder Ihre eigenen Bilder. Ihre Inhalte, Farben und Ihr Logo haben dabei immer Vorrang.',
-    'We design 2 proposals for you, each based on one example you choose. Please choose 2 in total, in any mix: from our gallery, a website you like, or your own pictures. Your own content, colours and logo always come first.',
+    'Ihre Gestaltungsbeispiele',
+    'Your design examples',
+    'Zeigen Sie uns, was Ihnen gefällt. Wir gestalten 2 Entwürfe für Sie, jeder orientiert sich an einem Ihrer Favoriten. Ihre Inhalte und Ihr Logo haben dabei immer Vorrang.',
+    'Show us what you like. We design 2 proposals for you, each based on one of your favourites. Your own content and logo always come first.',
   ),
-  field('reference_sites', 'design', 'checkboxes', 'Aus unserer Galerie', 'From our gallery', {
-    help_de: 'Jede Website, die Sie hier wählen, zählt als ein Beispiel. In der Galerie sehen Sie die ganzen Seiten auf Laptop und Handy.',
-    help_en: 'Each website you tick counts as one example. The gallery shows the whole pages on a laptop and a phone.',
-    config: { display: 'cards', hide_optional: true },
-    options: REFERENCE_SITES,
+  // The wizard: two tiles first, then only the parts the client chose.
+  field('example_sources', 'design', 'checkboxes', 'Wie möchten Sie uns zeigen, was Ihnen gefällt?', 'How would you like to show us what you like?', {
+    help_de: 'Sie können auch beides wählen.',
+    help_en: 'You can choose both.',
+    required: true,
+    config: { display: 'tiles', min_checked: 1 },
+    options: [
+      opt('own', 'Ich habe Websites, die mir gefallen', 'I have websites I like', {
+        hint_de: 'Sie fügen die Links ein und sagen uns, was Ihnen an jeder gefällt.',
+        hint_en: 'Add the links and tell us what you like about each one.',
+      }),
+      opt('gallery', 'Zeigen Sie mir Beispiele', 'Show me examples', {
+        hint_de: 'Sie wählen aus Websites, die wir für Sie ausgesucht haben.',
+        hint_en: 'Choose from websites we have picked out for you.',
+      }),
+    ],
   }),
-  field('references', 'design', 'repeater', 'Oder: eine Website, die Ihnen gefällt', 'Or: a website you like', {
-    help_de: 'Jeder Link zählt als ein Beispiel. Bitte sagen Sie uns, was Ihnen daran gefällt.',
-    help_en: 'Each link counts as one example. Please tell us what you like about it.',
+  field('references', 'design', 'repeater', 'Websites, die Ihnen gefallen', 'Websites you like', {
+    help_de: 'So viele, wie Sie möchten. Kreuzen Sie bei jeder an, was Ihnen daran gefällt.',
+    help_en: 'As many as you like. For each one, tick what you like about it.',
+    required: true,
+    show_when: when('example_sources', 'own'),
     config: {
-      hide_optional: true,
       min_rows: 1,
-      max_rows: 2,
+      max_rows: 5,
       initial_rows: 1,
       add_label_de: 'Weitere Website hinzufügen',
       add_label_en: 'Add another website',
@@ -634,27 +684,56 @@ const design: OnbField[] = [
           label_de: 'Link',
           label_en: 'Link',
           required: true,
+          max_chars: 300,
           placeholder_de: 'https://www.beispielseite.de',
           placeholder_en: 'https://www.example-site.com',
         },
+        LIKED,
         {
           key: 'likes',
-          type: 'textarea',
-          label_de: 'Was gefällt Ihnen daran?',
-          label_en: 'What do you like about it?',
-          required: true,
-          min_chars: 15,
+          type: 'text',
+          label_de: 'Was genau?',
+          label_en: 'Anything in particular?',
+          max_chars: 300,
           placeholder_de: 'Wie die Leistungen aufgelistet sind, eine pro Karte mit Preis',
           placeholder_en: 'The way the treatments are listed, one per card with the price',
         },
+        DISLIKES,
+      ],
+    },
+  }),
+  field('reference_sites', 'design', 'checkboxes', 'Beispiele aus unserer Galerie', 'Examples from our gallery', {
+    help_de: 'Wählen Sie so viele, wie Sie möchten. In der Galerie sehen Sie die ganzen Seiten auf Laptop und Handy.',
+    help_en: 'Tick as many as you like. The gallery shows the whole pages on a laptop and a phone.',
+    required: true,
+    show_when: when('example_sources', 'gallery'),
+    config: { display: 'cards', min_checked: 1 },
+    options: REFERENCE_SITES,
+  }),
+  // One row per ticked gallery site, in the order ticked: what the client likes about it.
+  field('reference_likes', 'design', 'repeater', 'Was gefällt Ihnen an Ihren Beispielen?', 'What do you like about the examples you chose?', {
+    help_de: 'Kreuzen Sie bei jedem an, was Ihnen gefällt. So wissen wir, was wir woher nehmen.',
+    help_en: 'For each one, tick what you like. That tells us what to take from where.',
+    required: true,
+    show_when: [
+      { key: 'example_sources', values: ['gallery'] },
+      { key: 'reference_sites', values: ['__set'] },
+    ],
+    config: {
+      rows_from: 'reference_sites',
+      max_rows: REFERENCE_SITES.length,
+      fields: [
         {
-          key: 'dislikes',
-          type: 'textarea',
-          label_de: 'Was gefällt Ihnen nicht?',
-          label_en: 'Anything you do not like?',
-          placeholder_de: 'Zu viel Blau',
-          placeholder_en: 'Too much blue',
+          key: 'site',
+          type: 'select',
+          label_de: 'Website',
+          label_en: 'Website',
+          required: true,
+          max_chars: 40,
+          options: REFERENCE_SITES.map((o) => opt(o.value, o.label_de, o.label_en)),
         },
+        LIKED,
+        DISLIKES,
       ],
     },
   }),
@@ -662,18 +741,21 @@ const design: OnbField[] = [
     'reference_screenshots',
     'design',
     'upload',
-    'Oder: Ihre eigenen Bilder',
-    'Or: your own pictures',
+    'Haben Sie Bilder von Gestaltungen, die Ihnen gefallen?',
+    'Do you have pictures of designs you like?',
     {
       help_de:
-        'Screenshots oder Fotos, zum Beispiel von einer Broschüre, einem Schaufenster oder einer Zeitschriftenseite. Alle Bilder zusammen zählen als ein Beispiel.',
-      help_en: 'Screenshots or photos, for example of a brochure, a shop front or a magazine page. All your pictures together count as one example.',
+        'Screenshots, Pinterest-Pins oder Fotos, zum Beispiel von einer Broschüre, einem Schaufenster oder einer Zeitschriftenseite. Alle Bilder zusammen zählen als ein Beispiel.',
+      help_en:
+        'Screenshots, Pinterest pins or photos, for example of a brochure, a shop front or a magazine page. All your pictures together count as one example.',
+      show_when: when('example_sources', '__set'),
       // Pictures only: they are what the design brief is written from.
-      config: { max_files: 10, max_total_mb: 25, hide_optional: true, accept: ['jpg', 'jpeg', 'png', 'webp', 'gif'] },
+      config: { max_files: 10, max_total_mb: 25, accept: ['jpg', 'jpeg', 'png', 'webp', 'gif'] },
     },
   ),
-  // Which example each proposal follows, live, and the rule: exactly two across the three questions above.
-  field('design_examples_summary', 'design', 'notice', 'Ihre 2 Entwürfe', 'Your 2 proposals', {
+  // Which example each proposal follows, live; with more than two, the client's two favourites.
+  field('favourite_examples', 'design', 'checkboxes', 'Ihre 2 Entwürfe', 'Your 2 proposals', {
+    show_when: when('example_sources', '__set'),
     config: { proposal_examples: PROPOSAL_EXAMPLES },
   }),
   heading(
@@ -1425,6 +1507,9 @@ export const retiredFieldIds = [
   'notice_logo_redraw',
   'photo_source',
   'accounts',
+  // 17 Nov 2026: the design examples summary became favourite_examples, which also stores the
+  // client's two favourites when they chose more than two examples.
+  'design_examples_summary',
 ];
 
 /* ------------------------------------------------------------------ the two funnels */

@@ -12,18 +12,20 @@ import { createFilledForm, getRecord } from './helpers/onboarding';
 test.describe('design examples, gallery and page list', () => {
   test('the gallery opens over the form; a tick there is the example on the form, and back returns', async ({ page, request }) => {
     // Their own link only: one example of two.
-    const id = await createFilledForm(request, testEmail('onb-gallery'), { reference_sites: null });
+    const id = await createFilledForm(request, testEmail('onb-gallery'), { example_sources: { v: ['own'] }, reference_sites: null, reference_likes: null });
     await page.goto(`/onboardingform/${id}`);
     await page.click('[data-testid=step-design]');
 
     await expect(page.getByTestId('heading-design_part_examples')).toBeVisible();
     const order = await page.locator('[data-field]').evaluateAll((els) => els.map((e) => e.getAttribute('data-field')));
     expect(order.indexOf('tone_note')).toBe(order.indexOf('tone_scale') + 1);
-    expect(order.indexOf('design_part_business')).toBe(0);
+    // The Sie/du question (17 Nov 2026) opens the screen, before the first part.
+    expect(order.slice(0, 2)).toEqual(['address_form', 'design_part_business']);
     expect(order[order.length - 1]).toBe('avoid');
     await expect(page.getByTestId('proposal-example-1')).toContainText('beispiel-physio.de');
     await expect(page.getByTestId('proposal-example-2')).toContainText('Noch nicht gewählt');
 
+    await page.click('[data-testid=opt-example_sources-gallery]');
     await page.click('[data-testid=opt-reference_sites-graza-link]');
     const gallery = page.getByTestId('reference-gallery');
     await expect(gallery).toBeVisible();
@@ -39,24 +41,40 @@ test.describe('design examples, gallery and page list', () => {
     await expect(page.getByTestId('gallery-visit')).toHaveAttribute('href', 'https://www.graza.co/');
 
     await page.click('[data-testid=gallery-choose-graza]');
-    await expect(page.getByTestId('gallery-counter')).toContainText('2 von 2');
-    // Both examples chosen: the next site cannot be chosen as well.
+    // As many as they like: the next site can be chosen as well.
     await page.click('[data-testid=gallery-next]');
-    await expect(page.getByTestId('gallery-choose-25hours-hotels')).toBeDisabled();
+    await page.click('[data-testid=gallery-choose-25hours-hotels]');
 
     // The browser's back button returns to the form, where the tick is on the card.
     await page.goBack();
     await expect(gallery).toHaveCount(0);
     await expect(page).not.toHaveURL(/#gallery/);
     await expect(page.locator('[data-testid=opt-reference_sites-graza]')).toHaveAttribute('aria-checked', 'true');
-    await expect(page.getByTestId('proposal-example-1')).toContainText('Graza');
+    await expect.poll(async () => (await getRecord(request, id)).record.answers.reference_sites?.v).toEqual(['graza', '25hours-hotels']);
+
+    // A row of likes per pick, in the order ticked.
+    await expect(page.locator('[data-testid^=row-reference_likes-]')).toHaveCount(2);
+    await page.click('[data-testid=f-reference_likes-graza-liked-colours]');
+    await page.click('[data-testid=f-reference_likes-25hours-hotels-liked-feel]');
+
+    // Three examples: the client picks two favourites, the first click is Proposal 1.
+    await expect(page.getByTestId('favourites')).toBeVisible();
+    await expect(page.getByTestId('proposal-example-1')).toContainText('Noch nicht gewählt');
+    await page.click('[data-testid="favourite-site:25hours-hotels"]');
+    await page.click('[data-testid="favourite-link:https://www.beispiel-physio.de"]');
+    await expect(page.getByTestId('proposal-example-1')).toContainText('25hours Hotels');
     await expect(page.getByTestId('proposal-example-2')).toContainText('beispiel-physio.de');
-    await expect(page.getByTestId('examples-full')).toBeVisible();
-    const rivian = page.locator('[data-testid=opt-reference_sites-rivian]');
-    await expect(rivian).toHaveAttribute('aria-disabled', 'true');
-    await rivian.click({ force: true });
-    await expect(rivian).toHaveAttribute('aria-checked', 'false');
-    await expect.poll(async () => (await getRecord(request, id)).record.answers.reference_sites?.v).toEqual(['graza']);
+    await expect
+      .poll(async () => (await getRecord(request, id)).record.answers.favourite_examples?.v)
+      .toEqual(['site:25hours-hotels', 'link:https://www.beispiel-physio.de']);
+
+    // Unticking a site takes its likes row with it.
+    await page.click('[data-testid=opt-reference_sites-graza]');
+    await expect(page.locator('[data-testid^=row-reference_likes-]')).toHaveCount(1);
+    await expect.poll(async () => ((await getRecord(request, id)).record.answers.reference_likes?.v as { site: string }[]).map((r) => r.site)).toEqual([
+      '25hours-hotels',
+    ]);
+    await expect(page.getByTestId('favourites')).toHaveCount(0);
 
     // The overview: every site as a tile, closed with its own button.
     await page.click('[data-testid=gallery-open]');
@@ -114,7 +132,17 @@ test.describe('design prompts on confirmation', () => {
     const email = testEmail('onb-auto');
     leadId = await createLeadViaApi(request, email);
     // Two gallery sites, so nothing outside is read.
-    const id = await createFilledForm(request, email, { reference_sites: { v: ['graza', 'devol'] }, references: null });
+    const id = await createFilledForm(request, email, {
+      example_sources: { v: ['gallery'] },
+      reference_sites: { v: ['graza', 'devol'] },
+      reference_likes: {
+        v: [
+          { _id: 'l1', site: 'graza', liked: 'layout' },
+          { _id: 'l2', site: 'devol', liked: 'colours' },
+        ],
+      },
+      references: null,
+    });
     await db.from('onboarding_forms').update({ lead_id: leadId }).eq('id', id);
 
     await page.goto(`/onboardingform/${id}`);

@@ -17,9 +17,9 @@ const context: PromptContext = {
     },
   ],
   referenceSites: [],
-  clientReferences: [],
+  clientReferences: [{ url: 'https://example.com', liked: ['Layout'], likes: 'the calm layout', dislikes: '' }],
   referenceShots: [],
-  examples: [],
+  examples: ['graza', 'client-link-1'],
   files: [{ question: 'Logo', name: 'logo.svg', type: 'image/svg+xml' }],
   status: 'confirmed',
   confirmedAt: '2026-10-28T10:00:00Z',
@@ -47,8 +47,16 @@ describe('designPromptInput', () => {
   it('carries the proposal, the spec and the notes, and pulls the client\'s own references out', () => {
     const input = JSON.parse(designPromptInput(context, 'B', reference, '  Keep it calm.  '));
     expect(input.proposal).toBe(2);
-    expect(input.reference_website).toEqual({ name: 'Graza', url: 'https://www.graza.co/', spec: reference.spec });
-    expect(input.other_references).toContain('the calm layout');
+    expect(input.reference_website).toEqual({
+      name: 'Graza',
+      url: 'https://www.graza.co/',
+      client_likes: [],
+      client_notes: null,
+      client_dislikes: null,
+      spec: reference.spec,
+    });
+    // The client's own link is one of the other examples, with what they wrote about it.
+    expect(input.other_examples).toEqual([expect.objectContaining({ source: 'client_link', client_notes: expect.stringContaining('the calm layout') })]);
     expect(input.answers[0].items.map((i: { question: string }) => i.question)).toEqual(['In one sentence, what do you do?']);
     expect(input.answers[0].items[0].answer).toBe('Wir bauen Bäder.');
     expect(input.internal_notes).toBe('Keep it calm.');

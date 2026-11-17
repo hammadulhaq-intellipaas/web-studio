@@ -9,6 +9,7 @@ import type {
   OnboardingFormRecord,
 } from './types';
 import { loc } from './types';
+import { exampleKeyText, tickValues } from './examples';
 
 /** A stored upload, as far as the export and the brief need to know about it. */
 export interface FileSummary {
@@ -76,6 +77,8 @@ function displayBase(field: OnbField, answer: Answer | undefined, locale: Locale
       return typeof v === 'string' ? optionLabel(field, v, locale) : String(v);
     case 'checkboxes': {
       const list = Array.isArray(v) ? (v as string[]) : [];
+      // The favourite design examples: keys, not options (see examples.ts).
+      if (field.config.proposal_examples) return list.map((key) => exampleKeyText(key, locale)).join(', ');
       const labels = list.map((x) => optionLabel(field, x, locale));
       if (answer.other) labels.push(answer.other);
       return labels.join(', ');
@@ -111,8 +114,12 @@ function displayBase(field: OnbField, answer: Answer | undefined, locale: Locale
               if (raw == null || String(raw).trim() === '') return null;
               // "What do you like about it?: …" reads badly; the colon is the question mark.
               const label = (locale === 'de' ? s.label_de : s.label_en).replace(/[?:]\s*$/, '');
-              const option = s.type === 'select' ? (s.options ?? []).find((o) => o.value === String(raw)) : undefined;
-              const value = option ? loc(option as unknown as Record<string, unknown>, 'label', locale) : String(raw);
+              const subOption = (x: string) => {
+                const option = (s.options ?? []).find((o) => o.value === x);
+                return option ? loc(option as unknown as Record<string, unknown>, 'label', locale) : x;
+              };
+              const value =
+                s.type === 'select' ? subOption(String(raw)) : s.type === 'ticks' ? tickValues(raw).map(subOption).join(', ') : String(raw);
               return `${label}: ${value}`;
             })
             .filter(Boolean)

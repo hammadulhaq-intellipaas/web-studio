@@ -79,6 +79,8 @@ describe('fields', () => {
 
   it('choice fields have options; free-text fields have none', () => {
     for (const f of fields) {
+      // The favourite design examples choose among the client's own examples, not options.
+      if (f.config.proposal_examples) continue;
       if (CHOICE_TYPES.has(f.type) || f.type === 'ranking') {
         expect(f.options.length, f.id).toBeGreaterThanOrEqual(f.type === 'checkboxes' ? 1 : 2);
       } else if (f.type === 'multiselect') {
@@ -122,7 +124,7 @@ describe('fields', () => {
       expect(f.config.initial_rows ?? 1).toBeLessThanOrEqual(f.config.max_rows!);
       for (const s of subs) {
         expect(s.key).not.toBe('_id');
-        if (s.type === 'select') expect(s.options?.length ?? 0, `${f.id}.${s.key}`).toBeGreaterThan(0);
+        if (s.type === 'select' || s.type === 'ticks') expect(s.options?.length ?? 0, `${f.id}.${s.key}`).toBeGreaterThan(0);
       }
     }
   });
@@ -140,6 +142,18 @@ describe('fields', () => {
       expect(key, f.id).toBeTruthy();
       expect(texts.filter((t) => t.key === key).map((t) => t.locale).sort()).toEqual(['de', 'en']);
     }
+  });
+
+  it('the design examples rule names questions that exist, and stores the favourites in itself', () => {
+    const carriers = fields.filter((f) => f.config.proposal_examples);
+    expect(carriers).toHaveLength(1);
+    const [f] = carriers;
+    const rule = f.config.proposal_examples!;
+    expect(f.label_de && f.label_en).toBeTruthy();
+    for (const id of [rule.picks, rule.links, rule.pictures, rule.likes!]) expect(fieldById.has(id), `${f.id} counts ${id}`).toBe(true);
+    expect(rule.favourites).toBe(f.id);
+    // The gallery likes follow the gallery ticks.
+    expect(fieldById.get(rule.likes!)?.config.rows_from).toBe(rule.picks);
   });
 
   it('show_when clauses reference earlier choice fields and valid option values', () => {

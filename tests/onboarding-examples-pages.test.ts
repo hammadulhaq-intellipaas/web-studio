@@ -1,9 +1,9 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { fields, PAGE_OPTIONS, PROPOSAL_EXAMPLES, REFERENCE_SITES } from '../supabase/seed/onboarding/fields.ts';
+import { fields, PAGE_OPTIONS, PROPOSAL_EXAMPLES, REFERENCE_SITES, retiredFieldIds } from '../supabase/seed/onboarding/fields.ts';
 import { autoPending, AUTO_WINDOW_MS } from '@/lib/developer/auto-status';
-import { chosenExamples, examplesRule } from '@/lib/onboarding/examples';
+import { chosenExamples, examplesRule, favouriteKeys, rowsFromPicks } from '@/lib/onboarding/examples';
 import { displayValue } from '@/lib/onboarding/export';
 import { buildQueue } from '@/lib/onboarding/followups/queue';
 import { redactAnswers } from '@/lib/onboarding/guardrails';
@@ -14,10 +14,10 @@ import gallery from '@/lib/onboarding/gallery-shots.json';
 const a = <T,>(v: T) => ({ v });
 const today = '2026-11-10';
 const field = (id: string) => fields.find((f) => f.id === id)!;
-const summary = field('design_examples_summary');
+const summary = field('favourite_examples');
 const ctx = (answers: Answers, files: Record<string, number> = {}) => ({ answers, files, today, fields });
 
-describe('the two design examples', () => {
+describe('the design examples', () => {
   it('counts gallery ticks, then own links, then all pictures as one, in that order', () => {
     const answers: Answers = {
       reference_sites: a(['graza']),
@@ -27,35 +27,128 @@ describe('the two design examples', () => {
       ]),
     };
     expect(chosenExamples(PROPOSAL_EXAMPLES, answers, { reference_screenshots: 3 })).toEqual([
-      { kind: 'library', value: 'graza' },
-      { kind: 'link', index: 0, url: 'https://www.example-yoga.de' },
-      { kind: 'pictures', count: 3 },
+      { kind: 'library', value: 'graza', key: 'site:graza' },
+      { kind: 'link', index: 0, url: 'https://www.example-yoga.de', key: 'link:https://www.example-yoga.de' },
+      { kind: 'pictures', count: 3, key: 'pictures' },
     ]);
   });
 
-  it('finds the rule on the summary notice of the seed', () => {
-    expect(examplesRule(fields)?.field.id).toBe('design_examples_summary');
-    expect(examplesRule(fields)?.rule).toEqual({ count: 2, picks: 'reference_sites', links: 'references', pictures: 'reference_screenshots' });
+  it('puts the favourites first, in the order picked, and ignores one whose example is gone', () => {
+    const answers: Answers = {
+      reference_sites: a(['graza', 'rivian', 'devol']),
+      references: a([{ _id: 'r1', url: 'https://www.example-yoga.de', liked: 'layout' }]),
+      favourite_examples: a(['link:https://www.example-yoga.de', 'site:devol']),
+    };
+    expect(chosenExamples(PROPOSAL_EXAMPLES, answers, {}).map((e) => e.key)).toEqual([
+      'link:https://www.example-yoga.de',
+      'site:devol',
+      'site:graza',
+      'site:rivian',
+    ]);
+    const gone = { ...answers, favourite_examples: a(['site:lanserhof', 'site:rivian']) };
+    expect(favouriteKeys(PROPOSAL_EXAMPLES, gone, {})).toEqual(['site:rivian']);
+    expect(chosenExamples(PROPOSAL_EXAMPLES, gone, {})[0].key).toBe('site:rivian');
   });
 
-  it('asks for exactly two, and says how many are missing', () => {
+  it('finds the rule on the favourites question of the seed', () => {
+    expect(examplesRule(fields)?.field.id).toBe('favourite_examples');
+    expect(examplesRule(fields)?.rule).toEqual({
+      count: 2,
+      picks: 'reference_sites',
+      links: 'references',
+      pictures: 'reference_screenshots',
+      favourites: 'favourite_examples',
+      likes: 'reference_likes',
+    });
+  });
+
+  it('asks for at least two, and for two favourites when there are more', () => {
     expect(validateField(summary, ctx({}))).toEqual([{ field: summary.id, code: 'examples_min', params: { n: 0, count: 2, left: 2 } }]);
     expect(validateField(summary, ctx({ reference_sites: a(['graza']) }))[0].params).toMatchObject({ left: 1 });
     expect(validateField(summary, ctx({ reference_sites: a(['graza', 'rivian']) }))).toEqual([]);
     expect(validateField(summary, ctx({ reference_sites: a(['graza']) }, { reference_screenshots: 2 }))).toEqual([]);
-    expect(validateField(summary, ctx({ reference_sites: a(['graza', 'rivian', 'devol']) }))[0].code).toBe('examples_max');
+    const three = { reference_sites: a(['graza', 'rivian', 'devol']) };
+    expect(validateField(summary, ctx(three))).toEqual([{ field: summary.id, code: 'favourites', params: { n: 3, count: 2 } }]);
+    expect(validateField(summary, ctx({ ...three, favourite_examples: a(['site:devol']) }))[0].code).toBe('favourites');
+    expect(validateField(summary, ctx({ ...three, favourite_examples: a(['site:devol', 'site:graza']) }))).toEqual([]);
   });
 
-  it('blocks the design screen until two are chosen, and none of the three questions is required on its own', () => {
+  it('keeps the old rule, exactly two, for a definition without favourites', () => {
+    const old = { ...summary, config: { proposal_examples: { count: 2, picks: 'reference_sites', links: 'references', pictures: 'reference_screenshots' } } };
+    expect(validateField(old, ctx({ reference_sites: a(['graza', 'rivian', 'devol']) }))[0].code).toBe('examples_max');
+  });
+
+  it('reads the favourites back as plain text', () => {
+    expect(displayValue(summary, a(['site:graza', 'link:https://www.example-yoga.de']), 'en')).toBe('graza (gallery), https://www.example-yoga.de');
+    expect(displayValue(summary, a(['pictures']), 'de')).toBe('Eigene Bilder');
+  });
+
+  it('opens with two tiles and shows only the parts the client chose', () => {
     const definition = { fields } as Pick<OnboardingDefinition, 'fields'>;
-    const examplesErrors = (answers: Answers) => validateScreen(definition, 'design', answers, {}, today).filter((e) => e.field === summary.id);
-    expect(examplesErrors({ references: a([{ _id: 'r1', url: 'https://www.example-yoga.de', likes: 'Die klaren Grafiken' }]) })).toHaveLength(1);
-    expect(examplesErrors({ reference_sites: a(['conductlaw']), references: a([{ _id: 'r1', url: 'https://www.example-yoga.de', likes: 'Die klaren Grafiken' }]) })).toHaveLength(0);
-    for (const id of ['reference_sites', 'references', 'reference_screenshots']) {
-      expect(field(id).required, id).toBe(false);
-      expect(field(id).config.hide_optional, id).toBe(true);
-    }
-    expect(field('references').config.max_rows).toBe(2);
+    const tiles = field('example_sources');
+    expect(tiles.config.display).toBe('tiles');
+    expect(tiles.options.map((o) => o.value)).toEqual(['own', 'gallery']);
+    const shown = (answers: Answers) => new Set(validateScreen(definition, 'design', answers, {}, today).map((e) => e.field));
+    const none = shown({});
+    expect(none.has('example_sources')).toBe(true);
+    for (const id of ['references', 'reference_sites', 'reference_likes', 'favourite_examples']) expect(none.has(id), id).toBe(false);
+    const own = shown({ example_sources: a(['own']) });
+    expect(own.has('references')).toBe(true);
+    expect(own.has('reference_sites')).toBe(false);
+    const gallery = shown({ example_sources: a(['gallery']) });
+    expect(gallery.has('reference_sites')).toBe(true);
+    expect(gallery.has('references')).toBe(false);
+  });
+
+  it('asks what they like about every example: a tick per link, a row per gallery pick', () => {
+    const definition = { fields } as Pick<OnboardingDefinition, 'fields'>;
+    const errors = (answers: Answers) => validateScreen(definition, 'design', answers, {}, today);
+    const answers: Answers = {
+      example_sources: a(['own', 'gallery']),
+      references: a([{ _id: 'r1', url: 'https://www.example-yoga.de' }]),
+      reference_sites: a(['graza', 'devol']),
+      reference_likes: a([{ _id: 'l1', site: 'graza', liked: 'colours' }]),
+    };
+    const likes = errors(answers).filter((e) => e.field === 'reference_likes' || e.field === 'references');
+    expect(likes).toEqual([
+      { field: 'references', code: 'required', row_id: 'r1', sub: 'liked' },
+      { field: 'reference_likes', code: 'required', row_id: 'pick-devol', sub: 'liked' },
+    ]);
+    const done: Answers = {
+      ...answers,
+      references: a([{ _id: 'r1', url: 'https://www.example-yoga.de', liked: 'layout,fonts' }]),
+      reference_likes: a([
+        { _id: 'l1', site: 'graza', liked: 'colours' },
+        { _id: 'l2', site: 'devol', liked: 'photos' },
+      ]),
+      favourite_examples: a(['site:devol', 'site:graza']),
+    };
+    expect(errors(done).filter((e) => ['references', 'reference_likes', 'favourite_examples'].includes(e.field))).toEqual([]);
+    // A tick that is not one of the options is refused.
+    const wrong = { ...done, references: a([{ _id: 'r1', url: 'https://www.example-yoga.de', liked: 'layout,price' }]) };
+    expect(errors(wrong).find((e) => e.field === 'references')?.code).toBe('invalid_option');
+  });
+
+  it('reads the likes back with their labels', () => {
+    expect(displayValue(field('reference_likes'), a([{ _id: 'l1', site: 'graza', liked: 'colours,fonts', dislikes: 'Zu gelb' }]), 'en')).toBe(
+      'Website: Graza · What do you like about it: Colours, Fonts · Anything you do not like: Zu gelb',
+    );
+  });
+
+  it('follows the gallery ticks: a row per pick in the order ticked, none for a site unticked', () => {
+    const likes = field('reference_likes');
+    const stored = [{ _id: 'l1', site: 'rivian', liked: 'layout' }, { _id: 'l2', site: 'graza', liked: 'colours' }];
+    expect(rowsFromPicks(likes, stored, { reference_sites: a(['graza', 'devol']) })).toEqual([
+      { _id: 'l2', site: 'graza', liked: 'colours' },
+      { _id: 'pick-devol', site: 'devol' },
+    ]);
+    expect(likes.config.fields?.[0].options?.map((o) => o.value)).toEqual(REFERENCE_SITES.map((o) => o.value));
+  });
+
+  it('allows as many examples as the client likes', () => {
+    expect(field('references').config.max_rows).toBe(5);
+    expect(field('reference_sites').config.max_checked).toBeUndefined();
+    expect(field('reference_screenshots').required).toBe(false);
   });
 });
 
@@ -76,21 +169,23 @@ describe('the design screen', () => {
     expect(order.indexOf('personality_note')).toBe(order.indexOf('personality_scale') + 1);
   });
 
-  it('asks for the examples after the feel, then the summary, then the look, and "avoid" last', () => {
+  it('asks for the examples after the feel: tiles, links, gallery, likes, pictures, favourites; then the look', () => {
     expect(before('personality_note', 'design_part_examples')).toBe(true);
-    expect(order.slice(order.indexOf('design_part_examples'), order.indexOf('design_part_examples') + 6)).toEqual([
+    expect(order.slice(order.indexOf('design_part_examples'), order.indexOf('design_part_examples') + 8)).toEqual([
       'design_part_examples',
-      'reference_sites',
+      'example_sources',
       'references',
+      'reference_sites',
+      'reference_likes',
       'reference_screenshots',
-      'design_examples_summary',
+      'favourite_examples',
       'design_part_look',
     ]);
     expect(order[order.length - 1]).toBe('avoid');
   });
 
   it('has no em or en dashes in the new texts', () => {
-    for (const id of ['design_part_business', 'design_part_feel', 'design_part_examples', 'design_examples_summary', 'design_part_look', 'reference_sites', 'references', 'reference_screenshots', 'page_list']) {
+    for (const id of ['design_part_business', 'design_part_feel', 'design_part_examples', 'example_sources', 'favourite_examples', 'design_part_look', 'reference_sites', 'reference_likes', 'references', 'reference_screenshots', 'page_list']) {
       const f = field(id);
       expect(`${f.label_de} ${f.label_en} ${f.help_de ?? ''} ${f.help_en ?? ''}`, id).not.toMatch(/[–—]/);
     }
@@ -189,13 +284,14 @@ describe('migration 030', () => {
     expect(sql.match(/and replace\(content, E'\\r\\n', E'\\n'\) = '/g)).toHaveLength(2);
   });
 
-  it('puts every design question in the seed order, whatever sort numbers the database held', () => {
+  it('put every design question of its time in order, whatever sort numbers the database held', () => {
     const block = sql.slice(sql.indexOf('update onb_fields as f set sort = v.sort'));
     const placed = [...block.matchAll(/\('([a-z_]+)', (\d+)\)/g)].map((m) => ({ id: m[1], sort: Number(m[2]) }));
-    // Questions added after migration 030 (the two funnels, 17 Nov 2026) are not in it.
-    const later = new Set(['brand_keep', 'address_form']);
-    const seedOrder = fields.filter((f) => f.screen_id === 'design' && f.active && !later.has(f.id)).map((f) => f.id);
-    expect(placed.map((p) => p.id)).toEqual(seedOrder);
+    // The design questions have changed since (the two funnels and the examples wizard, 17 Nov
+    // 2026): each one it placed is still in the seed, or was retired since.
+    const design = new Set(fields.filter((f) => f.screen_id === 'design').map((f) => f.id));
+    for (const p of placed) expect(design.has(p.id) || retiredFieldIds.includes(p.id), p.id).toBe(true);
+    expect(placed.length).toBeGreaterThan(20);
     expect(placed.every((p, i) => i === 0 || p.sort > placed[i - 1].sort)).toBe(true);
   });
 

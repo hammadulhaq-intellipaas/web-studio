@@ -23,8 +23,8 @@ import {
 } from '@/lib/developer/reference-sources';
 
 const refs = [
-  { url: 'https://www.bloom-mothers.de/', likes: 'Ruhige Farben', dislikes: '' },
-  { url: 'praxis-x.de/start', likes: 'Fotos', dislikes: 'zu viel Text' },
+  { url: 'https://www.bloom-mothers.de/', liked: ['Colours'], likes: 'Ruhige Farben', dislikes: '' },
+  { url: 'praxis-x.de/start', liked: ['Photos', 'Layout'], likes: 'Fotos', dislikes: 'zu viel Text' },
 ];
 const shots = [
   { id: 'f2', name: 'flyer.png', type: 'image/png', bucket: 'onboarding-uploads', path: 'a/flyer.png' },
@@ -135,9 +135,9 @@ describe('checking a spec', () => {
 describe('defaults and the design prompt input', () => {
   it('maps the form examples to Design tab choices in the form order', () => {
     const choices = exampleChoices([
-      { kind: 'library', value: 'graza' },
-      { kind: 'link', index: 0, url: 'https://bloom-mothers.de' },
-      { kind: 'pictures', count: 3 },
+      { kind: 'library', value: 'graza', key: 'site:graza' },
+      { kind: 'link', index: 0, url: 'https://bloom-mothers.de', key: 'link:https://bloom-mothers.de' },
+      { kind: 'pictures', count: 3, key: 'pictures' },
     ]);
     expect(choices).toEqual(['graza', 'client-link-1', 'client-screenshots']);
     expect(defaultReferences(choices)).toEqual({ A: 'graza', B: 'client-link-1' });
@@ -165,8 +165,68 @@ describe('defaults and the design prompt input', () => {
       url: 'https://www.bloom-mothers.de/',
       source: 'client_link',
       note: 'Spec written automatically.',
+      client_likes: ['Colours'],
+      client_notes: 'Ruhige Farben',
+      client_dislikes: null,
       spec: '# Bloom: reference spec',
     });
+  });
+
+  it('hands the other examples over with their likes, and the liked spec sections of a gallery site', () => {
+    const spec = ['# Graza', '## 1. Overview', 'Playful.', '## 5. Page layouts', 'Grid.', '## 8. Colour', 'Olive #4B5320.', '## 9. Typography', 'Serif.'].join('\n');
+    const context = {
+      client: { company: 'Bloom', contact: 'Nina', email: 'n@b.de', formLanguage: 'de' },
+      quote: { package: 'Gold', addons: [] },
+      sections: [
+        {
+          screen: 'design',
+          title: 'Design',
+          answers: [
+            { key: 'tone_scale', question: 'How should your site feel?', answer: 'Warm' },
+            { key: 'reference_likes', question: 'What do you like about the examples you chose?', answer: 'Graza: Colours' },
+            { key: 'favourite_examples', question: 'Your 2 proposals', answer: 'graza (gallery)' },
+          ],
+        },
+      ],
+      referenceSites: [
+        { slug: 'graza', name: 'Graza', url: 'https://www.graza.co/', spec, liked: ['Colours', 'Fonts'], dislikes: 'Too yellow' },
+        { slug: 'rivian', name: 'Rivian', url: 'https://rivian.com/', spec: '# Rivian', liked: ['Layout'], dislikes: '' },
+      ],
+      clientReferences: refs,
+      referenceShots: [],
+      examples: ['rivian', 'client-link-2', 'graza'],
+      files: [],
+      status: 'confirmed',
+      confirmedAt: null,
+    } as PromptContext;
+    const input = JSON.parse(
+      designPromptInput(context, 'A', { slug: 'rivian', name: 'Rivian', url: 'https://rivian.com/', spec: '# Rivian' }, '', { A: 'rivian', B: 'client-link-2' }),
+    );
+    expect(input.reference_website.client_likes).toEqual(['Layout']);
+    // The example answers travel in structured form only, not twice.
+    expect(input.answers[0].items.map((i: { question: string }) => i.question)).toEqual(['How should your site feel?']);
+    expect(input.other_examples).toEqual([
+      {
+        name: "The client's link: praxis-x.de/start",
+        url: 'praxis-x.de/start',
+        source: 'client_link',
+        client_likes: ['Photos', 'Layout'],
+        client_notes: 'Fotos',
+        client_dislikes: 'zu viel Text',
+        leads_other_proposal: true,
+        spec_excerpts: null,
+      },
+      {
+        name: 'Graza',
+        url: 'https://www.graza.co/',
+        source: 'gallery',
+        client_likes: ['Colours', 'Fonts'],
+        client_notes: null,
+        client_dislikes: 'Too yellow',
+        leads_other_proposal: false,
+        spec_excerpts: '## 8. Colour\nOlive #4B5320.\n\n## 9. Typography\nSerif.',
+      },
+    ]);
   });
 });
 

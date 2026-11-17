@@ -63,7 +63,11 @@ export interface FieldOption {
   retired?: boolean;
 }
 
-export type RepeaterSubType = 'text' | 'textarea' | 'url' | 'email' | 'tel' | 'number' | 'select';
+/**
+ * `ticks`: several of `options` as small tick buttons, stored as one comma-separated string
+ * ("layout,colours") so a row stays a flat record of strings.
+ */
+export type RepeaterSubType = 'text' | 'textarea' | 'url' | 'email' | 'tel' | 'number' | 'select' | 'ticks';
 
 export interface RepeaterSubField {
   key: string;
@@ -98,6 +102,13 @@ export interface ProposalExamplesRule {
   links: string;
   /** Their own pictures (an upload): all of them together count as one example. */
   pictures: string;
+  /**
+   * The field holding the client's favourites (example keys, see examples.ts), asked only when
+   * they chose more than `count`: the favourites come first, in the order picked.
+   */
+  favourites?: string;
+  /** What the client likes about each gallery pick (a `rows_from` repeater on `picks`). */
+  likes?: string;
 }
 
 /**
@@ -131,6 +142,11 @@ export interface FieldConfig {
   fields?: RepeaterSubField[];
   /** Form B's page list: the rows start as the menu of the website in the named answer (a URL). */
   site_menu?: string;
+  /**
+   * One row per value ticked in the named checkboxes field, in the order ticked; the first
+   * sub-field holds that value. Rows cannot be added or removed by hand. The gallery likes.
+   */
+  rows_from?: string;
   min_rows?: number;
   max_rows?: number;
   initial_rows?: number;
@@ -141,8 +157,11 @@ export interface FieldConfig {
   max_checked?: number;
   /** Option values that clear every other tick when chosen ("none of these"). */
   exclusive?: string[];
-  /** `cards`: each option is a card with a screenshot and a link (the reference-site picker). */
-  display?: 'cards';
+  /**
+   * `cards`: each option is a card with a screenshot and a link (the reference-site picker).
+   * `tiles`: each option is a large tile with its hint (the first step of the design examples).
+   */
+  display?: 'cards' | 'tiles';
   // upload
   accept?: string[];
   max_files?: number;
@@ -175,8 +194,9 @@ export interface FieldConfig {
   /** `heading` shows the field's own label and help text as a small section heading. */
   tone?: 'info' | 'warn' | 'heading';
   /**
-   * The design examples the two proposals are based on: this notice shows which example each
-   * proposal follows and requires exactly `count` of them across the three named fields.
+   * The design examples the two proposals are based on: this field shows which example each
+   * proposal follows, requires at least `count` of them across the named fields and, when there
+   * are more, stores the client's `count` favourites (its value: example keys).
    */
   proposal_examples?: ProposalExamplesRule;
   /** Leave out the "optional" marker: the field is one of several the client chooses between. */

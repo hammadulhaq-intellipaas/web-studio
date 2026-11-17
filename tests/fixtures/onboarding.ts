@@ -84,11 +84,14 @@ export function completeAnswers(): Answers {
     address_form: a('sie'),
     tone_scale: a(3),
     personality_scale: a(2),
-    // Two design examples, one per proposal: a gallery site and the client's own link.
-    reference_sites: a(['conductlaw']),
+    // Two design examples, one per proposal: the client's own link and a gallery site, each with
+    // what they like about it.
+    example_sources: a(['own', 'gallery']),
     references: a([
-      { _id: 'ref1', url: 'https://www.beispiel-physio.de', likes: 'Ruhige Farben, große Fotos der Praxisräume', dislikes: '' },
+      { _id: 'ref1', url: 'https://www.beispiel-physio.de', liked: 'colours,photos', likes: 'Ruhige Farben, große Fotos der Praxisräume', dislikes: '' },
     ]),
+    reference_sites: a(['conductlaw']),
+    reference_likes: a([{ _id: 'like1', site: 'conductlaw', liked: 'layout,feel', dislikes: '' }]),
     avoid: a('Keine Stockfotos von lächelnden Models.'),
     brand_guidelines: a('no'),
     brand_colours: a('#2A7F62, #F4F1EA'),

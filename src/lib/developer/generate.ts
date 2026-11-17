@@ -371,7 +371,7 @@ export async function generateDesignProposals(
       if (!source) return null;
       const row = source.key && specsReady ? await latestSpec(source.key) : null;
       const note = !row
-        ? 'No spec could be made for this reference. Follow what the client says about it in other_references.'
+        ? 'No spec could be made for this reference. Follow what the client says about it (client_likes, client_notes, client_dislikes).'
         : source.kind === 'link'
           ? 'Spec written automatically from a quick read of the website: exact measurements, fewer pages than a library spec.'
           : "Spec written from the client's pictures only.";
@@ -393,7 +393,7 @@ export async function generateDesignProposals(
     const drafts = await Promise.all(
       PROPOSALS.map(async (proposal) => {
         const reference = await resolve(references[proposal]);
-        const prompt = designPromptInput(context, proposal, reference, project.internal_notes);
+        const prompt = designPromptInput(context, proposal, reference, project.internal_notes, references);
         const content = await runModel({
           formId: onboarding.id,
           job: 'dev_design',

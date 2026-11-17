@@ -5,7 +5,7 @@ import {
   DONT_KNOW_VALUE,
   HARD_MAX_ROWS,
 } from './limits';
-import { chosenExamples } from './examples';
+import { chosenExamples, favouriteKeys, rowsFromPicks, tickValues } from './examples';
 import type {
   Answer,
   Answers,
@@ -223,7 +223,8 @@ export type ErrorCode =
   | 'rows_min'
   | 'rows_max'
   | 'examples_min'
-  | 'examples_max';
+  | 'examples_max'
+  | 'favourites';
 
 export interface FieldError {
   field: string;
@@ -294,10 +295,12 @@ function checkText(
   return null;
 }
 
-function validateRepeater(field: OnbField, answer: Answer | undefined, required: boolean): FieldError[] {
+function validateRepeater(field: OnbField, answer: Answer | undefined, required: boolean, answers: Answers): FieldError[] {
   const errors: FieldError[] = [];
   const subs = field.config.fields ?? [];
-  const rows = rowsOf(answer).filter((r) => !rowIsBlank(r));
+  // Rows that follow a pick list (the gallery likes) are the picks, whatever is stored.
+  const stored = field.config.rows_from ? rowsFromPicks(field, rowsOf(answer), answers) : rowsOf(answer);
+  const rows = stored.filter((r) => !rowIsBlank(r));
   const minRows = required ? Math.max(1, field.config.min_rows ?? 1) : 0;
   const maxRows = Math.min(field.config.max_rows ?? HARD_MAX_ROWS, HARD_MAX_ROWS);
   if (rows.length < minRows) {
@@ -316,6 +319,13 @@ function validateRepeater(field: OnbField, answer: Answer | undefined, required:
       if (sub.type === 'select') {
         if (!(sub.options ?? []).some((o) => o.value === text))
           errors.push({ field: field.id, code: 'invalid_option', row_id: row._id, sub: sub.key });
+      } else if (sub.type === 'ticks') {
+        const ticked = tickValues(text);
+        if (!ticked.length) {
+          if (sub.required) errors.push({ field: field.id, code: 'required', row_id: row._id, sub: sub.key });
+        } else if (ticked.some((x) => !(sub.options ?? []).some((o) => o.value === x))) {
+          errors.push({ field: field.id, code: 'invalid_option', row_id: row._id, sub: sub.key });
+        }
       } else if (sub.type === 'number') {
         if (!Number.isFinite(Number(text))) errors.push({ field: field.id, code: 'invalid_number', row_id: row._id, sub: sub.key });
       } else {
@@ -369,15 +379,20 @@ export function hasNoneOption(field: OnbField): boolean {
 export function validateField(field: OnbField, ctx: ValidationContext, locale: Locale = 'de'): FieldError[] {
   const answer = ctx.answers[field.id];
   const required = isRequiredNow(field, ctx);
-  if (field.type === 'notice') {
-    // The design examples: exactly `count` across gallery ticks, own links and own pictures.
-    const rule = field.config.proposal_examples;
-    if (!rule) return [];
+  // The design examples: at least `count` across gallery ticks, own links and own pictures, and
+  // with more than that, the client's `count` favourites. A notice without a rule has no answer.
+  const rule = field.config.proposal_examples;
+  if (rule) {
     const n = chosenExamples(rule, ctx.answers, ctx.files).length;
     if (n < rule.count) return [{ field: field.id, code: 'examples_min', params: { n, count: rule.count, left: rule.count - n } }];
-    if (n > rule.count) return [{ field: field.id, code: 'examples_max', params: { n, count: rule.count } }];
+    // An older definition without favourites keeps its old rule: exactly `count`.
+    if (n > rule.count && !rule.favourites) return [{ field: field.id, code: 'examples_max', params: { n, count: rule.count } }];
+    if (n > rule.count && favouriteKeys(rule, ctx.answers, ctx.files).length < rule.count) {
+      return [{ field: field.id, code: 'favourites', params: { n, count: rule.count } }];
+    }
     return [];
   }
+  if (field.type === 'notice') return [];
   if (answer?.dk) return field.allow_dont_know ? [] : [{ field: field.id, code: 'invalid_option' }];
   // "We don't have one" is a complete answer and carries no value of its own, so it has to
   // short-circuit the type checks below — otherwise a required field can never be satisfied.
@@ -386,7 +401,7 @@ export function validateField(field: OnbField, ctx: ValidationContext, locale: L
   if (field.type === 'upload') {
     return required && !(ctx.files[field.id] > 0) ? [{ field: field.id, code: 'required' }] : [];
   }
-  if (field.type === 'repeater') return validateRepeater(field, answer, required);
+  if (field.type === 'repeater') return validateRepeater(field, answer, required, ctx.answers);
   if (field.type === 'ranking') return validateRanking(field, answer, required, locale);
   if (field.type === 'multiselect') {
     const entries = entriesOf(answer);

@@ -11,12 +11,12 @@ const root = join(__dirname, '..');
 const picker = fields.find((f) => f.id === 'reference_sites')!;
 
 describe('reference-site picker', () => {
-  it('is a card multi-select on the design screen, just before "other websites"', () => {
+  it('is a card multi-select on the design screen, right after the client\'s own websites', () => {
     expect(picker.type).toBe('checkboxes');
     expect(picker.config.display).toBe('cards');
     expect(picker.screen_id).toBe('design');
     const order = fields.map((f) => f.id);
-    expect(order.indexOf('reference_sites') + 1).toBe(order.indexOf('references'));
+    expect(order.indexOf('references') + 1).toBe(order.indexOf('reference_sites'));
   });
 
   it('every site has a layout spec, a screenshot, a link and a group', () => {
@@ -31,11 +31,11 @@ describe('reference-site picker', () => {
     }
   });
 
-  it('is never required on its own: the examples summary asks for two across the three questions', () => {
+  it('is asked for only when the client chose "Show me examples", and then wants at least one tick', () => {
+    expect(picker.show_when).toEqual([{ key: 'example_sources', values: ['gallery'] }]);
     const ctx = (answers: Answers) => ({ answers, files: {}, fields });
-    const other = fields.find((f) => f.id === 'references')!;
-    expect(isRequiredNow(picker, ctx({}))).toBe(false);
-    expect(isRequiredNow(other, ctx({}))).toBe(false);
+    expect(isRequiredNow(picker, ctx({ example_sources: { v: ['gallery'] } }))).toBe(true);
+    expect(picker.config.min_checked).toBe(1);
   });
 
   it('loads each site\'s layout spec, and nothing outside the specs folder', async () => {

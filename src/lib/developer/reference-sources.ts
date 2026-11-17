@@ -1,6 +1,6 @@
 /**
  * The client's own references, next to our library of 11 reference websites: the links they gave
- * in the form ("references", up to 3) and the pictures they uploaded ("reference_screenshots").
+ * in the form ("references") and the pictures they uploaded ("reference_screenshots").
  * When a proposal follows one of them, a reference spec is written on the spot, in the same 13
  * sections as the library specs (docs/reference-specs), and goes into the design prompt.
  *
@@ -8,9 +8,12 @@
  */
 import type { ChosenExample } from '@/lib/onboarding/examples';
 
-/** One link from the form's "Reference websites" question. */
+/** One link from the form's "Websites you like" question. */
 export interface ClientReference {
   url: string;
+  /** What they ticked that they like about it (English labels: "Layout", "Colours" …). */
+  liked: string[];
+  /** What they wrote about it ("Anything in particular?"). */
   likes: string;
   dislikes: string;
 }
@@ -242,6 +245,25 @@ export function missingSpecSections(md: string): string[] {
   return SPEC_SECTIONS.map((title, i) => ({ title, n: i + 1 }))
     .filter(({ n }) => !new RegExp(`^##\\s+${n}\\.\\s`, 'm').test(md))
     .map(({ title, n }) => `${n}. ${title}`);
+}
+
+/**
+ * The spec sections that hold what a client liked about a website, for mixing: its colours, fonts
+ * or photos can lend themselves to a proposal led by another website. Layout is never borrowed.
+ */
+export const LIKED_SPEC_SECTIONS: Record<string, number[]> = { Colours: [8], Fonts: [9], Photos: [10], 'Overall feel': [1] };
+
+/** The numbered sections of a spec ("## 8. Colour" up to the next "## "), word for word, in spec order. */
+export function specSections(md: string, numbers: number[]): string {
+  const wanted = new Set(numbers);
+  const parts = md.replace(/\r/g, '').split(/^(?=## \d+\.\s)/m);
+  return parts
+    .filter((part) => {
+      const m = /^## (\d+)\.\s/.exec(part);
+      return !!m && wanted.has(Number(m[1]));
+    })
+    .map((part) => part.trim())
+    .join('\n\n');
 }
 
 /** Asks for one rewrite when sections are missing. */

@@ -575,7 +575,8 @@
       "date_weekend": "Please pick a weekday; Saturdays and Sundays are not available.",
       "date_past": "This date has now passed. Please choose {min} or later.",
       "examples_min": "Please choose {left, plural, one {one more example} other {# more examples}}. We need {count} in total, one for each proposal.",
-      "examples_max": "You have chosen {n} examples. Please keep {count}, one for each proposal, and remove the rest."
+      "examples_max": "You have chosen {n} examples. Please keep {count}, one for each proposal, and remove the rest.",
+      "favourites": "You chose {n} examples. Please click your {count} favourites above, one for each proposal."
     },
     "date": {
       "placeholder": "Pick a date",
@@ -614,13 +615,15 @@
         "notChosen": "Not chosen yet",
         "link": "Your website {site}",
         "pictures": "Your pictures ({n})",
-        "full": "You have chosen {count} examples. Remove one to choose another."
+        "full": "You have chosen {count} examples. Remove one to choose another.",
+        "favouritesTitle": "Which {count} do you like most?",
+        "favouritesHelp": "You chose {n} examples. Click your {count} favourites: the first becomes Proposal 1, the second Proposal 2. We still look at all of them."
       },
       "gallery": {
         "open": "Open the gallery of example websites",
         "viewLayouts": "View layouts",
         "title": "Example websites",
-        "intro": "Click a website to see its pages on a laptop and a phone. Tick the ones you like: each one you choose becomes the starting point for one of your 2 proposals.",
+        "intro": "Click a website to see its pages on a laptop and a phone. Tick as many as you like. If you choose more than two, you pick your two favourites at the end.",
         "back": "Back to the form",
         "all": "All examples",
         "choose": "Choose as an example",

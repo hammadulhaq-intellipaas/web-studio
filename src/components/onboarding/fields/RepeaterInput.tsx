@@ -7,7 +7,8 @@ import { HARD_MAX_ROWS } from '@/lib/onboarding/limits';
 import type { OnbField, RepeaterRow, RepeaterSubField } from '@/lib/onboarding/types';
 import { loc } from '@/lib/onboarding/types';
 import { BLUE, BORDER, MUTED } from '@/components/funnel/ui';
-import { errorStyle, inputStyle, labelStyle, subtleButton } from './styles';
+import { tickValues } from '@/lib/onboarding/examples';
+import { DANGER, errorStyle, inputStyle, labelStyle, subtleButton } from './styles';
 
 export function newRowId(): string {
   return Math.random().toString(36).slice(2, 10);
@@ -19,7 +20,7 @@ export function initialRows(field: OnbField): RepeaterRow[] {
   return Array.from({ length: n }, () => ({ _id: newRowId() }));
 }
 
-function SubInput({
+export function SubInput({
   sub,
   locale,
   value,
@@ -36,6 +37,46 @@ function SubInput({
 }) {
   const t = useTranslations('onboarding.fields');
   const placeholder = loc(sub as unknown as Record<string, unknown>, 'placeholder', locale) || undefined;
+  if (sub.type === 'ticks') {
+    // Several options as tick buttons, stored in the options' order as "layout,colours".
+    const ticked = tickValues(value);
+    const toggle = (v: string) => {
+      const next = ticked.includes(v) ? ticked.filter((x) => x !== v) : [...ticked, v];
+      onChange((sub.options ?? []).map((o) => o.value).filter((x) => next.includes(x)).join(','));
+    };
+    return (
+      <div role="group" data-testid={testId} style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        {(sub.options ?? []).map((o) => {
+          const on = ticked.includes(o.value);
+          return (
+            <button
+              key={o.value}
+              type="button"
+              role="checkbox"
+              aria-checked={on}
+              data-testid={`${testId}-${o.value}`}
+              onClick={() => toggle(o.value)}
+              className={on ? undefined : 'hov-blue-border'}
+              style={{
+                fontFamily: 'inherit',
+                cursor: 'pointer',
+                fontSize: 13.5,
+                fontWeight: 600,
+                padding: '8px 13px',
+                borderRadius: 10,
+                border: `1.5px solid ${on ? BLUE : invalid ? DANGER : BORDER}`,
+                background: on ? '#EEF3FF' : '#ffffff',
+                color: on ? BLUE : '#33405A',
+              }}
+            >
+              {on ? '✓ ' : ''}
+              {loc(o as unknown as Record<string, unknown>, 'label', locale)}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
   if (sub.type === 'select') {
     return (
       <select data-testid={testId} value={value} onChange={(ev) => onChange(ev.target.value)} style={inputStyle(invalid)}>
@@ -99,7 +140,7 @@ export function RepeaterInput({
   const maxRows = Math.min(field.config.max_rows ?? HARD_MAX_ROWS, HARD_MAX_ROWS);
   const minRows = Math.max(1, field.config.min_rows ?? 1);
   const addLabel = (locale === 'de' ? field.config.add_label_de : field.config.add_label_en) || t('addRow');
-  const wide = subs.some((s) => s.type === 'textarea');
+  const wide = subs.some((s) => s.type === 'textarea' || s.type === 'ticks');
 
   const update = (rowId: string, key: string, value: string) =>
     onChange(rows.map((r) => (r._id === rowId ? { ...r, [key]: value } : r)));

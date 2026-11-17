@@ -1,4 +1,5 @@
 import type { PromptContext } from './context';
+import { CLIENT_SHOTS, clientLinkIndex, domainOf, LIKED_SPEC_SECTIONS, specSections } from './reference-sources';
 
 export type Proposal = 'A' | 'B';
 export const PROPOSALS: Proposal[] = ['A', 'B'];
@@ -29,17 +30,54 @@ export interface ReferenceForPrompt {
   note?: string | null;
 }
 
+/** Answers the design prompt gets in structured form (reference_website, other_examples), not as text. */
+const EXAMPLE_KEYS = new Set(['references', 'reference_sites', 'reference_likes', 'favourite_examples', 'example_sources']);
+
+/** One of the client's design examples, by its Design tab choice value, with what they like about it. */
+function exampleFacts(context: PromptContext, value: string) {
+  const site = context.referenceSites.find((r) => r.slug === value);
+  if (site) return { name: site.name, url: site.url, source: 'gallery' as const, liked: site.liked, notes: '', dislikes: site.dislikes, spec: site.spec };
+  const index = clientLinkIndex(value);
+  const link = index === null ? undefined : context.clientReferences[index];
+  if (link) return { name: `The client's link: ${domainOf(link.url)}`, url: link.url, source: 'client_link' as const, liked: link.liked, notes: link.likes, dislikes: link.dislikes, spec: null };
+  if (value === CLIENT_SHOTS) return { name: "The client's pictures", url: null, source: 'client_pictures' as const, liked: [], notes: '', dislikes: '', spec: null };
+  return null;
+}
+
 /**
  * The model's input for one design proposal: the client context as JSON, with the chosen
- * reference website's spec and the client's own references pulled out on their own.
+ * reference website's spec and what the client likes about it, and the client's other design
+ * examples, each with its likes and, for a gallery website, the spec sections of the parts they
+ * like (its colours, fonts or photos may lend themselves to this proposal).
  */
 export function designPromptInput(
   context: PromptContext,
   proposal: Proposal,
   reference: ReferenceForPrompt | null,
   internalNotes: string,
+  leads: Record<Proposal, string | null> = { A: null, B: null },
 ): string {
-  const own = context.sections.flatMap((s) => s.answers).find((a) => a.key === 'references');
+  const facts = reference ? exampleFacts(context, reference.slug) : null;
+  const others = context.examples
+    .filter((value) => value !== reference?.slug)
+    .map((value) => {
+      const f = exampleFacts(context, value);
+      if (!f) return null;
+      const sections = [...new Set(f.liked.flatMap((label) => LIKED_SPEC_SECTIONS[label] ?? []))].sort((a, b) => a - b);
+      const excerpt = f.spec && sections.length ? specSections(f.spec, sections) : '';
+      const leadsOther = PROPOSALS.find((p) => p !== proposal && leads[p] === value);
+      return {
+        name: f.name,
+        url: f.url,
+        source: f.source,
+        client_likes: f.liked,
+        client_notes: f.notes || null,
+        client_dislikes: f.dislikes || null,
+        leads_other_proposal: !!leadsOther,
+        spec_excerpts: excerpt || null,
+      };
+    })
+    .filter(Boolean);
   return JSON.stringify(
     {
       proposal: proposalNumber(proposal),
@@ -47,7 +85,7 @@ export function designPromptInput(
       quote: context.quote,
       answers: context.sections.map((s) => ({
         section: s.title,
-        items: s.answers.filter((a) => a.key !== 'references').map((a) => ({ question: a.question, answer: a.answer })),
+        items: s.answers.filter((a) => !EXAMPLE_KEYS.has(a.key)).map((a) => ({ question: a.question, answer: a.answer })),
       })),
       reference_website: reference
         ? {
@@ -55,10 +93,13 @@ export function designPromptInput(
             url: reference.url,
             ...(reference.source ? { source: reference.source } : {}),
             ...(reference.note ? { note: reference.note } : {}),
+            client_likes: facts?.liked ?? [],
+            client_notes: facts?.notes || null,
+            client_dislikes: facts?.dislikes || null,
             spec: reference.spec,
           }
         : null,
-      other_references: own?.answer ?? null,
+      other_examples: others,
       uploaded_files: context.files,
       internal_notes: internalNotes.trim() || null,
     },

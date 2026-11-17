@@ -56,7 +56,7 @@ describe('exportRecord', () => {
     expect(out.answers.tone_scale.value).toEqual({ value: 3, label: 'Friendly but professional', label_de: 'Freundlich, aber professionell' });
     expect(out.answers.tone_scale.display.de).toBe('Freundlich, aber professionell');
     expect(out.answers.references.value).toEqual([
-      { id: 'ref1', url: 'https://www.beispiel-physio.de', likes: 'Ruhige Farben, große Fotos der Praxisräume', dislikes: '' },
+      { id: 'ref1', url: 'https://www.beispiel-physio.de', liked: 'colours,photos', likes: 'Ruhige Farben, große Fotos der Praxisräume', dislikes: '' },
     ]);
     expect(out.answers.existing_url).toBeUndefined(); // hidden
     expect(out.answers.notice_bfsg).toBeUndefined(); // notices never export

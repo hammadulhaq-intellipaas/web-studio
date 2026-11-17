@@ -59,13 +59,15 @@ test.describe('onboarding form', () => {
     await page.click('[data-testid=opt-booked_page_band-58]');
 
     await expect(page.locator('[data-field=existing_url]')).toHaveCount(0);
-    await page.click('[data-testid=opt-project_type-changes]');
+    await page.click('[data-testid=opt-project_type-redesign]');
     await page.fill('[data-testid=f-existing_url]', 'www.physio-nordend.de');
     await page.click('[data-testid=opt-project_type-new]');
     await expect(page.locator('[data-field=existing_url]')).toHaveCount(0);
-    await page.click('[data-testid=opt-project_type-changes]');
+    await page.click('[data-testid=opt-project_type-redesign]');
     await expect(page.locator('[data-testid=f-existing_url]')).toHaveValue('www.physio-nordend.de');
     await expect(page.locator('[data-testid=onb-notice-restored]')).toBeVisible();
+    // The rest of this walk is Form A, the full form for a brand new site.
+    await page.click('[data-testid=opt-project_type-new]');
     await next(page, 'business');
 
     // ---- Screen 2 · Business: nationwide hides the regions question; "I don't know" asks when they will
@@ -100,6 +102,7 @@ test.describe('onboarding form', () => {
     await next(page, 'design');
 
     // ---- Screen 4 · Look and sound: sliders carry captions, references need likes, colour mood caps at two
+    await page.click('[data-testid=opt-address_form-sie]');
     await page.fill('[data-testid=f-business_one_liner]', 'Wir behandeln Rückenschmerzen und Sportverletzungen, mit Terminen innerhalb einer Woche.');
     await page.fill('[data-testid=f-target_audience]', 'Berufstätige zwischen 30 und 60, die seit Monaten Schmerzen haben.');
     await page.fill('[data-testid=f-ideal_customer]', 'Büroangestellte mit Rückenschmerzen, die eine feste Behandlungsserie buchen.');
@@ -124,16 +127,24 @@ test.describe('onboarding form', () => {
     await expect(page.locator('[data-testid=slider-caption-tone_scale]')).toContainText('Zwischen „Professionell und zurückhaltend“ und „Formell und seriös“');
     await page.fill('[data-testid=f-tone_note]', 'Seriös, aber nicht kühl.');
     await page.click('[data-testid=opt-personality_scale-2]');
+    // The examples wizard: the tiles first, then only what the client chose.
+    await expect(page.locator('[data-field=references]')).toHaveCount(0);
+    await expect(page.locator('[data-field=reference_sites]')).toHaveCount(0);
+    await page.click('[data-testid=opt-example_sources-own]');
     await page.fill('[data-testid=f-references-0-url]', 'https://www.beispiel-physio.de');
     await page.click('[data-testid=opt-brand_guidelines-no]');
     await page.click('[data-testid=onb-next]');
     await expect(page.locator('[data-testid=onb-fix-errors]')).toBeVisible(); // likes missing
+    await page.click('[data-testid=f-references-0-liked-colours]');
+    await page.click('[data-testid=f-references-0-liked-photos]');
     await page.fill('[data-testid=f-references-0-likes]', 'Ruhige Farben, große Fotos der Praxisräume');
     // Two design examples, one per proposal: their own link so far, then one site from our gallery.
     await expect(page.getByTestId('proposal-example-1')).toContainText('beispiel-physio.de');
     await expect(page.getByTestId('proposal-example-2')).toContainText('Noch nicht gewählt');
-    await expect(page.getByTestId('err-design_examples_summary')).toContainText('noch ein Beispiel');
+    await expect(page.getByTestId('err-favourite_examples')).toContainText('noch ein Beispiel');
+    await page.click('[data-testid=opt-example_sources-gallery]');
     await page.click('[data-testid=opt-reference_sites-conductlaw]');
+    await page.click('[data-testid=f-reference_likes-conductlaw-liked-layout]');
     await expect(page.getByTestId('proposal-example-1')).toContainText('ConductLaw');
     await expect(page.getByTestId('proposal-example-2')).toContainText('beispiel-physio.de');
     await page.click('[data-testid=none-avoid]');
@@ -195,9 +206,8 @@ test.describe('onboarding form', () => {
     await page.selectOption('[data-testid=f-accounts_table-0-account]', 'domain');
     await page.fill('[data-testid=f-accounts_table-0-provider]', 'IONOS');
     await page.fill('[data-testid=f-accounts_table-0-holder]', 'Lena Hartmann');
-    // This walk picked "changes to my existing site", so the domain question is not asked:
-    // screen 1 already took that address.
-    await expect(page.locator('[data-field=domain]')).toHaveCount(0);
+    // A brand new site: the domain question is asked (optional).
+    await expect(page.locator('[data-field=domain]')).toBeVisible();
     await page.fill('[data-testid=f-site_manager]', 'Lena Hartmann, Passwort: geheim123');
     // The redaction notice is transient (it clears itself after a few seconds), so it is
     // asserted on the save that strips the password, not after the rest of the screen.
@@ -215,10 +225,14 @@ test.describe('onboarding form', () => {
     await next(page, 'timing');
 
     // ---- Screen 9 · Timing
-    // Four weeks out and never a weekend: today and the next few weeks are not clickable.
-    const soon = new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
+    // Four weeks out and never a weekend: the calendar opens on the first month a launch is
+    // allowed, and the day before the earliest date is not clickable (when it is in that month).
+    const earliest = new Date(Date.now() + 28 * 86_400_000);
+    const dayBefore = new Date(earliest.getTime() - 86_400_000);
     await page.click('[data-testid=f-launch_date]');
-    await expect(page.locator(`[data-testid=cal-day-${soon}]`)).toBeDisabled();
+    if (dayBefore.getUTCMonth() === earliest.getUTCMonth()) {
+      await expect(page.locator(`[data-testid=cal-day-${dayBefore.toISOString().slice(0, 10)}]`)).toBeDisabled();
+    }
     await page.click('[data-testid=f-launch_date]');
     await pickDate(page, 'launch_date', '2027-03-01');
     await pickDate(page, 'content_ready_date', '2027-01-15');
@@ -236,6 +250,7 @@ test.describe('onboarding form', () => {
     await expect(other.locator('[data-screen=onb-review-ready]')).toBeVisible();
     await other.click('[data-testid=step-design]');
     await expect(other.locator('[data-testid=f-references-0-likes]')).toHaveValue('Ruhige Farben, große Fotos der Praxisräume');
+    await expect(other.locator('[data-testid=f-references-0-liked-colours]')).toHaveAttribute('aria-checked', 'true');
     await expect(other.locator('[data-testid=slider-caption-tone_scale]')).toContainText('Professionell und zurückhaltend');
     await fresh.close();
 

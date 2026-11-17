@@ -4,14 +4,15 @@ import { useId } from 'react';
 import type { Locale } from '@/lib/types';
 import type { FieldError } from '@/lib/onboarding/logic';
 import { entriesOf, linesOf, rowsOf, textOf } from '@/lib/onboarding/logic';
-import { chosenExamples, examplesRule } from '@/lib/onboarding/examples';
 import type { Answer, Answers, OnbField, OnboardingDefinition, RepeaterRow } from '@/lib/onboarding/types';
 import { AiAssist } from './AiAssist';
+import { ChoiceTiles } from './ChoiceTiles';
 import { CheckboxPills, RadioPills, SelectInput, TextAreaInput, TextInput } from './BasicInputs';
 import { DateInput } from './DateInput';
 import { FieldShell } from './FieldShell';
 import { PageCounter } from './PageCounter';
 import { PageSelect } from './PageSelect';
+import { PickedSiteLikes } from './PickedSiteLikes';
 import { Notice } from './Notice';
 import { ProposalExamples } from './ProposalExamples';
 import { RankingInput } from './RankingInput';
@@ -42,17 +43,25 @@ export function FieldRenderer(props: FieldRendererProps) {
   const { field, answer, answers, errors, required, locale, definition, formId, files, onChange, onFiles, disabled } = props;
   const inputId = useId();
 
-  // What each upload field holds, for the design examples (all pictures count as one).
-  const fileCounts: Record<string, number> = {};
-  for (const f of files) if (f.field_key) fileCounts[f.field_key] = (fileCounts[f.field_key] ?? 0) + 1;
-  const examples = examplesRule(definition.fields);
-
-  if (field.type === 'notice') {
-    if (field.config.proposal_examples) {
-      return <ProposalExamples field={field} fields={definition.fields} answers={answers} fileCounts={fileCounts} errors={errors} locale={locale} />;
-    }
-    return <Notice field={field} texts={definition.texts} locale={locale} />;
+  // The design examples: which one each proposal follows and, with more than two, the favourites.
+  if (field.config.proposal_examples) {
+    // What each upload field holds (all pictures count as one example).
+    const fileCounts: Record<string, number> = {};
+    for (const f of files) if (f.field_key) fileCounts[f.field_key] = (fileCounts[f.field_key] ?? 0) + 1;
+    return (
+      <ProposalExamples
+        field={field}
+        fields={definition.fields}
+        answers={answers}
+        fileCounts={fileCounts}
+        errors={errors}
+        locale={locale}
+        disabled={disabled}
+        onChange={(v) => onChange(v ? { ...answer, v } : null)}
+      />
+    );
   }
+  if (field.type === 'notice') return <Notice field={field} texts={definition.texts} locale={locale} />;
 
   const invalid = errors.length > 0;
   const dk = !!answer?.dk;
@@ -120,8 +129,7 @@ export function FieldRenderer(props: FieldRendererProps) {
         );
       case 'checkboxes':
         if (field.config.display === 'cards') {
-          // Without an examples rule (an older form definition) there is no limit and no counter.
-          const chosen = examples ? chosenExamples(examples.rule, answers, fileCounts).length : 0;
+          // As many as the client likes: their favourites decide the two proposals.
           return (
             <ReferenceCards
               field={field}
@@ -129,10 +137,21 @@ export function FieldRenderer(props: FieldRendererProps) {
               invalid={invalid}
               value={Array.isArray(answer?.v) && typeof answer.v[0] !== 'object' ? (answer.v as string[]) : []}
               onChange={(v) => (v.length ? set(v) : onChange(null))}
-              room={examples ? examples.rule.count - chosen : field.options.length}
-              count={examples?.rule.count ?? null}
-              chosenTotal={chosen}
+              room={field.options.length}
+              count={null}
+              chosenTotal={0}
               disabled={!!disabled}
+            />
+          );
+        }
+        if (field.config.display === 'tiles') {
+          return (
+            <ChoiceTiles
+              field={field}
+              locale={locale}
+              invalid={invalid}
+              value={Array.isArray(answer?.v) && typeof answer.v[0] !== 'object' ? (answer.v as string[]) : []}
+              onChange={(v) => (v.length ? set(v) : onChange(null))}
             />
           );
         }
@@ -158,6 +177,20 @@ export function FieldRenderer(props: FieldRendererProps) {
           />
         );
       case 'repeater': {
+        if (field.config.rows_from) {
+          return (
+            <PickedSiteLikes
+              field={field}
+              source={definition.fields.find((f) => f.id === field.config.rows_from)}
+              locale={locale}
+              stored={rowsOf(answer)}
+              answers={answers}
+              errors={errors}
+              disabled={disabled}
+              onChange={(rows) => (rows.length ? set(rows) : onChange(null))}
+            />
+          );
+        }
         const rows: RepeaterRow[] = rowsOf(answer).length ? rowsOf(answer) : initialRows(field);
         if (field.config.site_menu) {
           const site = answers[field.config.site_menu]?.v;

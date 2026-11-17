@@ -181,16 +181,16 @@ describe('validateField', () => {
 
   it('validates repeater rows and their sub-fields', () => {
     const f = field('references');
-    // One of the three design-example questions: empty is fine on its own, the examples summary counts.
-    expect(validateField(f, ctx({ references: a([]) }))).toEqual([]);
-    const missingLikes = ctx({ references: a([{ _id: 'r1', url: 'https://x.de', likes: '' }]) });
-    expect(validateField(f, missingLikes)).toEqual([{ field: 'references', code: 'required', row_id: 'r1', sub: 'likes' }]);
-    const badUrl = ctx({ references: a([{ _id: 'r1', url: 'nope', likes: 'Schöne Farben überall' }]) });
+    // Shown once the client chose "I have websites I like": then at least one link, each with a tick.
+    expect(validateField(f, ctx({ references: a([]) }))).toEqual([{ field: 'references', code: 'required' }]);
+    const missingLikes = ctx({ references: a([{ _id: 'r1', url: 'https://x.de', likes: 'Die Farben' }]) });
+    expect(validateField(f, missingLikes)).toEqual([{ field: 'references', code: 'required', row_id: 'r1', sub: 'liked' }]);
+    const badUrl = ctx({ references: a([{ _id: 'r1', url: 'nope', liked: 'colours' }]) });
     expect(validateField(f, badUrl)[0]).toMatchObject({ code: 'invalid_url', row_id: 'r1', sub: 'url' });
     const tooMany = ctx({
-      references: a([1, 2, 3, 4].map((i) => ({ _id: `r${i}`, url: 'https://x.de', likes: 'Schöne Farben überall' }))),
+      references: a([1, 2, 3, 4, 5, 6].map((i) => ({ _id: `r${i}`, url: 'https://x.de', liked: 'colours' }))),
     });
-    expect(validateField(f, tooMany)[0]).toMatchObject({ code: 'rows_max', params: { max: 2 } });
+    expect(validateField(f, tooMany)[0]).toMatchObject({ code: 'rows_max', params: { max: 5 } });
     const badEmail = ctx({ notification_routing: a([{ _id: 'n1', type: 'Anfrage', address: 'not-an-email' }]) });
     expect(validateField(field('notification_routing'), badEmail)[0]).toMatchObject({ code: 'invalid_email', sub: 'address' });
   });
@@ -250,13 +250,13 @@ describe('computeGaps', () => {
       ...completeAnswers(),
       booked_package: dk(),
       page_list: a('Startseite\nKontakt'),
-      references: a([{ _id: 'r1', url: 'https://x.de', likes: 'schön', dislikes: '' }]),
+      competitors: a([{ _id: 'c1', url: 'https://x.de', differently: 'billiger' }]),
       assets_folder: a(''),
     };
     const gaps = computeGaps(def, answers, {});
     expect(gaps).toContainEqual({ field: 'booked_package', kind: 'dont_know' });
     expect(gaps).toContainEqual({ field: 'page_list', kind: 'thin' });
-    expect(gaps).toContainEqual({ field: 'references', kind: 'thin', row_id: 'r1', sub: 'likes' });
+    expect(gaps).toContainEqual({ field: 'competitors', kind: 'thin', row_id: 'c1', sub: 'differently' });
     expect(gaps).toContainEqual({ field: 'assets_folder', kind: 'empty' });
     expect(gaps.some((g) => g.field === 'existing_url')).toBe(false);
   });
