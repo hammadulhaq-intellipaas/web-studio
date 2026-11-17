@@ -129,8 +129,12 @@ export function revisionPromptInput(input: {
   );
 }
 
-/** The client's page list from the form: one page per line, sub-pages start with a dash. */
+/**
+ * The client's page list from the form: one page per line, sub-pages start with a dash. Form B
+ * (a client with a website) has it ready: the old site's pages kept, then the new ones.
+ */
 export function clientPageList(context: PromptContext): string[] {
+  if (context.pages?.length) return context.pages;
   const answer = context.sections.flatMap((s) => s.answers).find((a) => a.key === 'page_list')?.answer ?? '';
   return answer.split('\n').map((l) => l.trimEnd()).filter((l) => l.trim());
 }

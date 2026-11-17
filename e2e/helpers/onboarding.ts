@@ -33,6 +33,7 @@ export function completeAnswers(email: string): Record<string, { v: unknown; dk?
     ]),
     proof_to_show: a(['reviews', 'certifications']),
     factual_claims: a('Zertifikate: Manuelle Therapie seit 2015, bestätigt von Lena'),
+    address_form: a('sie'),
     tone_scale: a(3),
     personality_scale: a(2),
     // Two design examples, one per proposal: a gallery site and the client's own link.

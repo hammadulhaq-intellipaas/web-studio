@@ -29,7 +29,7 @@ describe('prefillFromLead', () => {
 
   it('maps all four "do you have a site" answers onto the two project types', () => {
     const type = (hasSite: string) => prefillFromLead(lead({ config: { bundle: 'gold', answers: { hasSite } } })).project_type?.v;
-    expect(type('website')).toBe('changes');
+    expect(type('website')).toBe('redesign');
     expect(type('none')).toBe('new');
     expect(type('social')).toBe('new');
     expect(type('concept')).toBe('new');
@@ -57,6 +57,8 @@ describe('prefillFromLead', () => {
   it('copies the intake answers that are the same question', () => {
     const out = prefillFromLead(
       lead({
+        // No website: Form A asks every one of these questions.
+        config: { bundle: 'gold', answers: { pages: '58', hasSite: 'none' } },
         stage2: {
           fields: {
             rechtsform: 'e.K.',
@@ -79,6 +81,15 @@ describe('prefillFromLead', () => {
     expect(out.reviews?.v).toBe('4,9 auf Google');
     expect(out.catalogue?.v).toBe('Krankengymnastik\nManuelle Therapie');
     expect(out.business_one_liner?.v).toBe('Wir behandeln Rückenschmerzen.');
+  });
+
+  it('leaves out of Form B what only Form A asks; the old website answers those', () => {
+    const intake = { rechtsform: 'e.K.', oeffnung: 'Mo bis Fr', usps: 'Schnell', leistungen: 'Massage', einsatz: 'Physio', socialp: 'instagram.com/x' };
+    const out = prefillFromLead(lead({ stage2: { fields: intake } }));
+    expect(out.project_type?.v).toBe('redesign');
+    expect(out.legal_form?.v).toBe('e.K.');
+    expect(out.social_profiles?.v).toBe('instagram.com/x');
+    for (const key of ['opening_hours', 'usps', 'catalogue', 'business_one_liner']) expect(out[key], key).toBeUndefined();
   });
 
   it('never guesses the legal name from a trading name', () => {

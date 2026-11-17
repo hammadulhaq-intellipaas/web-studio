@@ -17,6 +17,7 @@ import { ProposalExamples } from './ProposalExamples';
 import { RankingInput } from './RankingInput';
 import { ReferenceCards } from './ReferenceCards';
 import { initialRows, RepeaterInput } from './RepeaterInput';
+import { SiteMenuPages } from './SiteMenuPages';
 import { SliderInput } from './SliderInput';
 import { UploadInput, type PublicFile } from './UploadInput';
 
@@ -158,6 +159,21 @@ export function FieldRenderer(props: FieldRendererProps) {
         );
       case 'repeater': {
         const rows: RepeaterRow[] = rowsOf(answer).length ? rowsOf(answer) : initialRows(field);
+        if (field.config.site_menu) {
+          const site = answers[field.config.site_menu]?.v;
+          return (
+            <SiteMenuPages
+              field={field}
+              locale={locale}
+              rows={rows}
+              errors={errors}
+              siteUrl={typeof site === 'string' ? site.trim() : ''}
+              formId={formId}
+              disabled={disabled}
+              onChange={set}
+            />
+          );
+        }
         return <RepeaterInput field={field} locale={locale} rows={rows} errors={errors} onChange={set} />;
       }
       case 'upload':

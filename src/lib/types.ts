@@ -96,6 +96,12 @@ export interface RuleCondition {
   key: string;
   values: string[];
   negate?: boolean;
+  /**
+   * Onboarding form only: the clause passes when `key` is hidden or not answered yet, instead
+   * of failing. "Show the brand questions unless the client chose to keep their brand" must
+   * also show them in the form where that choice is never asked.
+   */
+  ifMissing?: boolean;
 }
 
 export interface BundleRule {

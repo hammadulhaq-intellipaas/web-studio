@@ -11,7 +11,7 @@ const rows: Omit<OnbBriefSection, 'sort' | 'active'>[] = [
     title_de: 'Wer dieses Unternehmen ist – in eigenen Worten',
     title_en: 'Who this business is, in their own words',
     instructions:
-      'Describe the business from the answers only: legal name and form, where it works and which regions it serves, what it sells (catalogue), who the site is for, the ideal customer and anyone it should not attract, why customers choose it (usps), the competitors it named and what it wants to do differently from each, factual claims it wants shown, tagline if any. Keep the client\'s own wording for services.',
+      'Describe the business from the answers only. If the client has a website and wants a new one, start with why (redesign_reasons) and what they like or want changed about it (current_site_notes). Then: legal name and form, where it works and which regions it serves, what it sells (catalogue), who the site is for, the ideal customer and anyone it should not attract, why customers choose it (usps), the competitors it named and what it wants to do differently from each, factual claims it wants shown, tagline if any. Keep the client\'s own wording for services.',
     source_fields: [
       'contact_company',
       'legal_name',
@@ -32,6 +32,8 @@ const rows: Omit<OnbBriefSection, 'sort' | 'active'>[] = [
       'factual_claims',
       'existing_url',
       'project_type',
+      'redesign_reasons',
+      'current_site_notes',
     ],
     generated_by: 'llm',
   },
@@ -57,10 +59,12 @@ const rows: Omit<OnbBriefSection, 'sort' | 'active'>[] = [
     title_de: 'Seitenstruktur',
     title_en: 'Page structure',
     instructions:
-      'Render the page list as a markdown list, one page per line, in the order the client gave. State the page count and the booked page band as given. Note any linking requirements. If the list and the count disagree, say so plainly without proposing a price.',
+      'Render the page list as a markdown list, one page per line, in the order the client gave. If the client has a website (page_review), list each current page with keep, change (with what should change) or drop, then the pages to add. State the page count and the booked page band as given. Note any linking requirements. If the list and the count disagree, say so plainly without proposing a price.',
     source_fields: [
       'booked_package',
       'booked_page_band',
+      'page_review',
+      'pages_to_add',
       'page_list',
       'page_relationships',
     ],
@@ -71,8 +75,10 @@ const rows: Omit<OnbBriefSection, 'sort' | 'active'>[] = [
     title_de: 'Wie sie aussehen und sich anfühlen soll',
     title_en: 'What it should look and feel like',
     instructions:
-      'Give both slider values WITH their captions, and the note the client added to each where they gave one. Name the example websites they picked from our list. List each reference site with what the client liked and disliked about it, verbatim where possible. Include brand colours, brand guideline availability and the "do not want" list. Mention premises photos and screenshots only if files were provided.',
+      'Give both slider values WITH their captions, and the note the client added to each where they gave one. Name the example websites they picked from our list. List each reference site with what the client liked and disliked about it, verbatim where possible. Include brand colours, brand guideline availability and the "do not want" list. If the client has a website, say whether they keep its logo and colours (brand_keep). Say whether visitors are addressed with Sie or du. Mention premises photos and screenshots only if files were provided.',
     source_fields: [
+      'brand_keep',
+      'address_form',
       'tone_scale',
       'tone_note',
       'personality_scale',
@@ -160,6 +166,7 @@ const rows: Omit<OnbBriefSection, 'sort' | 'active'>[] = [
       'public_phone',
       'address_street',
       'opening_hours',
+      'legal_current',
       'legal_pages',
       'legal_pages_links',
       'legal_pages_advice',

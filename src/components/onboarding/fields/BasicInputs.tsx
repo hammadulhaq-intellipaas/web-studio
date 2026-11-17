@@ -95,7 +95,7 @@ export function RadioPills({
 }: Omit<Common, 'inputId'> & { value: string | null; onChange: (v: string) => void }) {
   return (
     <div role="radiogroup" data-testid={`f-${field.id}`} style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-      {field.options.map((o) => {
+      {field.options.filter((o) => !o.retired || o.value === value).map((o) => {
         const selected = value === o.value;
         const hint = loc(o as unknown as Record<string, unknown>, 'hint', locale);
         return (

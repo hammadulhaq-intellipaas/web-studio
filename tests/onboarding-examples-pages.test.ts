@@ -66,7 +66,8 @@ describe('the design screen', () => {
   it('runs in four parts, each under its own heading', () => {
     const headings = fields.filter((f) => f.screen_id === 'design' && f.config.tone === 'heading').map((f) => f.id);
     expect(headings).toEqual(['design_part_business', 'design_part_feel', 'design_part_examples', 'design_part_look']);
-    expect(order[0]).toBe('design_part_business');
+    // Form B's brand question and the Sie/du question (17 Nov 2026) open the screen, before the first part.
+    expect(order.slice(0, 3)).toEqual(['brand_keep', 'address_form', 'design_part_business']);
     for (const h of headings) expect(field(h).label_de && field(h).label_en && field(h).help_de && field(h).help_en, h).toBeTruthy();
   });
 
@@ -191,7 +192,9 @@ describe('migration 030', () => {
   it('puts every design question in the seed order, whatever sort numbers the database held', () => {
     const block = sql.slice(sql.indexOf('update onb_fields as f set sort = v.sort'));
     const placed = [...block.matchAll(/\('([a-z_]+)', (\d+)\)/g)].map((m) => ({ id: m[1], sort: Number(m[2]) }));
-    const seedOrder = fields.filter((f) => f.screen_id === 'design' && f.active).map((f) => f.id);
+    // Questions added after migration 030 (the two funnels, 17 Nov 2026) are not in it.
+    const later = new Set(['brand_keep', 'address_form']);
+    const seedOrder = fields.filter((f) => f.screen_id === 'design' && f.active && !later.has(f.id)).map((f) => f.id);
     expect(placed.map((p) => p.id)).toEqual(seedOrder);
     expect(placed.every((p, i) => i === 0 || p.sort > placed[i - 1].sort)).toBe(true);
   });

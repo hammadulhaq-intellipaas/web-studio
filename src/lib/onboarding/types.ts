@@ -56,6 +56,11 @@ export interface FieldOption {
   image?: string | null;
   group_de?: string | null;
   group_en?: string | null;
+  /**
+   * No longer offered, but still a valid answer: forms that chose it keep it and still see it;
+   * nobody else does. Lets an answer be replaced without changing the forms already using it.
+   */
+  retired?: boolean;
 }
 
 export type RepeaterSubType = 'text' | 'textarea' | 'url' | 'email' | 'tel' | 'number' | 'select';
@@ -124,6 +129,8 @@ export interface FieldConfig {
   buckets?: RankingBucket[];
   // repeater
   fields?: RepeaterSubField[];
+  /** Form B's page list: the rows start as the menu of the website in the named answer (a URL). */
+  site_menu?: string;
   min_rows?: number;
   max_rows?: number;
   initial_rows?: number;
@@ -176,6 +183,8 @@ export interface FieldConfig {
   hide_optional?: boolean;
   /** A field that makes this one optional when it has a value/files ("one or the other"). */
   required_unless?: string;
+  /** A required field becomes optional when these conditions match (for example in one funnel). */
+  optional_when?: RuleCondition[];
   /** Show a link below the label whose href is the named app setting (when set). */
   link_setting?: string;
   link_label_de?: string;

@@ -116,13 +116,15 @@ export const ANY_VALUE = '__set';
  * twists: a clause on a HIDDEN field is false even when negated (a reveal can never be
  * resurrected by a field the client can't see), and a clause on an UNANSWERED field is
  * false even when negated (`languages ≠ single` must not show the translation fields
- * before languages was answered).
+ * before languages was answered). A clause marked `ifMissing` turns both around: it passes
+ * when its field is hidden or unanswered, for "unless the client chose X" in a form where
+ * X is never asked.
  */
 export function matches(conditions: RuleCondition[], answers: Answers, hidden: ReadonlySet<string> = new Set()): boolean {
   return conditions.every((clause) => {
-    if (hidden.has(clause.key)) return false;
+    if (hidden.has(clause.key)) return !!clause.ifMissing;
     const actual = conditionValues(answers[clause.key]);
-    if (actual === null) return false;
+    if (actual === null) return !!clause.ifMissing;
     // `__set` matches any answer at all, for reveals that only need "they filled this in".
     const hit = clause.values.includes(ANY_VALUE) || actual.some((v) => clause.values.includes(v));
     return clause.negate ? !hit : hit;
@@ -270,6 +272,7 @@ export function earliestDate(cfg: OnbField['config'], today: string): string | u
 
 export function isRequiredNow(field: OnbField, ctx: Pick<ValidationContext, 'answers' | 'files' | 'fields'>): boolean {
   if (!field.required) return false;
+  if (field.config.optional_when?.length && matches(field.config.optional_when, ctx.answers)) return false;
   const unless = field.config.required_unless;
   if (!unless) return true;
   const other = ctx.fields.find((f) => f.id === unless);
@@ -558,7 +561,33 @@ export interface FlagContext {
 }
 
 /** Pages listed in `page_list`: one per entry (an older typed list counts its lines). */
+/**
+ * Form B's page list for the design and build prompts: the old site's pages the client keeps
+ * (with what should change), then the pages to add. Null for Form A, which lists its pages in
+ * page_list.
+ */
+export function redesignPageList(answers: Answers): string[] | null {
+  if (!answers.page_review) return null;
+  const kept = rowsOf(answers.page_review)
+    .filter((r) => r.decision === 'keep' || r.decision === 'change')
+    .map((r) => {
+      const name = String(r.page ?? '').trim();
+      const note = String(r.note ?? '').trim();
+      return r.decision === 'change' && note ? `${name} (change: ${note})` : name;
+    })
+    .filter(Boolean);
+  return [...kept, ...linesOf(textOf(answers.pages_to_add)).map((l) => `${l} (new)`)];
+}
+
+/**
+ * The pages the new site will have. Form A lists them (page_list); Form B (a client with a
+ * website) keeps or changes pages of the old site (page_review) and adds new ones (pages_to_add).
+ */
 export function listedPages(answers: Answers): number {
+  if (answers.page_review) {
+    const kept = rowsOf(answers.page_review).filter((r) => r.decision === 'keep' || r.decision === 'change').length;
+    return kept + linesOf(textOf(answers.pages_to_add)).length;
+  }
   return entriesOf(answers.page_list).length;
 }
 

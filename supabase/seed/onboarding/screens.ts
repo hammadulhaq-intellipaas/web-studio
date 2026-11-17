@@ -61,9 +61,9 @@ const rows: Omit<OnbScreen, 'sort' | 'active'>[] = [
     short_de: 'Seiten',
     short_en: 'Pages',
     intro_de:
-      'In diesem Abschnitt geht es um die Struktur und die Seiten Ihrer Website. Bitte beginnen Sie mit Ihrem Angebot, denn daraus ergeben sich meist Ihre Seiten.',
+      'In diesem Abschnitt geht es um die Seiten Ihrer Website und darum, was Besucher dort vor allem tun sollen.',
     intro_en:
-      'This section is about the structure and pages of your website. Please start with what you offer, because your pages usually follow from it.',
+      'This section is about the pages of your website, and what visitors should mainly do there.',
   },
   {
     id: 'integrations',

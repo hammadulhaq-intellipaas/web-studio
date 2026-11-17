@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { getOnboardingDefinition } from '@/lib/onboarding/definition';
 import { exportRecord } from '@/lib/onboarding/export';
+import { redesignPageList } from '@/lib/onboarding/logic';
 import { loadFiles, loadForm, publicFiles } from '@/lib/onboarding/records';
 import type { Locale } from '@/lib/types';
 import type { Lead } from '@/lib/types';
@@ -66,6 +67,8 @@ export interface PromptContext {
    * on the first, Proposal 2 on the second (see exampleChoices).
    */
   examples: string[];
+  /** Form B only: the pages of the new site, from the old site's pages kept and the pages added. */
+  pages?: string[];
   status: string;
   confirmedAt: string | null;
 }
@@ -137,6 +140,7 @@ export async function buildPromptContext(lead: Lead, formId: string): Promise<Pr
     clientReferences,
     referenceShots,
     examples,
+    pages: redesignPageList(record.answers) ?? undefined,
     status: record.status,
     confirmedAt: record.confirmed?.at ?? null,
   };

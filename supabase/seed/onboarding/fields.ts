@@ -121,21 +121,50 @@ const project: OnbField[] = [
     'project_type',
     'project',
     'radio',
-    'Ist das eine ganz neue Website oder eine Änderung an Ihrer bestehenden?',
-    'Is this a brand new website, or changes to one you already have?',
+    'Haben Sie schon eine Website?',
+    'Do you already have a website?',
     {
       required: true,
+      help_de: 'Davon hängt ab, welche Fragen wir Ihnen stellen. Mit einer Website lesen wir vieles direkt von dort.',
+      help_en: 'This decides which questions we ask. If you have a website, we take a lot straight from it.',
       options: [
-        opt('new', 'Eine ganz neue Website', 'A brand new website'),
-        opt('changes', 'Änderungen an meiner bestehenden Seite', 'Changes to my existing site'),
+        // Form A: everything is asked.
+        opt('new', 'Nein, ich habe noch keine Website', "No, I don't have a website yet"),
+        // Form B (17 Nov 2026): the short form; content, photos and style come from the old site.
+        opt('redesign', 'Ja, und ich möchte eine neue', 'Yes, and I want a new one'),
+        // Before 17 Nov the only "has a website" answer. Forms that chose it keep the full form.
+        opt('changes', 'Änderungen an meiner bestehenden Seite', 'Changes to my existing site', { retired: true }),
       ],
     },
   ),
   field('existing_url', 'project', 'url', 'Wie lautet Ihre aktuelle Website-Adresse?', 'What is your current website address?', {
     required: true,
-    show_when: when('project_type', 'changes'),
+    show_when: when('project_type', 'changes', 'redesign'),
     placeholder_de: 'https://www.ihrefirma.de',
     placeholder_en: 'https://www.yourcompany.com',
+  }),
+  field('redesign_reasons', 'project', 'checkboxes', 'Warum möchten Sie eine neue Website?', 'Why do you want a new website?', {
+    required: true,
+    show_when: when('project_type', 'redesign'),
+    help_de: 'Kreuzen Sie alles an, was passt.',
+    help_en: 'Tick everything that applies.',
+    options: [
+      opt('outdated', 'Sie wirkt veraltet', 'It looks outdated'),
+      opt('enquiries', 'Sie bringt zu wenige Anfragen', 'It brings too few enquiries'),
+      opt('phones', 'Sie funktioniert auf dem Handy nicht gut', "It doesn't work well on phones"),
+      opt('updating', 'Ich kann sie selbst kaum ändern', 'I can hardly update it myself'),
+      opt('slow', 'Sie ist langsam', 'It is slow'),
+      opt('changed', 'Mein Angebot hat sich verändert', 'My business has changed'),
+      opt('other', 'Etwas anderes', 'Something else'),
+    ],
+  }),
+  field('current_site_notes', 'project', 'textarea', 'Was gefällt Ihnen an Ihrer jetzigen Website, und was soll anders werden?', 'What do you like about your current website, and what should change?', {
+    show_when: when('project_type', 'redesign'),
+    help_de: 'Ein paar Stichworte reichen.',
+    help_en: 'A few words are enough.',
+    placeholder_de: 'Die Fotos mögen wir, aber man findet die Preise nicht',
+    placeholder_en: 'We like the photos, but people cannot find the prices',
+    config: { rows: 3, max_chars: 1000 },
   }),
 ];
 
@@ -369,6 +398,29 @@ const heading = (id: string, screen: string, de: string, en: string, help_de: st
 export const PROPOSAL_EXAMPLES = { count: 2, picks: 'reference_sites', links: 'references', pictures: 'reference_screenshots' };
 
 const design: OnbField[] = [
+  // Form B: whether the new site keeps the old one's look. It comes first, because the brand
+  // questions further down only show when the client starts fresh.
+  field('brand_keep', 'design', 'radio', 'Sollen Ihr Logo und Ihre Farben bleiben?', 'Should your logo and colours stay?', {
+    required: true,
+    show_when: when('project_type', 'redesign'),
+    help_de: 'Wir übernehmen sie dann von Ihrer jetzigen Website und machen den Rest neu.',
+    help_en: 'If so, we take them from your current website and make everything else new.',
+    options: [
+      opt('keep', 'Ja, Logo und Farben bleiben', 'Yes, keep the logo and colours'),
+      opt('fresh', 'Nein, ich möchte einen ganz neuen Auftritt', 'No, I want a completely new look'),
+    ],
+  }),
+  // Both forms, German only: two proposals once chose differently, so it is asked, not guessed.
+  field('address_form', 'design', 'radio', 'Wie sollen wir Ihre Besucher ansprechen?', 'How should the site address visitors?', {
+    required: true,
+    help_de: 'So sprechen alle Texte Ihrer Website die Besucher an.',
+    help_en: 'Every text on your website will address visitors this way.',
+    options: [
+      opt('sie', 'Mit „Sie“', 'Formally ("Sie")'),
+      opt('du', 'Mit „du“', 'Informally ("du")'),
+    ],
+    config: { locales: ['de'] },
+  }),
   heading(
     'design_part_business',
     'design',
@@ -763,6 +815,45 @@ export const PAGE_OPTIONS = [
 ];
 
 const pages: OnbField[] = [
+  // Form B: the pages of the current site, read from its menu (no AI), each kept, dropped or changed.
+  field('page_review', 'pages', 'repeater', 'Welche Ihrer jetzigen Seiten sollen bleiben?', 'Which of your current pages should stay?', {
+    required: true,
+    show_when: when('project_type', 'redesign'),
+    help_de: 'Diese Seiten haben wir im Menü Ihrer Website gefunden. Fehlt eine, fügen Sie sie unten hinzu.',
+    help_en: 'We found these pages in the menu of your website. If one is missing, add it below.',
+    config: {
+      site_menu: 'existing_url',
+      min_rows: 1,
+      max_rows: 30,
+      initial_rows: 0,
+      add_label_de: 'Seite hinzufügen',
+      add_label_en: 'Add a page',
+      fields: [
+        { key: 'page', type: 'text', label_de: 'Seite', label_en: 'Page', required: true, max_chars: 80, placeholder_de: 'Über uns', placeholder_en: 'About us' },
+        {
+          key: 'decision',
+          type: 'select',
+          label_de: 'Was passiert damit?',
+          label_en: 'What happens to it?',
+          required: true,
+          options: [
+            opt('keep', 'Bleibt', 'Keep'),
+            opt('change', 'Bleibt, aber anders', 'Keep, but change it'),
+            opt('drop', 'Fällt weg', 'Drop'),
+          ],
+        },
+        { key: 'note', type: 'text', label_de: 'Was soll anders werden?', label_en: 'What should change?', max_chars: 200, placeholder_de: 'Kürzer, mit Preisen', placeholder_en: 'Shorter, with prices' },
+      ],
+    },
+  }),
+  field('pages_to_add', 'pages', 'textarea', 'Welche Seiten sollen neu dazukommen?', 'Which pages should be added?', {
+    show_when: when('project_type', 'redesign'),
+    help_de: 'Eine pro Zeile.',
+    help_en: 'One per line.',
+    placeholder_de: 'Online-Kurse\nHäufige Fragen',
+    placeholder_en: 'Online courses\nFrequently asked questions',
+    config: { rows: 3, max_chars: 1000 },
+  }),
   field('catalogue', 'pages', 'textarea', 'Was sind Ihre Produkte oder Leistungen?', 'What are your products or services?', {
     required: true,
     ai_check: true,
@@ -1026,6 +1117,15 @@ const integrations: OnbField[] = [
 /* ------------------------------------------------------------------ Step 7 · logo, photos, files */
 
 const files: OnbField[] = [
+  // Form B: the old site's photos, logo and files are copied for them; a folder is only for new ones.
+  field('files_from_site', 'files', 'notice', 'Ihre Fotos und Ihr Logo übernehmen wir', 'We take your photos and logo', {
+    show_when: when('project_type', 'redesign'),
+    help_de:
+      'Alle Bilder, Ihr Logo und Ihre Dokumente holen wir von Ihrer jetzigen Website. Haben Sie neue oder bessere Fotos, teilen Sie sie unten, sonst lassen Sie die Felder einfach leer.',
+    help_en:
+      'We take every picture, your logo and your documents from your current website. If you have new or better photos, share them below; otherwise just leave these fields empty.',
+    config: { tone: 'heading' },
+  }),
   field('assets_folder', 'files', 'url', 'Wie lautet der Link zu Ihrem Ordner?', 'What is the link to your folder?', {
     required: true,
     help_de:
@@ -1036,6 +1136,8 @@ const files: OnbField[] = [
     placeholder_en: 'https://drive.google.com/drive/folders/…',
     config: {
       required_unless: 'assets_upload',
+      // Form B: the photos come from the old site, so a folder is only for new ones.
+      optional_when: when('project_type', 'redesign'),
       link_setting: 'onb_folder_help_url',
       link_label_de: 'So geben Sie einen Ordner frei',
       link_label_en: 'How to share a folder',
@@ -1130,6 +1232,18 @@ const accessLegal: OnbField[] = [
     placeholder_en: 'Name, news and team pages',
     config: { rows: 3 },
   }),
+  // Form B: one direct question. The legal pages are read from the old site; no links are asked for.
+  field('legal_current', 'access_legal', 'radio', 'Sind Ihr Impressum und Ihre Datenschutzerklärung aktuell?', 'Are your legal notice and privacy policy up to date?', {
+    required: true,
+    show_when: when('project_type', 'redesign'),
+    help_de: 'Wir übernehmen sie von Ihrer jetzigen Website. Sind sie veraltet oder unsicher, sprechen wir das mit Ihnen ab.',
+    help_en: 'We take them from your current website. If they are out of date or you are unsure, we will go through them with you.',
+    options: [
+      opt('yes', 'Ja, sie sind aktuell', 'Yes, they are up to date'),
+      opt('unsure', 'Nicht sicher', 'Not sure'),
+      opt('no', 'Nein, sie müssen überarbeitet werden', 'No, they need updating'),
+    ],
+  }),
   field(
     'legal_pages',
     'access_legal',
@@ -1207,7 +1321,7 @@ const accessLegal: OnbField[] = [
     'Hat Ihre aktuelle Seite Seiten, die Ihnen Anfragen bringen?',
     'Does your current site have pages that bring you enquiries?',
     {
-      show_when: when('project_type', 'changes'),
+      show_when: when('project_type', 'changes', 'redesign'),
       help_de: 'Wenn Sie wissen, auf welche Seiten Google die Leute schickt, sagen Sie es uns, dann halten wir diese Adressen am Leben.',
       help_en: 'If you know which pages Google sends people to, please tell us and we will keep their addresses working.',
       placeholder_de: 'Die Seite zu unserer wichtigsten Leistung bringt uns die meisten Anfragen',
@@ -1313,6 +1427,56 @@ export const retiredFieldIds = [
   'accounts',
 ];
 
-const all = [...project, ...business, ...inboxes, ...design, ...pages, ...integrations, ...files, ...accessLegal, ...timing, ...review];
+/* ------------------------------------------------------------------ the two funnels */
+
+/**
+ * Two funnels since 17 Nov 2026, decided by `project_type`:
+ * - Form A ("new", and "changes" from before the split): every question.
+ * - Form B ("redesign", the client has a website and wants a new one): the short form. These
+ *   questions are left out because the old website answers them (its texts, services, pages,
+ *   contact details and legal pages are read when the form is submitted). It still asks what
+ *   the site cannot tell: the legal company details, inboxes, approver, integrations,
+ *   languages, access and timing.
+ */
+export const FORM_A_ONLY = [
+  'public_phone',
+  'opening_hours',
+  'service_scope',
+  'regions_served',
+  'second_address_details',
+  'content_sender',
+  'design_part_business',
+  'business_one_liner',
+  'target_audience',
+  'ideal_customer',
+  'excluded_audience',
+  'usps',
+  'competitors',
+  'tagline',
+  'proof_to_show',
+  'factual_claims',
+  'catalogue',
+  'page_list',
+  'page_relationships',
+  'legal_pages',
+  'legal_pages_links',
+  'legal_pages_advice',
+  'notice_legal_placeholder',
+  'legal_reviewer',
+  'content_ready_date',
+];
+// "Not Form B" rather than "Form A": while the first question is still open these questions
+// stay visible, so an answer the quote pre-filled into one of them is never cleared.
+const IN_FORM_A: RuleCondition = { key: 'project_type', values: ['redesign'], negate: true, ifMissing: true };
+
+/** Form B with "keep my logo and colours": the old site's brand is measured, not asked. */
+export const BRAND_FIELDS = ['brand_guidelines', 'brand_guidelines_link', 'brand_colours', 'colour_mood', 'typography_feel'];
+const UNLESS_BRAND_KEPT: RuleCondition = { key: 'brand_keep', values: ['keep'], negate: true, ifMissing: true };
+
+const all = [...project, ...business, ...inboxes, ...design, ...pages, ...integrations, ...files, ...accessLegal, ...timing, ...review].map((f) => {
+  if (FORM_A_ONLY.includes(f.id)) return { ...f, show_when: [IN_FORM_A, ...f.show_when] };
+  if (BRAND_FIELDS.includes(f.id)) return { ...f, show_when: [...f.show_when, UNLESS_BRAND_KEPT] };
+  return f;
+});
 
 export const fields: OnbField[] = all.map((f, i) => ({ ...f, sort: (i + 1) * 10 }));

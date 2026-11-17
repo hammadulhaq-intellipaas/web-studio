@@ -70,8 +70,9 @@ describe('locale-only fields', () => {
     const en = visibility(def.fields, completeAnswers(), 'en').visible.map((f) => f.id);
     expect(de).toContain('content_responsible');
     expect(en).not.toContain('content_responsible');
-    // Everything else is unaffected: the gate is opt-in per field.
-    expect(en.length).toBe(de.length - 1);
+    // Everything else is unaffected: the gate is opt-in per field (also Sie or du, German only).
+    expect(en).not.toContain('address_form');
+    expect(en.length).toBe(de.length - 2);
   });
 
   it('does not block the screen in the locale where it is not asked', () => {

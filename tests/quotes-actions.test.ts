@@ -182,7 +182,7 @@ describe('ensureOnboardingForm', () => {
     expect(answers.contact_name).toEqual({ v: 'Julian Munz', src: 'lead' });
     expect(answers.booked_package).toEqual({ v: 'gold', src: 'lead' });
     expect(answers.booked_page_band).toEqual({ v: '58', src: 'lead' });
-    expect(answers.project_type).toEqual({ v: 'changes', src: 'lead' });
+    expect(answers.project_type).toEqual({ v: 'redesign', src: 'lead' });
     expect(answers.existing_url).toEqual({ v: 'https://www.beyondtherapy.ch', src: 'lead' });
     // Intake answers to the same question come across...
     expect(answers.legal_form).toEqual({ v: 'GmbH', src: 'lead' });

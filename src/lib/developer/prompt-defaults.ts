@@ -28,7 +28,7 @@ Content:
 7. Use the client's own words wherever they gave them: services, descriptions, slogan, reasons to choose them, opening hours, contact details. Quote them exactly.
 8. Write new copy only where the client's content is missing, and only as wording, never as facts. Never invent numbers, years, client counts, reviews, testimonials, awards, certifications, prices, durations, dates, guarantees or names. Where such a fact is missing, ask for a visible placeholder in square brackets, for example [Price].
 9. Write the whole prompt in English, whatever language the client filled in the form in. Only the words that will appear on the pages are in the site's main language, quoted exactly: headlines, body text, buttons, navigation, form labels and placeholders. The site's main language is German if the client filled in the form in German, otherwise the form's language. Page names keep the client's wording from their page list; everything else in the two page lists, such as the reason for each page, is in English. If the site has a second language, show the language switch in the header, but do not design the second language.
-10. In German, address visitors formally with "Sie", unless the client's own wording or internal_notes use "du".
+10. In German, address visitors the way the client chose in "How should the site address visitors?" ("Sie" or "du"). If they did not answer it, use "Sie" unless the client's own wording or internal_notes use "du". Use the same form on every page.
 11. Never use an em dash or an en dash anywhere, in your prompt or in any text it asks for.
 
 Things that only work in the finished site:
