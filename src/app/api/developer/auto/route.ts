@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const STEPS = new Set(['begin', 'spec', 'prompts']);
+const STEPS = new Set(['begin', 'site', 'refs', 'spec', 'prompts', 'build']);
 
 /**
  * One step of the design prompts written after the client confirms (see auto-trigger.ts). Only
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   const origin = new URL(request.url).origin;
   after(async () => {
     try {
-      const next = await runAutoStep(leadId, step);
+      const next = await runAutoStep(leadId, step, origin);
       if (next) await startAutoStep(origin, leadId, next);
     } catch (err) {
       console.error(`[developer/auto] ${leadId} ${step.step} failed:`, err);

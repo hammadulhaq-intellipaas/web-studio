@@ -27,6 +27,16 @@ export interface VersionRow {
   original_name: string;
   uploaded_by: string | null;
   created_at: string;
+  /** Set for a design made in the app: its model, progress and screen-size checks. */
+  build?: {
+    madeBy: string;
+    running: boolean;
+    lastLog: string | null;
+    checked: boolean;
+    problems: string[];
+    fixed: boolean;
+    shots: { page: string; width: number; url: string }[];
+  } | null;
 }
 
 export interface RevisionRow extends GeneratedRow {
@@ -452,10 +462,50 @@ export function DesignVersionsPanel({ leadId, schemaReady, formReady, draftBase,
                               {url.replace(/^https?:\/\//, '')}
                             </a>
                           ) : v.status === 'failed' ? (
-                            <span className="text-red-600">Failed: {v.error ?? 'unknown error'}. Upload it again.</span>
+                            <span className="text-red-600">
+                              Failed: {v.error ?? 'unknown error'}. {v.build ? 'Make it again.' : 'Upload it again.'}
+                            </span>
+                          ) : v.status === 'uploading' && v.build ? (
+                            <span className="text-amber-700" data-testid={`dev-version-${v.label}-building`}>
+                              Being made by {v.build.madeBy}: {v.build.lastLog ?? 'starting'}…
+                            </span>
                           ) : v.status === 'uploading' ? (
                             <span className="text-slate-500">Upload not finished. If it was interrupted, upload it again.</span>
                           ) : null}
+                          {v.build && v.status === 'ready' && (
+                            <span className="block text-xs text-slate-600" data-testid={`dev-version-${v.label}-checks`}>
+                              Made in the app by {v.build.madeBy}
+                              {v.build.checked
+                                ? ` · checked at 7 screen widths: ${v.build.problems.length ? `${v.build.problems.length} problems left` : 'no problems'}${v.build.fixed ? ' after one round of fixes' : ''}`
+                                : ''}
+                            </span>
+                          )}
+                          {v.build && v.build.problems.length > 0 && (
+                            <details className="text-xs text-slate-600">
+                              <summary className="cursor-pointer">What the check found</summary>
+                              <ul className="mt-1 list-disc pl-5">
+                                {v.build.problems.map((p, i) => (
+                                  <li key={i}>{p}</li>
+                                ))}
+                              </ul>
+                            </details>
+                          )}
+                          {v.build && v.build.shots.length > 0 && (
+                            <details className="text-xs text-slate-600">
+                              <summary className="cursor-pointer">Screenshots at phone, tablet and laptop width</summary>
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                {v.build.shots.map((s) => (
+                                  <a key={s.url} href={s.url} target="_blank" rel="noopener noreferrer" className="block w-40" title={`${s.page} at ${s.width} px`}>
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={s.url} alt={`${s.page} at ${s.width} px`} className="h-24 w-40 rounded border border-slate-200 object-cover object-top" />
+                                    <span className="block truncate">
+                                      {s.page} · {s.width} px
+                                    </span>
+                                  </a>
+                                ))}
+                              </div>
+                            </details>
+                          )}
                           <span className="block text-xs text-slate-400">
                             {v.original_name} · {formatSize(v.size_bytes)}
                             {v.status === 'ready' ? ` · ${v.file_count} files` : ''} · <LocalTime iso={v.created_at} />

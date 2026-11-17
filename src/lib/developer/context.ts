@@ -85,6 +85,12 @@ export interface PromptContext {
   examples: string[];
   /** Form B only: the pages of the new site, from the old site's pages kept and the pages added. */
   pages?: string[];
+  /** A: no website yet (or the old "changes" answer). B: has a website and wants a new one. */
+  funnel: 'A' | 'B';
+  /** The client's current website, as they typed it, when they gave one. */
+  existingUrl: string | null;
+  /** Form B: keep the logo and colours (true), a completely new look (false), not answered (null). */
+  brandKeep: boolean | null;
   status: string;
   confirmedAt: string | null;
 }
@@ -175,6 +181,9 @@ export async function buildPromptContext(lead: Lead, formId: string): Promise<Pr
     referenceShots,
     examples,
     pages: redesignPageList(record.answers) ?? undefined,
+    funnel: record.answers.project_type?.v === 'redesign' ? 'B' : 'A',
+    existingUrl: typeof record.answers.existing_url?.v === 'string' && record.answers.existing_url.v.trim() ? record.answers.existing_url.v.trim() : null,
+    brandKeep: record.answers.brand_keep?.v === 'keep' ? true : record.answers.brand_keep?.v === 'fresh' ? false : null,
     status: record.status,
     confirmedAt: record.confirmed?.at ?? null,
   };

@@ -29,6 +29,8 @@ export interface ClientShot {
 
 /** Choice values next to the library slugs; they match the same /^[a-z0-9-]+$/ check. */
 export const CLIENT_SHOTS = 'client-screenshots';
+/** The client's own current website (Form B): read for its brand and content, never as a layout to copy. */
+export const CLIENT_SITE = 'client-site';
 export const clientLinkValue = (index: number) => `client-link-${index + 1}`;
 const LINK_VALUE = /^client-link-([1-9])$/;
 
@@ -36,7 +38,7 @@ export function clientLinkIndex(value: string | null): number | null {
   const m = value ? LINK_VALUE.exec(value) : null;
   return m ? Number(m[1]) - 1 : null;
 }
-export const isClientSource = (value: string | null) => value === CLIENT_SHOTS || clientLinkIndex(value) !== null;
+export const isClientSource = (value: string | null) => value === CLIENT_SHOTS || value === CLIENT_SITE || clientLinkIndex(value) !== null;
 
 /** Pictures the model can look at. PDFs and other files are listed but not sent. */
 export const SHOT_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];

@@ -341,6 +341,12 @@ export interface OnboardingSettings {
   model: string;
   /** The model that writes design improvement prompts (Developers, Design tab): it reads the screenshots too. */
   revisionModel: string;
+  /** The model that writes the creative part of the design prompt (the rest is assembled in code). */
+  creativeModel: string;
+  /** The model that makes a design in the app (Developers, Design tab). */
+  designModel: string;
+  /** The model that fixes what the screen-size checks found in a design made in the app. */
+  fixModel: string;
   maxFollowups: number;
   maxRounds: number;
   maxAiCalls: number;

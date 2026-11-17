@@ -23,6 +23,9 @@ const context: PromptContext = {
   files: [{ question: 'Logo', name: 'logo.svg', type: 'image/svg+xml' }],
   status: 'confirmed',
   confirmedAt: '2026-10-28T10:00:00Z',
+  funnel: 'A',
+  existingUrl: null,
+  brandKeep: null,
 };
 
 describe('defaultReferences', () => {
@@ -73,7 +76,7 @@ describe('designPromptInput', () => {
 describe('the dev_design instruction', () => {
   it('has no em or en dashes and carries the rules that keep sites from looking AI-made', () => {
     expect(DEV_DESIGN_PROMPT).not.toMatch(/[–—]/);
-    for (const rule of [/never invent/i, /gradients/i, /three identical icon cards/i, /em dash/i, /390 px/, /legal pages/, /# Website design: /]) {
+    for (const rule of [/never invent/i, /gradients/i, /three identical icon cards/i, /em dash/i, /legal pages/, /## Pages and sections/]) {
       expect(DEV_DESIGN_PROMPT).toMatch(rule);
     }
   });

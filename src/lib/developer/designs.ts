@@ -27,8 +27,11 @@ export interface DesignVersion {
 /** A Claude Design export as downloaded (zip), or a single exported page. */
 export const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 const ACCEPTED = /\.(zip|html?)$/i;
-/** An upload that has not finished after this long was abandoned (tab closed, network gone). */
-const STALE_MS = 15 * 60 * 1000;
+/**
+ * An upload that has not finished after this long was abandoned (tab closed, network gone). Long
+ * enough for a design made in the app, which is stored the same way while its pages are written.
+ */
+const STALE_MS = 60 * 60 * 1000;
 
 const db = () => createSupabaseAdminClient();
 

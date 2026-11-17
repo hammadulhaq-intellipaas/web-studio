@@ -33,6 +33,7 @@ import {
 import { DEV_BUILD_PROMPT, DEV_DESIGN_PROMPT, DEV_HANDOVER_PROMPT, DEV_REFERENCE_SPEC_PROMPT, DEV_REVISION_PROMPT } from './prompt-defaults';
 import {
   CLIENT_SHOTS,
+  CLIENT_SITE,
   clientLinkIndex,
   clientSourceLabel,
   domainOf,
@@ -48,6 +49,8 @@ import {
   specCheck,
 } from './reference-sources';
 import { latestSpec, referenceSpecsReady, saveSpec, SPEC_MAX_AGE_DAYS } from './reference-specs';
+import { assembleDesignPrompt, creativeCheck, type CurrentSite } from './design-blocks';
+import { loadSiteRead, siteReadsReady } from './old-site-read';
 import { readSite, SiteReadError } from './site-reader';
 import { cmsBooked } from './setup';
 import { designsSchemaReady, developerSchemaReady, insertPrompts, loadProject, loadPrompts, reviewSchemaReady } from './store';
@@ -75,7 +78,7 @@ const DEFAULTS: Record<DevPromptId, string> = {
 /** Canned output for e2e runs (ONBOARDING_AI_FIXTURE=1): no key, no cost, deterministic. */
 function fixtureText(job: DevPromptId, company: string, detail: string): string {
   const title: Record<DevPromptId, string> = {
-    dev_design: `# Website design: ${company}, ${detail}\n\n## Pages in this design\n- Startseite: the homepage\n- Kontakt: the main action`,
+    dev_design: `## Pages in this design\n- Startseite: the homepage\n- Kontakt: the main action\n\n## Layout direction\nFixture layout (${detail}).\n\n## Pages and sections\n### Startseite\n1. Fixture section.\n\n## Motion\nNone.`,
     dev_revision: `# Design improvement: ${company}, ${detail}`,
     dev_build: `# Build: ${company}`,
     dev_handover: `# ${company} Website Handoff`,
@@ -85,7 +88,7 @@ function fixtureText(job: DevPromptId, company: string, detail: string): string 
     dev_design: '\n\n## Pages not designed yet\n- Impressum',
     dev_revision: '\n\n## For the client\n- Fixture change.',
   };
-  return `${title[job]}\n\n## Goal\nFixture text.${tail[job] ?? ''}`;
+  return job === 'dev_design' ? `${title[job]}${tail[job]}` : `${title[job]}\n\n## Goal\nFixture text.${tail[job] ?? ''}`;
 }
 
 /** Asks for one rewrite when a design or improvement prompt slips into code words. */
@@ -225,6 +228,12 @@ function clientSource(value: string, context: PromptContext, leadId: string) {
     const label = clientSourceLabel(value, context.clientReferences, context.referenceShots) ?? "The client's screenshots";
     return { kind: 'screenshots' as const, label, typed: '', url: null, shots, key: sourceKey({ kind: 'screenshots', leadId, shots }) };
   }
+  if (value === CLIENT_SITE) {
+    // Form B: the client's current website, read for its brand (colours, fonts, imagery).
+    if (!context.existingUrl) return null;
+    const url = normalizeSiteUrl(context.existingUrl);
+    return { kind: 'link' as const, label: `The client's current website: ${domainOf(context.existingUrl)}`, typed: context.existingUrl, url, shots: [], key: url ? sourceKey({ kind: 'link', url }) : null };
+  }
   const index = clientLinkIndex(value);
   const ref = index === null ? undefined : context.clientReferences[index];
   if (!ref) return null;
@@ -358,7 +367,7 @@ export async function generateDesignProposals(
 ): Promise<GenerateResult> {
   const ready = await prepare(leadId, false);
   if ('error' in ready) return { ok: false, error: ready.error as string };
-  const { onboarding, context, definition, project, modelId, company } = ready;
+  const { onboarding, context, definition, project, company } = ready;
   if (project.approved_version_id) return { ok: false, error: 'The design is approved and locked. Reopen it first.' };
 
   const options = definition.fields.find((f) => f.id === REFERENCE_FIELD)?.options ?? [];
@@ -388,24 +397,28 @@ export async function generateDesignProposals(
     return { slug, name: option?.label_en ?? slug, url: option?.url ?? null, spec: await loadReferenceSpec(slug) };
   };
   const system = await instructionFor('dev_design');
+  // The creative part comes from its own model; the rest of the prompt is assembled in code.
+  const creativeModel = fixtureMode() ? 'fixture' : definition.settings.creativeModel;
+  const site = context.funnel === 'B' ? await currentSite(leadId) : null;
 
   try {
     const drafts = await Promise.all(
       PROPOSALS.map(async (proposal) => {
         const reference = await resolve(references[proposal]);
-        const prompt = designPromptInput(context, proposal, reference, project.internal_notes, references);
-        const content = await runModel({
+        const prompt = designPromptInput(context, proposal, reference, project.internal_notes, references, site?.spec ?? null);
+        const creative = await runModel({
           formId: onboarding.id,
           job: 'dev_design',
-          modelId,
+          modelId: creativeModel,
           system,
           prompt,
-          fixture: `${fixtureText('dev_design', company, `Proposal ${proposalNumber(proposal)}`)}\n\n## Layout direction\n${reference ? `Follows ${reference.name}.` : "From the client's answers."}`,
-          check: designLanguageCheck,
+          fixture: fixtureText('dev_design', company, reference ? `follows ${reference.name}` : "from the client's answers"),
+          check: (text) => creativeCheck(text) ?? designLanguageCheck(text),
           timeoutMs: DESIGN_MODEL_MS,
         }).catch((err) => {
           throw new Error(`Proposal ${proposalNumber(proposal)}: ${err instanceof Error ? err.message : String(err)}`);
         });
+        const content = assembleDesignPrompt({ context, proposal, reference, leads: references, creative, site });
         return { proposal, reference, content };
       }),
     );
@@ -417,7 +430,7 @@ export async function generateDesignProposals(
         proposal: d.proposal,
         reference_slug: d.reference?.slug ?? null,
         content: d.content,
-        model: modelId,
+        model: creativeModel,
         created_by: by,
       })),
     );
@@ -425,6 +438,22 @@ export async function generateDesignProposals(
   } catch (err) {
     return failure(err);
   }
+}
+
+/** A Form B client's current website as the design prompt uses it, once it has been read. */
+async function currentSite(leadId: string): Promise<CurrentSite | null> {
+  if (!(await siteReadsReady())) return null;
+  const read = await loadSiteRead(leadId);
+  if (!read || read.status !== 'ready' || !read.spec) return null;
+  const url = normalizeSiteUrl(read.url);
+  const design = url ? await latestSpec(sourceKey({ kind: 'link', url })) : null;
+  return {
+    spec: read.spec,
+    designSpec: design?.content ?? null,
+    logos: read.assets.filter((a) => a.kind === 'image' && a.logo).map((a) => a.path),
+    fontFiles: read.assets.filter((a) => a.kind === 'font').map((a) => ({ family: a.label, file: a.path, weight: a.weight, style: a.style })),
+    googleFonts: read.found.googleFonts ?? [],
+  };
 }
 
 /** The newest design prompt of a proposal: what Claude Design made that proposal from. */

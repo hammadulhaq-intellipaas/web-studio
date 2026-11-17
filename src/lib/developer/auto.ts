@@ -2,8 +2,15 @@ import 'server-only';
 import { loadDeveloperClient } from './clients';
 import { buildPromptContext } from './context';
 import { AUTO_BY } from './auto-status';
-import type { AutoStep } from './auto-trigger';
+import { getOnboardingDefinition } from '@/lib/onboarding/definition';
+import { SITE_PHASES, type AutoStep } from './auto-trigger';
 import { generateDesignProposals, generateReferenceSpec } from './generate';
+import { describeSitePhotos, sortSiteContent } from './old-site-content';
+import { beginSiteRead, downloadSiteAssets, loadSiteRead, readSitePages, saveSiteRead, siteReadsReady } from './old-site-read';
+import { buildOwnSiteSpec } from './old-site-spec';
+import { CLIENT_SITE, sourceKey } from './reference-sources';
+import { latestSpec } from './reference-specs';
+import { normalizeSiteUrl } from '@/lib/showcase/shared';
 import { defaultReferences, PROPOSALS } from './messages';
 import { clientChoices, isClientSource } from './reference-sources';
 import { referenceSpecsReady } from './reference-specs';
@@ -18,11 +25,50 @@ import { developerSchemaReady, loadProject, loadPrompts } from './store';
  * Never overwrites anything: a client who already has design prompts, or an approved design, is
  * left alone. Failures are logged; the team can still generate on the Design tab.
  */
-export async function runAutoStep(leadId: string, step: AutoStep): Promise<AutoStep | null> {
+export async function runAutoStep(leadId: string, step: AutoStep, origin = ''): Promise<AutoStep | null> {
   const log = (msg: string) => console.log(`[developer/auto] ${leadId} ${step.step}: ${msg}`);
+
+  if (step.step === 'build') {
+    const { runBuildStep } = await import('./app-design');
+    const started = Date.now();
+    const next = await runBuildStep(leadId, step, origin);
+    log(`${step.phase}${step.index !== undefined ? ` ${step.index + 1}` : ''} took ${Math.round((Date.now() - started) / 1000)} s`);
+    return next;
+  }
 
   if (step.step === 'begin') {
     if (!(await developerSchemaReady())) return log('developer tables missing'), null;
+    const client = await loadDeveloperClient(leadId);
+    if (!client?.onboarding) return log('no onboarding form'), null;
+    // Form B: read the client's current website first; its content and brand go into the prompts.
+    const context = await buildPromptContext(client.lead, client.onboarding.id);
+    if (context?.funnel === 'B' && context.existingUrl && (await siteReadsReady())) {
+      const url = await beginSiteRead(leadId, context.existingUrl);
+      if (url) return log(`reading ${url}`), { step: 'site', phase: 'pages' };
+      log(`"${context.existingUrl}" is not a public web address; not read`);
+    }
+    return { step: 'refs' };
+  }
+
+  if (step.step === 'site') {
+    const started = Date.now();
+    const next = SITE_PHASES[SITE_PHASES.indexOf(step.phase) + 1];
+    const onward: AutoStep = next ? { step: 'site', phase: next } : { step: 'refs' };
+    try {
+      await runSitePhase(leadId, step.phase);
+      log(`${step.phase} done in ${Math.round((Date.now() - started) / 1000)} s`);
+    } catch (err) {
+      const why = err instanceof Error ? err.message : String(err);
+      log(`${step.phase} failed: ${why}`);
+      const row = await loadSiteRead(leadId);
+      if (row) await saveSiteRead(leadId, { notes: [...(row.notes ?? []), `${step.phase}: ${why}`] });
+    }
+    // A site that could not be read at all: go on with the prompts from the form alone.
+    const row = await loadSiteRead(leadId);
+    return row?.status === 'failed' ? { step: 'refs' } : onward;
+  }
+
+  if (step.step === 'refs') {
     const client = await loadDeveloperClient(leadId);
     if (!client?.onboarding) return log('no onboarding form'), null;
     if (await alreadyDone(leadId)) return log('prompts exist or design approved, left alone'), null;
@@ -53,6 +99,29 @@ export async function runAutoStep(leadId: string, step: AutoStep): Promise<AutoS
   const result = await generateDesignProposals(leadId, step.references, AUTO_BY);
   log(result.ok ? `both prompts written in ${Math.round((Date.now() - started) / 1000)} s` : `failed: ${result.error}`);
   return null;
+}
+
+/** One part of reading the client's current website (see old-site-read.ts). */
+export async function runSitePhase(leadId: string, phase: (typeof SITE_PHASES)[number]): Promise<void> {
+  const client = await loadDeveloperClient(leadId);
+  if (!client?.onboarding) throw new Error('no onboarding form');
+  const formId = client.onboarding.id;
+  const model = (await getOnboardingDefinition()).settings.model;
+  if (phase === 'pages') return readSitePages(leadId);
+  if (phase === 'assets') return downloadSiteAssets(leadId);
+  if (phase === 'content') return sortSiteContent(leadId, formId, model);
+  if (phase === 'photos') return describeSitePhotos(leadId, formId, model);
+  if (phase === 'design') {
+    // The measured design of the site (colours, fonts, layout), as for any reference website.
+    const result = await generateReferenceSpec(leadId, CLIENT_SITE, false, AUTO_BY);
+    if (!result.ok) throw new Error(result.error);
+    return;
+  }
+  const row = await loadSiteRead(leadId);
+  if (!row) throw new Error('No site read started.');
+  const url = normalizeSiteUrl(row.url);
+  const design = url ? await latestSpec(sourceKey({ kind: 'link', url })) : null;
+  await saveSiteRead(leadId, { spec: buildOwnSiteSpec(row, design?.content ?? null), status: 'ready', step: null });
 }
 
 async function alreadyDone(leadId: string): Promise<boolean> {

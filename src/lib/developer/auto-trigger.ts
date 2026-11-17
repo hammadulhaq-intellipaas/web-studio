@@ -8,8 +8,16 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
  * Vercel's five minutes. This module only starts a step; it pulls in nothing heavy, so the
  * onboarding confirmation can use it safely.
  */
+/** The parts of reading a Form B client's current website, in order (old-site-read.ts). */
+export const SITE_PHASES = ['pages', 'assets', 'content', 'photos', 'design', 'spec'] as const;
+export type SitePhase = (typeof SITE_PHASES)[number];
+
 export type AutoStep =
   | { step: 'begin' }
+  | { step: 'site'; phase: SitePhase }
+  /** A design made in the app (app-design.ts), one part per step. */
+  | { step: 'build'; versionId: string; phase: 'system' | 'page' | 'assets' | 'check' | 'fix' | 'recheck' | 'finish'; index?: number }
+  | { step: 'refs' }
   | { step: 'spec'; value: string; queue: string[]; references: { A: string | null; B: string | null } }
   | { step: 'prompts'; references: { A: string | null; B: string | null } };
 

@@ -46,13 +46,18 @@ export function siteAccess(env: Record<string, string | undefined> = process.env
  * (Supabase organisation and database password, each variable's value); the values to type are in
  * the comments, and nothing secret ever goes into the code or the build prompt.
  */
-export function setupCommands(project: string, cms = false, access: SiteAccess = siteAccess()): string {
+export function setupCommands(project: string, cms = false, access: SiteAccess = siteAccess(), currentSite = false): string {
   const lines = [
-    '# 1. A folder for the client. Put the downloaded design.zip into it, then:',
+    currentSite
+      ? '# 1. A folder for the client. Put the downloaded design.zip and current-site.zip (Design tab: the photos, logo and fonts of their current website) into it, then:'
+      : '# 1. A folder for the client. Put the downloaded design.zip into it, then:',
     `mkdir ${project}`,
     `cd ${project}`,
     'mkdir design',
     'tar -xf design.zip -C design',
+    // The current site's files land in design/assets/current-site; the build moves them into the
+    // client's own Supabase storage (build prompt, rule 13).
+    ...(currentSite ? ['tar -xf current-site.zip -C design'] : []),
     'git init -b main',
     '# 2. Private GitHub repository',
     `gh repo create ${project} --private --source . --remote origin`,

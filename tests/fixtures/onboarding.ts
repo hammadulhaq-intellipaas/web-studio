@@ -18,6 +18,9 @@ import type {
 export const SETTINGS: OnboardingSettings = {
   model: 'gpt-4o',
   revisionModel: 'gpt-6-sol',
+  creativeModel: 'gpt-6-sol',
+  designModel: 'anthropic/claude-opus-5.5',
+  fixModel: 'anthropic/claude-sonnet-5.5',
   maxFollowups: 12,
   maxRounds: 2,
   maxAiCalls: 20,

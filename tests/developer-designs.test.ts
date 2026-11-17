@@ -220,6 +220,9 @@ const context: PromptContext = {
   files: [{ question: 'Logo', name: 'logo.svg', type: 'image/svg+xml' }],
   status: 'confirmed',
   confirmedAt: '2026-10-28T10:00:00Z',
+  funnel: 'A',
+  existingUrl: null,
+  brandKeep: null,
 };
 const design = { proposal: 'A' as const, iteration: 2, reference: 'Graza' };
 const pin = {
@@ -420,6 +423,8 @@ describe('the design, improvement, build and handover instructions', () => {
     // Migration 030 renumbers the build prompt's rules, so the rule number is left out here.
     const unnumbered = (rule: string) => rule.replace(/^\d+\. /, '');
     for (const s of swaps) {
+      // Migration 034 replaced the whole design instruction (it became the creative part only).
+      if (s.id === 'dev_design') continue;
       expect(code[s.id]).toContain(unnumbered(s.after));
       expect(code[s.id]).not.toContain(s.before);
     }

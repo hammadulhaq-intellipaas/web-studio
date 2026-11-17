@@ -156,6 +156,9 @@ describe('defaults and the design prompt input', () => {
       files: [],
       status: 'confirmed',
       confirmedAt: null,
+      funnel: 'A',
+      existingUrl: null,
+      brandKeep: null,
     } as PromptContext;
     const input = JSON.parse(
       designPromptInput(context, 'A', { slug: 'client-link-1', name: "The client's link: bloom-mothers.de", url: 'https://www.bloom-mothers.de/', source: 'client_link', note: 'Spec written automatically.', spec: '# Bloom: reference spec' }, ''),
@@ -198,6 +201,9 @@ describe('defaults and the design prompt input', () => {
       files: [],
       status: 'confirmed',
       confirmedAt: null,
+      funnel: 'A',
+      existingUrl: null,
+      brandKeep: null,
     } as PromptContext;
     const input = JSON.parse(
       designPromptInput(context, 'A', { slug: 'rivian', name: 'Rivian', url: 'https://rivian.com/', spec: '# Rivian' }, '', { A: 'rivian', B: 'client-link-2' }),

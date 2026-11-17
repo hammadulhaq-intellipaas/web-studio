@@ -1,6 +1,11 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { headers } from 'next/headers';
+import { startAutoStep } from '@/lib/developer/auto-trigger';
+import { startAppDesign } from '@/lib/developer/app-design';
+import { buildPromptContext } from '@/lib/developer/context';
+import { beginSiteRead, siteReadsReady } from '@/lib/developer/old-site-read';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { loadDeveloperClient } from '@/lib/developer/clients';
 import { setCommentStatus } from '@/lib/developer/comments';
@@ -25,6 +30,53 @@ async function requireAdmin(): Promise<string | null> {
   } = await supabase.auth.getUser();
   if (!user) throw new Error('Unauthorized');
   return user.email ?? null;
+}
+
+/** This app's own address, for starting the background steps. */
+async function origin(): Promise<string> {
+  const h = await headers();
+  const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'localhost:3000';
+  const proto = h.get('x-forwarded-proto') ?? (host.startsWith('localhost') ? 'http' : 'https');
+  return `${proto}://${host}`;
+}
+
+/**
+ * Reads the client's current website (again): its pages, files, content, photos and design, then
+ * the spec. Runs in the background, a few minutes; existing design prompts are not touched.
+ */
+export async function readCurrentSite(leadId: string): Promise<Result> {
+  await requireAdmin();
+  if (!UUID.test(leadId)) return { ok: false, error: 'Unknown client.' };
+  try {
+    if (!(await siteReadsReady())) return { ok: false, error: 'Run migration 20261118000034 first.' };
+    const client = await loadDeveloperClient(leadId);
+    if (!client?.onboarding) return { ok: false, error: 'The client has no onboarding form.' };
+    const context = await buildPromptContext(client.lead, client.onboarding.id);
+    if (!context?.existingUrl) return { ok: false, error: 'The client did not give a website address.' };
+    const url = await beginSiteRead(leadId, context.existingUrl);
+    if (!url) return { ok: false, error: `"${context.existingUrl}" is not a public web address.` };
+    await startAutoStep(await origin(), leadId, { step: 'site', phase: 'pages' });
+    revalidatePath(`/admin/developer/${leadId}`);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: message(err) };
+  }
+}
+
+/** Makes a proposal's design in the app, from its newest design prompt, with the chosen model. */
+export async function makeAppDesign(leadId: string, proposal: Proposal, modelId: string): Promise<Result> {
+  const by = await requireAdmin();
+  if (!UUID.test(leadId) || (proposal !== 'A' && proposal !== 'B')) return { ok: false, error: 'Unknown proposal.' };
+  if (!/^[a-z0-9./:-]{3,80}$/i.test(modelId)) return { ok: false, error: 'Unknown model.' };
+  try {
+    const started = await startAppDesign(leadId, proposal, modelId, by);
+    if (!started.ok) return started;
+    await startAutoStep(await origin(), leadId, started.step);
+    revalidatePath(`/admin/developer/${leadId}`);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: message(err) };
+  }
 }
 
 /** Internal notes from Thorsten, Matt or Angelica that go into every design prompt. */

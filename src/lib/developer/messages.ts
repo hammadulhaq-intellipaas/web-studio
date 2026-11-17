@@ -34,7 +34,7 @@ export interface ReferenceForPrompt {
 const EXAMPLE_KEYS = new Set(['references', 'reference_sites', 'reference_likes', 'favourite_examples', 'example_sources']);
 
 /** One of the client's design examples, by its Design tab choice value, with what they like about it. */
-function exampleFacts(context: PromptContext, value: string) {
+export function exampleFacts(context: PromptContext, value: string) {
   const site = context.referenceSites.find((r) => r.slug === value);
   if (site) return { name: site.name, url: site.url, source: 'gallery' as const, liked: site.liked, notes: '', dislikes: site.dislikes, spec: site.spec };
   const index = clientLinkIndex(value);
@@ -50,17 +50,27 @@ function exampleFacts(context: PromptContext, value: string) {
  * examples, each with its likes and, for a gallery website, the spec sections of the parts they
  * like (its colours, fonts or photos may lend themselves to this proposal).
  */
-export function designPromptInput(
+export interface OtherExample {
+  name: string;
+  url: string | null;
+  source: 'gallery' | 'client_link' | 'client_pictures';
+  client_likes: string[];
+  client_notes: string | null;
+  client_dislikes: string | null;
+  leads_other_proposal: boolean;
+  spec_excerpts: string | null;
+}
+
+/** The client's examples other than this proposal's reference, with the spec sections of the parts they like. */
+export function otherExamples(
   context: PromptContext,
   proposal: Proposal,
-  reference: ReferenceForPrompt | null,
-  internalNotes: string,
-  leads: Record<Proposal, string | null> = { A: null, B: null },
-): string {
-  const facts = reference ? exampleFacts(context, reference.slug) : null;
-  const others = context.examples
+  reference: Pick<ReferenceForPrompt, 'slug'> | null,
+  leads: Record<Proposal, string | null>,
+): OtherExample[] {
+  return context.examples
     .filter((value) => value !== reference?.slug)
-    .map((value) => {
+    .map((value): OtherExample | null => {
       const f = exampleFacts(context, value);
       if (!f) return null;
       const sections = [...new Set(f.liked.flatMap((label) => LIKED_SPEC_SECTIONS[label] ?? []))].sort((a, b) => a - b);
@@ -77,7 +87,19 @@ export function designPromptInput(
         spec_excerpts: excerpt || null,
       };
     })
-    .filter(Boolean);
+    .filter((o): o is OtherExample => o !== null);
+}
+
+export function designPromptInput(
+  context: PromptContext,
+  proposal: Proposal,
+  reference: ReferenceForPrompt | null,
+  internalNotes: string,
+  leads: Record<Proposal, string | null> = { A: null, B: null },
+  currentSite: string | null = null,
+): string {
+  const facts = reference ? exampleFacts(context, reference.slug) : null;
+  const others = otherExamples(context, proposal, reference, leads);
   return JSON.stringify(
     {
       proposal: proposalNumber(proposal),
@@ -100,6 +122,7 @@ export function designPromptInput(
           }
         : null,
       other_examples: others,
+      current_site: currentSite,
       uploaded_files: context.files,
       internal_notes: internalNotes.trim() || null,
     },

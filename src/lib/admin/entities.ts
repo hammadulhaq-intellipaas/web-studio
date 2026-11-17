@@ -418,6 +418,9 @@ export const SETTINGS: SettingDef[] = [
   // Onboarding form
   { key: 'onb_model', label: 'Onboarding: AI model', type: 'text', description: 'Model id for the completeness pass, the brief writer and "help me say this better" (e.g. "gpt-6-luna", or "openai/gpt-6-luna" on OpenRouter).' },
   { key: 'dev_revision_model', label: 'Developers: design improvement model', type: 'text', description: 'Model id that writes the design improvement prompts from the client\'s comments and their screenshots (default "gpt-6-sol"; "openai/gpt-6-sol" on OpenRouter).' },
+  { key: 'dev_creative_model', label: 'Developers: design prompt, creative part', type: 'text', description: 'Model id that writes the creative direction of the design prompt; the content, brand and rules around it are assembled in code (default "gpt-6-sol"; try "gpt-6-luna" to compare).' },
+  { key: 'dev_design_model', label: 'Developers: designs made in the app', type: 'text', description: 'Model id that makes a design in the app from the design prompt (default "anthropic/claude-opus-5.5", through OpenRouter; "gpt-6-sol" to compare).' },
+  { key: 'dev_fix_model', label: 'Developers: screen-size fixes', type: 'text', description: 'Model id that fixes what the checks at the seven screen sizes found in a design made in the app (default "anthropic/claude-sonnet-5.5"; "gpt-6-sol" works too).' },
   { key: 'onb_max_followups', label: 'Onboarding: max follow-up questions', type: 'number', description: 'Total follow-up questions per form across all rounds (spec: 12).' },
   { key: 'onb_max_rounds', label: 'Onboarding: max follow-up rounds', type: 'number', description: 'Gap-check rounds at review time (spec: 2).' },
   { key: 'onb_max_ai_calls', label: 'Onboarding: max model calls per form', type: 'number', description: 'Hard cost cap per form; further calls fall back to the plain rendering.' },

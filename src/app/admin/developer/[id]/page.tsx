@@ -23,6 +23,13 @@ import { BuildPanel } from '@/components/admin/developer/BuildPanel';
 import { DesignPromptsPanel, type DesignPromptRow, type ReferenceChoice, type ReferenceSpecView } from '@/components/admin/developer/DesignPromptsPanel';
 import { DesignVersionsPanel, type ReviewInfo } from '@/components/admin/developer/DesignVersionsPanel';
 import { HandoverPanel } from '@/components/admin/developer/HandoverPanel';
+import { AppDesignForm } from '@/components/admin/developer/AppDesignForm';
+import { AutoRefresh } from '@/components/admin/developer/AutoRefresh';
+import { CurrentSitePanel, type CurrentSiteView } from '@/components/admin/developer/CurrentSitePanel';
+import { appBuilds, type AppBuildView } from '@/lib/developer/app-design-view';
+import { MODEL_CHOICES } from '@/lib/developer/app-design-models';
+import { loadSiteRead, siteReadsReady } from '@/lib/developer/old-site-read';
+import type { SiteContent } from '@/lib/developer/old-site-content';
 import type { GeneratedRow } from '@/components/admin/developer/PromptView';
 import { DEVELOPER_TABS, parseTab, promptsReady, type DeveloperTab } from '@/lib/developer/filters';
 
@@ -47,6 +54,18 @@ interface DesignData {
 }
 
 const TAB_LABELS: Record<DeveloperTab, string> = { design: 'Design', build: 'Build', handover: 'Handover' };
+
+/** Form B's current website, and the designs made in the app. */
+interface DesignExtras {
+  funnel: 'A' | 'B';
+  existingUrl: string | null;
+  site: CurrentSiteView | null;
+  builds: Record<string, AppBuildView>;
+  /** The proposals that have a design prompt, for making a design in the app. */
+  promptProposals: ('A' | 'B')[];
+  models: { id: string; label: string }[];
+  defaultModel: string;
+}
 
 function Card({ title, children, testId }: { title: string; children: React.ReactNode; testId?: string }) {
   return (
@@ -147,6 +166,7 @@ function DesignTab({
   data,
   workspace,
   revisions,
+  extras,
 }: {
   leadId: string;
   onboarding: DeveloperOnboarding | null;
@@ -154,13 +174,21 @@ function DesignTab({
   data: DesignData | null;
   workspace: Workspace | null;
   revisions: StoredPrompt[];
+  extras: DesignExtras | null;
 }) {
   const project = workspace?.project;
+  const running = Boolean(extras && (extras.site?.status === 'reading' || Object.values(extras.builds).some((b) => b.running)));
   return (
     <div className="space-y-4" data-testid="dev-panel-design">
+      <AutoRefresh active={running} />
       <Card title="Onboarding form" testId="dev-onboarding">
         <OnboardingStatus onboarding={onboarding} />
       </Card>
+      {extras?.funnel === 'B' && (
+        <Card title="Current website" testId="dev-current-site-card">
+          <CurrentSitePanel leadId={leadId} site={extras.site} existingUrl={extras.existingUrl} />
+        </Card>
+      )}
       {context && <ReferencesCard context={context} />}
       <Card title="Design prompts">
         <p className="mb-4 text-sm text-slate-600">
@@ -173,6 +201,15 @@ function DesignTab({
           <p className="text-sm text-slate-500">Prompts are generated once the client has an onboarding form.</p>
         )}
       </Card>
+      {extras && (
+        <Card title="Make a design in the app" testId="dev-app-design-card">
+          <p className="mb-3 text-sm text-slate-600">
+            Makes a proposal from its design prompt, page by page, checks it at seven screen widths (360 to 1920 px) and fixes what it finds. It
+            becomes the proposal&apos;s next iteration, with its own draft and review link, like an upload.
+          </p>
+          <AppDesignForm leadId={leadId} proposals={extras.promptProposals} models={extras.models} defaultModel={extras.defaultModel} />
+        </Card>
+      )}
       <Card title="Design versions" testId="dev-versions-card">
         {workspace && project ? (
           <DesignVersionsPanel
@@ -192,6 +229,7 @@ function DesignTab({
               original_name: v.original_name,
               uploaded_by: v.uploaded_by,
               created_at: v.created_at,
+              build: extras?.builds[v.id] ?? null,
             }))}
             approved={project.approved_version_id ? { id: project.approved_version_id, at: project.approved_at, by: project.approved_by } : null}
             offline={project.drafts_offline}
@@ -218,7 +256,22 @@ function MigrationNotice() {
   );
 }
 
-function BuildTab({ lead, company, workspace, prompts, pages }: { lead: Lead; company: string; workspace: Workspace | null; prompts: StoredPrompt[]; pages: { designed: string[]; more: number } | null }) {
+function BuildTab({
+  lead,
+  company,
+  workspace,
+  prompts,
+  pages,
+  currentSite,
+}: {
+  lead: Lead;
+  company: string;
+  workspace: Workspace | null;
+  prompts: StoredPrompt[];
+  pages: { designed: string[]; more: number } | null;
+  /** The client's current website was read: its files are unpacked next to the design. */
+  currentSite: boolean;
+}) {
   const project = workspace?.project;
   const approved = workspace?.versions.find((v) => v.id === project?.approved_version_id);
   const name = project?.draft_slug ?? slugify(company);
@@ -236,7 +289,7 @@ function BuildTab({ lead, company, workspace, prompts, pages }: { lead: Lead; co
             instructions={project.dev_instructions}
             project={name}
             cms={cms}
-            setup={setupCommands(name, cms)}
+            setup={setupCommands(name, cms, undefined, currentSite)}
             prompts={generated(prompts)}
           />
         ) : (
@@ -387,6 +440,41 @@ export default async function DeveloperClientPage({
     };
   }
 
+  let extras: DesignExtras | null = null;
+  if (context && design) {
+    const definition = await getOnboardingDefinition();
+    const read = context.funnel === 'B' && (await siteReadsReady()) ? await loadSiteRead(lead.id) : null;
+    const content = (read?.content ?? null) as SiteContent | null;
+    const models = [...MODEL_CHOICES];
+    if (!models.some((m) => m.id === definition.settings.designModel)) models.unshift({ id: definition.settings.designModel, label: definition.settings.designModel });
+    extras = {
+      funnel: context.funnel,
+      existingUrl: context.existingUrl,
+      site: read
+        ? {
+            url: read.url,
+            status: read.status,
+            step: read.step,
+            pages: read.pages.length,
+            images: read.assets.filter((a) => a.kind === 'image').length,
+            photosDescribed: Array.isArray(read.photos) ? read.photos.length : 0,
+            fonts: read.assets.filter((a) => a.kind === 'font').length,
+            pdfs: read.assets.filter((a) => a.kind === 'pdf').length,
+            facts: content?.facts.filter((f) => f.verified).length ?? 0,
+            openPoints: (content?.facts.filter((f) => !f.verified).length ?? 0) + (content?.missing.length ?? 0),
+            notes: read.notes ?? [],
+            error: read.error,
+            spec: read.spec,
+            updatedAt: read.updated_at,
+          }
+        : null,
+      builds: workspace ? await appBuilds(lead.id) : {},
+      promptProposals: [...new Set(design.prompts.map((p) => p.proposal).filter((p): p is 'A' | 'B' => p === 'A' || p === 'B'))].sort(),
+      models,
+      defaultModel: definition.settings.designModel,
+    };
+  }
+
   return (
     <div>
       <Link href="/admin/developer" className="text-sm font-semibold text-slate-500 hover:text-blue-600">
@@ -451,9 +539,18 @@ export default async function DeveloperClientPage({
       </nav>
 
       {tab === 'design' && (
-        <DesignTab leadId={lead.id} onboarding={onboarding} context={context} data={design} workspace={workspace} revisions={tabPrompts} />
+        <DesignTab leadId={lead.id} onboarding={onboarding} context={context} data={design} workspace={workspace} revisions={tabPrompts} extras={extras} />
       )}
-      {tab === 'build' && <BuildTab lead={lead} company={company} workspace={workspace} prompts={tabPrompts} pages={buildPages} />}
+      {tab === 'build' && (
+        <BuildTab
+          lead={lead}
+          company={company}
+          workspace={workspace}
+          prompts={tabPrompts}
+          pages={buildPages}
+          currentSite={tab === 'build' && (await siteReadsReady()) ? (await loadSiteRead(lead.id))?.status === 'ready' : false}
+        />
+      )}
       {tab === 'handover' && <HandoverTab lead={lead} company={company} workspace={workspace} docs={tabPrompts} />}
     </div>
   );
