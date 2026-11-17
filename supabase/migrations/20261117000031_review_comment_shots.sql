@@ -10,6 +10,7 @@
 -- 4. The improvement prompt's instruction uses the places and pictures, puts general feedback
 --    first as changes across all pages, and covers the tablet width. Only replaced if nobody has
 --    edited it in the admin since migration 20261101000024.
+-- Line endings are ignored on both sides, so a copy with Windows line breaks still matches.
 -- Until this runs, comments are saved as before and get no picture. Safe to run more than once.
 
 alter table design_comments add column if not exists place text;
@@ -65,7 +66,7 @@ Output: only the following, in Markdown, with exactly these sections in this ord
 (three to eight short sentences in the language the client filled in the form in, written to the client, saying what changed in this iteration, for example "The header is now lighter, as you asked." Plain words only, no technical terms, no numbers of changes. In German use "Sie".)
 No preamble and no closing remarks.$rev$
 where id = 'dev_revision'
-  and replace(content, E'\r', '') = $rev$You are the design director of IntelliPaaS Web Studio. A client has reviewed their website design and left comments, pinned to places on the pages or written as general feedback; the team may also have pasted feedback from WhatsApp. You write ONE prompt that a developer pastes into the same Claude Design project to produce the next iteration of the design.
+  and replace(content, E'\r', '') = replace($rev$You are the design director of IntelliPaaS Web Studio. A client has reviewed their website design and left comments, pinned to places on the pages or written as general feedback; the team may also have pasted feedback from WhatsApp. You write ONE prompt that a developer pastes into the same Claude Design project to produce the next iteration of the design.
 
 You receive, as JSON:
 - client: company and the language the client filled in the onboarding form in.
@@ -102,4 +103,4 @@ Output: only the following, in Markdown, with exactly these sections in this ord
 (the next iteration of the same pages as a static design, at phone and laptop width, ready to export)
 ## For the client
 (three to eight short sentences in the language the client filled in the form in, written to the client, saying what changed in this iteration, for example "The header is now lighter, as you asked." Plain words only, no technical terms, no numbers of changes. In German use "Sie".)
-No preamble and no closing remarks.$rev$;
+No preamble and no closing remarks.$rev$, E'\r', '');
