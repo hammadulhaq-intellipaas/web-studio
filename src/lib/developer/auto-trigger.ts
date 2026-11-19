@@ -34,12 +34,37 @@ export function validSignature(leadId: string, step: AutoStep, signature: string
   return expected.length === given.length && timingSafeEqual(expected, given);
 }
 
-/** Starts one step; the route answers at once and does the work after its response. */
-export async function startAutoStep(origin: string, leadId: string, step: AutoStep): Promise<void> {
-  const res = await fetch(`${origin}/api/developer/auto`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-auto-signature': autoSignature(leadId, step) },
-    body: JSON.stringify({ leadId, step }),
-  });
-  if (!res.ok) throw new Error(`step ${step.step} not started: ${res.status}`);
+/**
+ * Starts one step; the route answers at once and does the work after its response. A step our
+ * own app refuses or cannot be reached for (Vercel's recursion protection answers 508 after a few
+ * steps in a row) goes on the queue, and the next cron run starts it as a new chain
+ * (auto-queue.ts). `attempts` counts the refused starts so far.
+ */
+export async function startAutoStep(origin: string, leadId: string, step: AutoStep, attempts = 0): Promise<void> {
+  let status = 0;
+  try {
+    const res = await fetch(`${origin}/api/developer/auto`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-auto-signature': autoSignature(leadId, step) },
+      body: JSON.stringify({ leadId, step }),
+    });
+    if (res.ok) return;
+    status = res.status;
+  } catch {
+    // Unreachable for a moment: worth another try, like a refusal.
+  }
+  const why = `step ${step.step} not started: ${status || 'no answer'}`;
+  // A request we built wrongly (400) or signed wrongly (403) fails the same way every time.
+  const retry = status !== 400 && status !== 403 && attempts < MAX_QUEUE_ATTEMPTS;
+  if (retry) {
+    const { enqueueAutoStep } = await import('./auto-queue');
+    if (await enqueueAutoStep(leadId, step, why, attempts + 1)) {
+      console.log(`[developer/auto] ${leadId} ${step.step} queued for the next run (${why})`);
+      return;
+    }
+  }
+  throw new Error(why);
 }
+
+/** A step refused this many times is given up and logged, not queued again. */
+export const MAX_QUEUE_ATTEMPTS = 5;
