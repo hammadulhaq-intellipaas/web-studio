@@ -16,7 +16,9 @@ export async function GET(request: Request) {
   if (secret && request.headers.get('authorization') !== `Bearer ${secret}`) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }
-  const origin = new URL(request.url).origin;
+  // The public address, never the one Vercel's cron calls: that is the deployment's own URL,
+  // which deployment protection answers with 401 (19 Nov 2026).
+  const origin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || new URL(request.url).origin;
   const steps = await takeQueuedSteps();
   const results = await Promise.allSettled(steps.map((s) => startAutoStep(origin, s.lead_id, s.step, s.attempts)));
   results.forEach((r, i) => {
