@@ -161,7 +161,7 @@ const rows: Omit<OnbBriefSection, 'sort' | 'active'>[] = [
     title_de: 'Rechtliches und Compliance',
     title_en: 'Legal and compliance',
     instructions:
-      'Legal-page decision (reuse / none / not sure) and who reviewed them; extra documents needed; whether the business sells to consumers online and the accessibility (BFSG) note if so; the Impressum data: legal name, form, address, register entry, VAT ID, responsible person and public phone. Accounts and domain: who holds which login, names only. The domain is only asked for a brand new site; for changes to an existing one it is the current website address.',
+      'Legal-page decision (reuse / none / not sure) and who reviewed them; extra documents needed; whether the business sells to consumers online and the accessibility (BFSG) note if so; the Impressum data: legal name, form, address, register entry, VAT ID, responsible person and public phone. If the client has a website (legal_current is answered), the Impressum data was not asked: say it is taken from their current Impressum, and whether they said it is up to date, are not sure or need it updated. Accounts and domain: who holds which login, names only. The domain is only asked for a brand new site; for changes to an existing one it is the current website address.',
     source_fields: [
       'vat_id',
       'register_entry',

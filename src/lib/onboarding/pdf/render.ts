@@ -25,7 +25,9 @@ function answerSections(definition: OnboardingDefinition, record: OnboardingForm
           label: loc(f as unknown as Record<string, unknown>, 'label', locale),
           value: clientValue(f, record.answers[f.id], locale, files),
         })),
-    }));
+    }))
+    // A screen this client never saw (Form B has no business, inboxes or files screen).
+    .filter((s) => s.rows.length > 0);
 }
 
 /**

@@ -1,6 +1,9 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { BRAND_FIELDS, fields, FORM_A_ONLY } from '../supabase/seed/onboarding/fields';
-import { isRequiredNow, listedPages, matches, redesignPageList, visibility } from '@/lib/onboarding/logic';
+import { screens } from '../supabase/seed/onboarding/screens';
+import { isRequiredNow, listedPages, matches, redesignPageList, shownScreens, visibility } from '@/lib/onboarding/logic';
 import { menuFromHtml } from '@/lib/onboarding/site-menu';
 import type { Answers } from '@/lib/onboarding/types';
 
@@ -13,7 +16,21 @@ describe('the two funnels', () => {
   it('Form B leaves out what the old website answers, and asks its own questions', () => {
     const b = shown(formB);
     for (const id of FORM_A_ONLY) expect(b.has(id), id).toBe(false);
-    for (const id of ['redesign_reasons', 'current_site_notes', 'page_review', 'pages_to_add', 'brand_keep', 'legal_current', 'files_from_site']) expect(b.has(id), id).toBe(true);
+    for (const id of ['redesign_reasons', 'current_site_notes', 'page_review', 'pages_to_add', 'brand_keep', 'legal_current', 'private_content']) expect(b.has(id), id).toBe(true);
+  });
+
+  it('Form B skips the business, inboxes and files screens; Form A keeps every screen', () => {
+    const ids = (answers: Answers) => shownScreens(screens, visibility(fields, answers, 'de').visible).map((s) => s.id);
+    expect(ids(formB)).toEqual(['project', 'design', 'pages', 'integrations', 'access_legal', 'timing']);
+    expect(ids({ project_type: a('new') })).toEqual(screens.filter((s) => s.kind === 'questions').map((s) => s.id));
+  });
+
+  it('Form B asks only whether the Impressum is up to date, not its details', () => {
+    const b = shown(formB);
+    for (const id of ['legal_name', 'legal_form', 'address_street', 'vat_id', 'register_entry', 'content_responsible', 'approver', 'site_emails', 'assets_folder']) {
+      expect(b.has(id), id).toBe(false);
+    }
+    expect(b.has('legal_current')).toBe(true);
   });
 
   it('Form A asks everything it asked before, and none of Form B', () => {
@@ -51,11 +68,22 @@ describe('the two funnels', () => {
     expect(type.options.find((o) => o.value === 'changes')?.retired).toBe(true);
   });
 
-  it('makes the photo folder optional in Form B only', () => {
+  it('migration 035 writes every question as the seed has it', () => {
+    const sql = readFileSync(join(process.cwd(), 'supabase/migrations/20261119000035_form_b_shorter.sql'), 'utf8');
+    for (const f of fields) {
+      // A row can span lines (multi-line placeholders): it runs to the next row.
+      const start = sql.indexOf(`\n  ('${f.id}', '${f.screen_id}', ${f.sort}, `);
+      expect(start, f.id).toBeGreaterThan(0);
+      const end = sql.indexOf('\n  (', start + 1);
+      const row = sql.slice(start, end < 0 ? undefined : end);
+      expect(row.includes(`'${JSON.stringify(f.show_when).replace(/'/g, "''")}'::jsonb`), f.id).toBe(true);
+    }
+    expect(sql).toContain("update onb_fields set active = false where id = 'files_from_site'");
+  });
+
+  it('still requires a photo folder (or uploads) in Form A', () => {
     const folder = fields.find((f) => f.id === 'assets_folder')!;
-    const ctx = (answers: Answers) => ({ answers, files: {}, fields });
-    expect(isRequiredNow(folder, ctx(formB))).toBe(false);
-    expect(isRequiredNow(folder, ctx({ project_type: a('new') }))).toBe(true);
+    expect(isRequiredNow(folder, { answers: { project_type: a('new') }, files: {}, fields })).toBe(true);
   });
 });
 

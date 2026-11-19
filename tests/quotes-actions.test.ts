@@ -184,11 +184,21 @@ describe('ensureOnboardingForm', () => {
     expect(answers.booked_page_band).toEqual({ v: '58', src: 'lead' });
     expect(answers.project_type).toEqual({ v: 'redesign', src: 'lead' });
     expect(answers.existing_url).toEqual({ v: 'https://www.beyondtherapy.ch', src: 'lead' });
-    // Intake answers to the same question come across...
+    // A client with a website gets Form B, which takes the Impressum details from their current
+    // Impressum: the intake's legal form and VAT ID are not copied into questions it never shows.
+    expect(answers.legal_form).toBeUndefined();
+    expect(answers.vat_id).toBeUndefined();
+    expect(answers.legal_name).toBeUndefined();
+  });
+
+  it('copies the intake answers to the same question into Form A', async () => {
+    seedLead({ config: { ...seedConfig(), answers: { ...seedConfig().answers, hasSite: 'none' } } });
+    await ensureOnboardingForm(LEAD_ID);
+    const answers = fake.db.rows('onboarding_forms')[0].answers as Record<string, { v: unknown; src?: string }>;
     expect(answers.legal_form).toEqual({ v: 'GmbH', src: 'lead' });
     expect(answers.vat_id).toEqual({ v: 'CHE-123.456.789', src: 'lead' });
-    // ...but the trading name is not the registered name, and this one goes straight onto
-    // the legal notice, so it is left for the client to write.
+    // The trading name is not the registered name, and this one goes straight onto the legal
+    // notice, so it is left for the client to write.
     expect(answers.legal_name).toBeUndefined();
   });
 

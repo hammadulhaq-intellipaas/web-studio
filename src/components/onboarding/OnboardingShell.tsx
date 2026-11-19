@@ -7,6 +7,7 @@ import {
   clearHidden,
   isRequiredNow,
   mergePatch,
+  shownScreens,
   validateScreen,
   visibility,
   type FieldError,
@@ -65,20 +66,29 @@ export function OnboardingShell({
 
   /* ---------------------------------------------------------------- steps */
 
+  const { visible } = useMemo(
+    () => visibility(definition.fields, record.answers, locale),
+    [definition.fields, record.answers, locale],
+  );
+
+  // Only the screens with a question for this client: Form B skips business, inboxes and files.
+  // The list changes with the answers (the funnel is chosen on the first screen), so the step is
+  // kept by id, never by position.
   const steps = useMemo(() => {
-    const questions = definition.screens.filter((s) => s.kind === 'questions');
     const review = definition.screens.find((s) => s.kind === 'review');
+    const questions = shownScreens(definition.screens, visible);
     return review ? [...questions, review] : questions;
-  }, [definition.screens]);
+  }, [definition.screens, visible]);
 
   const reviewIndex = steps.findIndex((s) => s.kind === 'review');
 
-  const [stepIndex, setStepIndex] = useState(() => {
-    if (record.status !== 'in_progress' && reviewIndex >= 0) return reviewIndex;
-    const saved = steps.findIndex((s) => s.id === record.current_step);
-    return saved >= 0 ? saved : 0;
+  const [stepId, setStepId] = useState(() => {
+    if (record.status !== 'in_progress' && reviewIndex >= 0) return steps[reviewIndex].id;
+    return steps.find((s) => s.id === record.current_step)?.id ?? steps[0]?.id ?? '';
   });
-  const [maxReached, setMaxReached] = useState(stepIndex);
+  const stepIndex = Math.max(0, steps.findIndex((s) => s.id === stepId));
+  const [reached, setReached] = useState(() => new Set(steps.slice(0, stepIndex + 1).map((s) => s.id)));
+  const maxReached = steps.reduce((max, s, i) => (reached.has(s.id) ? Math.max(max, i) : max), stepIndex);
   const [showErrors, setShowErrors] = useState(false);
   // Opened from the review to change something: the screen shows the way straight back.
   const [fixMode, setFixMode] = useState(false);
@@ -95,8 +105,7 @@ export function OnboardingShell({
     window.history.replaceState({ ...(window.history.state ?? {}), onbStep: step?.id }, '');
     const onPop = (ev: PopStateEvent) => {
       const id = (ev.state as { onbStep?: string } | null)?.onbStep;
-      const i = steps.findIndex((s) => s.id === id);
-      if (i >= 0) setStepIndex(i);
+      if (id) setStepId(id);
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
@@ -107,8 +116,8 @@ export function OnboardingShell({
     (index: number) => {
       const target = steps[index];
       if (!target) return;
-      setStepIndex(index);
-      setMaxReached((m) => Math.max(m, index));
+      setStepId(target.id);
+      setReached((prev) => new Set([...prev, ...steps.slice(0, index + 1).map((s) => s.id)]));
       setShowErrors(false);
       setReturnTried(false);
       if (target.kind === 'review') setFixMode(false);
@@ -127,10 +136,6 @@ export function OnboardingShell({
     return counts;
   }, [files]);
 
-  const { visible } = useMemo(
-    () => visibility(definition.fields, record.answers, locale),
-    [definition.fields, record.answers, locale],
-  );
   const screenFields = useMemo(() => (step ? visible.filter((f) => f.screen_id === step.id) : []), [visible, step]);
 
   const requiredNow = useCallback(

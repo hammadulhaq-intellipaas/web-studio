@@ -71,7 +71,7 @@ const FROM_INTAKE: Record<string, string> = {
  * from the old site instead. They are not copied into a Form B, where the form would clear
  * them on its first save anyway. Keep in step with FORM_A_ONLY in supabase/seed/onboarding/fields.ts.
  */
-const FORM_A_ONLY_FROM_INTAKE = new Set(['opening_hours', 'usps', 'catalogue', 'business_one_liner']);
+const FORM_A_ONLY_FROM_INTAKE = new Set(['opening_hours', 'usps', 'catalogue', 'business_one_liner', 'legal_form', 'vat_id']);
 
 /**
  * Every prefilled answer is tagged `src: 'lead'` so the form can mark it as carried over
@@ -104,10 +104,11 @@ export function prefillFromLead(lead: PrefillSource): Answers {
     if (hasSite === 'website') put('existing_url', lead.source_url);
   }
 
-  if (lead.drive_link && looksLikeLink(lead.drive_link)) put('assets_folder', lead.drive_link);
+  const formB = out.project_type?.v === 'redesign';
+  // Form B has no files screen (the photos come from the current website); the link stays on the lead.
+  if (!formB && lead.drive_link && looksLikeLink(lead.drive_link)) put('assets_folder', lead.drive_link);
 
   const intake = lead.stage2?.fields ?? {};
-  const formB = out.project_type?.v === 'redesign';
   for (const [from, to] of Object.entries(FROM_INTAKE)) if (!(formB && FORM_A_ONLY_FROM_INTAKE.has(to))) put(to, intake[from]);
 
   return out;

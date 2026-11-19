@@ -114,7 +114,9 @@ export function UnderstoodStep({
             value: stripDashes(clientValue(f, record.answers[f.id], locale, files)),
             required: isRequiredNow(f, ctx),
           })),
-      }));
+      }))
+      // A screen this client never saw (Form B has no business, inboxes or files screen).
+      .filter((s) => s.rows.length > 0);
   }, [definition, record.answers, files, counts, locale]);
 
   const readBack = useMemo(() => understoodText(definition, record.answers, locale), [definition, record.answers, locale]);

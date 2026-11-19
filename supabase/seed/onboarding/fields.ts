@@ -279,35 +279,6 @@ const business: OnbField[] = [
     placeholder_en: 'Workshop, second address. Collections only, no showroom.',
     config: { rows: 3 },
   }),
-  field(
-    'private_content',
-    'business',
-    'radio',
-    'Gibt es etwas, das hinter ein Passwort oder einen Mitglieder-Login gehört?',
-    'Is there anything that should sit behind a password or a member login?',
-    {
-      required: true,
-      help_de: 'Bitte sagen Sie uns hier auch, was niemals öffentlich erscheinen darf, etwa Preise, Margen oder Kundennamen.',
-      help_en: 'Please tell us here too if something must never appear publicly, such as prices, margins or named clients.',
-      options: YES_NO_UNSURE,
-    },
-  ),
-  field(
-    'private_content_detail',
-    'business',
-    'textarea',
-    'Was gehört dahinter und wer bekommt Zugang?',
-    'What should sit behind it and who gets access?',
-    {
-      required: true,
-      show_when: when('private_content', 'yes'),
-      help_de: 'Mitgliederbereiche sind nicht Teil des gebuchten Pakets, wir kommen dazu separat auf Sie zu.',
-      help_en: 'Member areas are not part of the booked package, so we will come back to you on this separately.',
-      placeholder_de: 'Händlerpreisliste, nur für unsere zwölf Fachkunden',
-      placeholder_en: 'Trade price list, for our twelve trade customers only',
-      config: { rows: 3 },
-    },
-  ),
 ];
 
 /* ------------------------------------------------------------------ Step 3 · inboxes */
@@ -975,6 +946,37 @@ const pages: OnbField[] = [
       config: { rows: 3 },
     },
   ),
+  // On the pages screen since 19 Nov 2026 (it was on the business screen, which Form B no
+  // longer shows): what sits behind a login is a question about the site's pages.
+  field(
+    'private_content',
+    'pages',
+    'radio',
+    'Gibt es etwas, das hinter ein Passwort oder einen Mitglieder-Login gehört?',
+    'Is there anything that should sit behind a password or a member login?',
+    {
+      required: true,
+      help_de: 'Bitte sagen Sie uns hier auch, was niemals öffentlich erscheinen darf, etwa Preise, Margen oder Kundennamen.',
+      help_en: 'Please tell us here too if something must never appear publicly, such as prices, margins or named clients.',
+      options: YES_NO_UNSURE,
+    },
+  ),
+  field(
+    'private_content_detail',
+    'pages',
+    'textarea',
+    'Was gehört dahinter und wer bekommt Zugang?',
+    'What should sit behind it and who gets access?',
+    {
+      required: true,
+      show_when: when('private_content', 'yes'),
+      help_de: 'Mitgliederbereiche sind nicht Teil des gebuchten Pakets, wir kommen dazu separat auf Sie zu.',
+      help_en: 'Member areas are not part of the booked package, so we will come back to you on this separately.',
+      placeholder_de: 'Händlerpreisliste, nur für unsere zwölf Fachkunden',
+      placeholder_en: 'Trade price list, for our twelve trade customers only',
+      config: { rows: 3 },
+    },
+  ),
   field('visitor_action', 'pages', 'radio', 'Was sollen Besucher auf Ihrer Website vor allem tun?', 'What is the main action you want visitors to take on your website?', {
     required: true,
     help_de: 'Bitte wählen Sie ein Hauptziel. Danach richten wir Aufbau, Inhalte und Handlungsaufrufe der Website aus.',
@@ -1198,16 +1200,8 @@ const integrations: OnbField[] = [
 
 /* ------------------------------------------------------------------ Step 7 · logo, photos, files */
 
+// Form A only: Form B copies the photos, logo and documents from the current website.
 const files: OnbField[] = [
-  // Form B: the old site's photos, logo and files are copied for them; a folder is only for new ones.
-  field('files_from_site', 'files', 'notice', 'Ihre Fotos und Ihr Logo übernehmen wir', 'We take your photos and logo', {
-    show_when: when('project_type', 'redesign'),
-    help_de:
-      'Alle Bilder, Ihr Logo und Ihre Dokumente holen wir von Ihrer jetzigen Website. Haben Sie neue oder bessere Fotos, teilen Sie sie unten, sonst lassen Sie die Felder einfach leer.',
-    help_en:
-      'We take every picture, your logo and your documents from your current website. If you have new or better photos, share them below; otherwise just leave these fields empty.',
-    config: { tone: 'heading' },
-  }),
   field('assets_folder', 'files', 'url', 'Wie lautet der Link zu Ihrem Ordner?', 'What is the link to your folder?', {
     required: true,
     help_de:
@@ -1218,8 +1212,6 @@ const files: OnbField[] = [
     placeholder_en: 'https://drive.google.com/drive/folders/…',
     config: {
       required_unless: 'assets_upload',
-      // Form B: the photos come from the old site, so a folder is only for new ones.
-      optional_when: when('project_type', 'redesign'),
       link_setting: 'onb_folder_help_url',
       link_label_de: 'So geben Sie einen Ordner frei',
       link_label_en: 'How to share a folder',
@@ -1510,6 +1502,9 @@ export const retiredFieldIds = [
   // 17 Nov 2026: the design examples summary became favourite_examples, which also stores the
   // client's two favourites when they chose more than two examples.
   'design_examples_summary',
+  // 19 Nov 2026: the "we take your photos and logo" notice was Form B's only reason to show the
+  // files screen, which Form B no longer shows.
+  'files_from_site',
 ];
 
 /* ------------------------------------------------------------------ the two funnels */
@@ -1519,11 +1514,32 @@ export const retiredFieldIds = [
  * - Form A ("new", and "changes" from before the split): every question.
  * - Form B ("redesign", the client has a website and wants a new one): the short form. These
  *   questions are left out because the old website answers them (its texts, services, pages,
- *   contact details and legal pages are read when the form is submitted). It still asks what
- *   the site cannot tell: the legal company details, inboxes, approver, integrations,
- *   languages, access and timing.
+ *   contact details, photos, logo and legal pages are read when the form is submitted). Since
+ *   19 Nov 2026 (the user's call) that includes the Impressum details, which are taken from the
+ *   current Impressum (Form B asks only whether it is up to date, legal_current), the inboxes
+ *   screen and the whole files screen. A screen left with no question is skipped.
  */
 export const FORM_A_ONLY = [
+  // The Impressum details.
+  'legal_name',
+  'legal_form',
+  'address_street',
+  'address_city',
+  'vat_id',
+  'register_entry',
+  'content_responsible',
+  // The inboxes screen.
+  'site_emails',
+  'routing_split',
+  'routing_single',
+  'notification_routing',
+  'approver',
+  // The files screen.
+  'assets_folder',
+  'assets_sharing_confirmed',
+  'assets_upload',
+  'photo_portal_needed',
+  'photo_portal',
   'public_phone',
   'opening_hours',
   'service_scope',

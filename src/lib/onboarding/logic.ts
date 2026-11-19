@@ -166,6 +166,15 @@ export function visibility(fields: OnbField[], answers: Answers, locale?: Locale
   return { visible, hidden };
 }
 
+/**
+ * The question screens this client sees: a screen left with no visible question (only
+ * notices, or nothing) is skipped. Form B has no business, inboxes or files screen this way.
+ */
+export function shownScreens<S extends { id: string; kind: string }>(screens: S[], visible: OnbField[]): S[] {
+  const withQuestions = new Set(visible.filter((f) => f.type !== 'notice').map((f) => f.screen_id));
+  return screens.filter((s) => s.kind === 'questions' && withQuestions.has(s.id));
+}
+
 export function isVisible(field: OnbField, fields: OnbField[], answers: Answers): boolean {
   return !visibility(fields, answers).hidden.has(field.id);
 }

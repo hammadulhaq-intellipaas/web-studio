@@ -47,11 +47,14 @@ describe('prefillFromLead', () => {
     expect(prefillFromLead(lead({ config: { bundle: '', answers: { pages: 'nonsense' } } })).booked_page_band).toBeUndefined();
   });
 
-  it('takes the assets folder only when it is actually a link', () => {
-    expect(prefillFromLead(lead({ drive_link: 'https://drive.google.com/drive/folders/x' })).assets_folder?.v).toBe(
+  it('takes the assets folder only when it is actually a link, and only into Form A', () => {
+    const formA = { bundle: 'gold', answers: { hasSite: 'none' } };
+    expect(prefillFromLead(lead({ config: formA, drive_link: 'https://drive.google.com/drive/folders/x' })).assets_folder?.v).toBe(
       'https://drive.google.com/drive/folders/x',
     );
-    expect(prefillFromLead(lead({ drive_link: 'ask Lena for it' })).assets_folder).toBeUndefined();
+    expect(prefillFromLead(lead({ config: formA, drive_link: 'ask Lena for it' })).assets_folder).toBeUndefined();
+    // Form B has no files screen: the photos come from the current website.
+    expect(prefillFromLead(lead({ drive_link: 'https://drive.google.com/drive/folders/x' })).assets_folder).toBeUndefined();
   });
 
   it('copies the intake answers that are the same question', () => {
@@ -84,12 +87,12 @@ describe('prefillFromLead', () => {
   });
 
   it('leaves out of Form B what only Form A asks; the old website answers those', () => {
-    const intake = { rechtsform: 'e.K.', oeffnung: 'Mo bis Fr', usps: 'Schnell', leistungen: 'Massage', einsatz: 'Physio', socialp: 'instagram.com/x' };
+    const intake = { rechtsform: 'e.K.', ustid: 'DE1', oeffnung: 'Mo bis Fr', usps: 'Schnell', leistungen: 'Massage', einsatz: 'Physio', socialp: 'instagram.com/x' };
     const out = prefillFromLead(lead({ stage2: { fields: intake } }));
     expect(out.project_type?.v).toBe('redesign');
-    expect(out.legal_form?.v).toBe('e.K.');
     expect(out.social_profiles?.v).toBe('instagram.com/x');
-    for (const key of ['opening_hours', 'usps', 'catalogue', 'business_one_liner']) expect(out[key], key).toBeUndefined();
+    // The Impressum details are taken from the current Impressum (19 Nov 2026).
+    for (const key of ['opening_hours', 'usps', 'catalogue', 'business_one_liner', 'legal_form', 'vat_id']) expect(out[key], key).toBeUndefined();
   });
 
   it('never guesses the legal name from a trading name', () => {
