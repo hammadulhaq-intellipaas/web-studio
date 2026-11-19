@@ -17,7 +17,7 @@ import {
 } from './app-design-shared';
 import { loadDeveloperClient } from './clients';
 import { contentTypeFor, DESIGN_BUCKET, nextLabel, siteKey } from './drafts';
-import { loadVersions, type DesignVersion } from './designs';
+import { ensureDraftSlug, ensureReviewToken, loadVersions, type DesignVersion } from './designs';
 import type { Proposal } from './messages';
 import { callText } from './model-call';
 import { downloadAsset, loadSiteRead, siteReadsReady } from './old-site-read';
@@ -105,6 +105,12 @@ export async function startAppDesign(leadId: string, proposal: Proposal, modelId
   if (!prompt) return { ok: false, error: `Proposal ${proposal === 'A' ? 1 : 2} has no design prompt yet.` };
   const project = await db().from('developer_projects').select('approved_version_id, chosen_proposal').eq('lead_id', leadId).maybeSingle();
   if (project.data?.approved_version_id) return { ok: false, error: 'The design is approved and locked. Reopen it first.' };
+  // Like an upload (startUpload in designs.ts): the client's draft address and review link exist
+  // before the first design, or a client whose first design is made here has no link to open it.
+  const client = await loadDeveloperClient(leadId);
+  const name = client?.lead.firma || [client?.lead.vorname, client?.lead.nachname].filter(Boolean).join(' ') || 'client';
+  await ensureDraftSlug(leadId, name);
+  await ensureReviewToken(leadId);
   const existing = await loadVersions(leadId);
   const { version, label } = nextLabel(proposal, existing);
   const id = randomUUID();
