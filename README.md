@@ -45,8 +45,7 @@ npm run dev
 | `RESEND_TO_EMAIL` | Comma-separated team recipients for new-inquiry **and** confirmed-booking notifications. Falls back to the `team_email` app setting |
 | `CALENDLY_URL` | Booking embed URL (overridden by the `calendly_event_url` app setting) |
 | `CALENDLY_WEBHOOK_SIGNING_KEY` | HMAC verification of `/api/webhooks/calendly` |
-| `OPENAI_API_KEY` / `OPENAI_PLAN_MODEL` | Suggested-plan generator (default `gpt-6-luna`); the key is also used by the onboarding form's AI layer (its model id is the `onb_model` setting) |
-| `OPENROUTER_API_KEY` | Optional. When set, every model call goes to OpenRouter instead of OpenAI — no code change, but the model ids need their prefix (`openai/gpt-6-luna`) |
+| `OPENROUTER_API_KEY` | Every model call (GPT and Claude) goes through OpenRouter with this key. Plain ids in the settings (`gpt-6-luna`, `claude-opus-5.5`) are sent as `openai/…` / `anthropic/…`. `OPENAI_API_KEY` is not used |
 | `ONBOARDING_BASIC_USER` / `ONBOARDING_BASIC_PASS` | HTTP Basic auth in front of `/onboardingform/**` and `/api/onboarding/**`. **Fails closed**: unset = locked for everyone. `ONBOARDING_BASIC_AUTH=off` opens the form publicly |
 | `TEAM_MODE` | `off` disables team mode on the public configurator (the proxy then no longer refreshes an admin's session on public paths). Default: on |
 
@@ -179,7 +178,7 @@ composed by code from every unanswered, "don't know" or skipped item.
 |---|---|
 | `ONBOARDING_BASIC_USER` / `ONBOARDING_BASIC_PASS` | Basic auth in front of the form + API; fails closed when unset; `ONBOARDING_BASIC_AUTH=off` opens it |
 | `ONBOARDING_AI_FIXTURE=1` | Server-side switch that replaces the model with canned outputs (used by the e2e suite) |
-| `OPENAI_API_KEY` | The model; the id is the `onb_model` setting |
+| `OPENROUTER_API_KEY` | The model, through OpenRouter; the id is the `onb_model` setting |
 | `NEXT_PUBLIC_SITE_URL` | Base of the links in emails and the admin (set to `https://web-studio.intellipaas.io` in production) |
 
 ## Recommendation rules (CMS)

@@ -173,7 +173,7 @@ The lead page's "Suggested build plan" generator was removed on 24 Oct 2026; pro
 ## Suite L — Client onboarding form (`/onboardingform`)
 
 Server must run with `ONBOARDING_AI_FIXTURE=1` for L4–L7 to be deterministic; without it the real
-model answers (needs `OPENAI_API_KEY`). The route is behind Basic auth (`ONBOARDING_BASIC_USER/PASS`).
+model answers (needs `OPENROUTER_API_KEY`). The route is behind Basic auth (`ONBOARDING_BASIC_USER/PASS`).
 
 | # | Action | Expected |
 |---|--------|----------|

@@ -2,8 +2,8 @@ import { expect, test } from '@playwright/test';
 import { testEmail } from './fixtures';
 import { createFilledForm } from './helpers/onboarding';
 
-// Real model run (OpenAI). Excluded by `npm run test:e2e:fast`; needs a server WITHOUT
-// ONBOARDING_AI_FIXTURE and with OPENAI_API_KEY. Skips itself when it meets fixture output.
+// Real model run (through OpenRouter). Excluded by `npm run test:e2e:fast`; needs a server WITHOUT
+// ONBOARDING_AI_FIXTURE and with OPENROUTER_API_KEY. Skips itself when it meets fixture output.
 
 const EMAIL = testEmail('onb-ai');
 

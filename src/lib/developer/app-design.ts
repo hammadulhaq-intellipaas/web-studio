@@ -99,7 +99,7 @@ export async function appDesignsReady(): Promise<boolean> {
 export async function startAppDesign(leadId: string, proposal: Proposal, modelId: string, by: string | null): Promise<{ ok: true; step: BuildStep } | { ok: false; error: string }> {
   if (!(await appDesignsReady())) return { ok: false, error: 'Run migration 20261118000034 first.' };
   if (!fixtureMode() && !modelReachable(modelId)) {
-    return { ok: false, error: modelId.startsWith('anthropic/') ? 'Claude models need OPENROUTER_API_KEY in the environment.' : `No API key reaches ${modelId}.` };
+    return { ok: false, error: `${modelId} needs OPENROUTER_API_KEY in the environment.` };
   }
   const prompt = (await loadPrompts(leadId, 'design')).find((p) => p.proposal === proposal);
   if (!prompt) return { ok: false, error: `Proposal ${proposal === 'A' ? 1 : 2} has no design prompt yet.` };

@@ -153,15 +153,15 @@ describe('generateBrief', () => {
 
   it('falls back to the plain rendering when the model is not configured', async () => {
     delete process.env.ONBOARDING_AI_FIXTURE;
-    const key = process.env.OPENAI_API_KEY;
-    delete process.env.OPENAI_API_KEY;
+    const key = process.env.OPENROUTER_API_KEY;
+    delete process.env.OPENROUTER_API_KEY;
     try {
       const draft = await generateBrief({ definition: def, secrets, record: makeRecord(), files: [] });
       expect(draft.source).toBe('fallback');
       expect(draft.sections.who.content_markdown).toContain('**');
       expect(inserted).toHaveLength(0);
     } finally {
-      if (key) process.env.OPENAI_API_KEY = key;
+      if (key) process.env.OPENROUTER_API_KEY = key;
     }
   });
 });
