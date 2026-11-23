@@ -30,9 +30,6 @@ export interface ReferenceForPrompt {
   note?: string | null;
 }
 
-/** Answers the design prompt gets in structured form (reference_website, other_examples), not as text. */
-const EXAMPLE_KEYS = new Set(['references', 'reference_sites', 'reference_likes', 'favourite_examples', 'example_sources']);
-
 /** One of the client's design examples, by its Design tab choice value, with what they like about it. */
 export function exampleFacts(context: PromptContext, value: string) {
   const site = context.referenceSites.find((r) => r.slug === value);
@@ -88,47 +85,6 @@ export function otherExamples(
       };
     })
     .filter((o): o is OtherExample => o !== null);
-}
-
-export function designPromptInput(
-  context: PromptContext,
-  proposal: Proposal,
-  reference: ReferenceForPrompt | null,
-  internalNotes: string,
-  leads: Record<Proposal, string | null> = { A: null, B: null },
-  currentSite: string | null = null,
-): string {
-  const facts = reference ? exampleFacts(context, reference.slug) : null;
-  const others = otherExamples(context, proposal, reference, leads);
-  return JSON.stringify(
-    {
-      proposal: proposalNumber(proposal),
-      client: context.client,
-      quote: context.quote,
-      answers: context.sections.map((s) => ({
-        section: s.title,
-        items: s.answers.filter((a) => !EXAMPLE_KEYS.has(a.key)).map((a) => ({ question: a.question, answer: a.answer })),
-      })),
-      reference_website: reference
-        ? {
-            name: reference.name,
-            url: reference.url,
-            ...(reference.source ? { source: reference.source } : {}),
-            ...(reference.note ? { note: reference.note } : {}),
-            client_likes: facts?.liked ?? [],
-            client_notes: facts?.notes || null,
-            client_dislikes: facts?.dislikes || null,
-            spec: reference.spec,
-          }
-        : null,
-      other_examples: others,
-      current_site: currentSite,
-      uploaded_files: context.files,
-      internal_notes: internalNotes.trim() || null,
-    },
-    null,
-    2,
-  );
 }
 
 /** Every answer of the form, grouped by section, as the build and handover prompts read them. */
@@ -204,28 +160,30 @@ export function clientPageList(context: PromptContext): string[] {
 }
 
 /**
- * The two page lists a design prompt opens and closes with ("Pages in this design" and "Pages
- * not designed yet"), so the build knows which pages the design covers. A designed line reads
- * "- Page: reason"; only the name before the first ": " is kept.
+ * The pages a design prompt covers and the ones it leaves for later, so the build knows which pages
+ * the design has. Since 23 Nov 2026 a prompt has one "### Page" per designed page under "## Pages"
+ * and a "## Not designed yet" list; older prompts open with a "## Pages in this design" list
+ * ("- Page: reason", only the name before the first ": " is kept) and close with "## Pages not
+ * designed yet". Both are read.
  */
 export function pageListsFromDesign(md: string | null): { designed: string[]; notDesigned: string[] } {
-  const section = (title: RegExp): string[] => {
-    if (!md) return [];
-    const lines = md.replace(/\r\n/g, '\n').split('\n');
+  const lines = md ? md.replace(/\r\n/g, '\n').split('\n') : [];
+  const body = (title: RegExp): string[] | null => {
     const start = lines.findIndex((l) => title.test(l));
-    if (start < 0) return [];
-    const out: string[] = [];
-    for (const line of lines.slice(start + 1)) {
-      if (/^#{1,2}\s/.test(line)) break;
-      const m = line.match(/^\s*(?:[-*]|\d+[.)])\s+(.+)$/);
-      if (m) out.push(m[1].trim());
-    }
-    return out;
+    if (start < 0) return null;
+    const end = lines.findIndex((l, i) => i > start && /^#{1,2}\s/.test(l));
+    return lines.slice(start + 1, end < 0 ? undefined : end);
   };
-  return {
-    designed: section(/^##\s+Pages in this design/i).map((l) => l.split(': ')[0].replace(/\*\*/g, '').trim()),
-    notDesigned: section(/^##\s+Pages not designed yet/i).map((l) => l.replace(/\*\*/g, '').trim()),
-  };
+  const items = (part: string[] | null) =>
+    (part ?? [])
+      .map((l) => l.match(/^\s*(?:[-*]|\d+[.)])\s+(.+)$/)?.[1].trim())
+      .filter((l): l is string => !!l)
+      .map((l) => l.replace(/\*\*/g, '').trim());
+  const listed = body(/^##\s+Pages in this design/i);
+  const designed = listed
+    ? items(listed).map((l) => l.split(': ')[0].trim())
+    : (body(/^##\s+Pages\s*$/i) ?? []).map((l) => l.match(/^###\s+(.+)$/)?.[1].replace(/\*\*/g, '').trim()).filter((l): l is string => !!l);
+  return { designed, notDesigned: items(body(/^##\s+(Pages )?not designed yet/i)) };
 }
 
 /** Splits the client-facing "What changed" list off an improvement prompt. */

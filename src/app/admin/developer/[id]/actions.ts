@@ -10,7 +10,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { loadDeveloperClient } from '@/lib/developer/clients';
 import { setCommentStatus } from '@/lib/developer/comments';
 import { approveVersion, finishUpload, reopenDesign as reopen, setDraftsOffline, startUpload, type UploadTicket } from '@/lib/developer/designs';
-import { generateBuild, generateDesignProposals, generateHandover, generateReferenceSpec, generateRevision } from '@/lib/developer/generate';
+import { generateBuild, generateDesignProposals, generateHandover, generateReferenceSpec, generateRevision, MODEL_ID } from '@/lib/developer/generate';
 import type { Proposal } from '@/lib/developer/messages';
 import { isClientSource } from '@/lib/developer/reference-sources';
 import { saveProject } from '@/lib/developer/store';
@@ -104,13 +104,14 @@ export async function makeReferenceSpec(leadId: string, value: string, force: bo
   return result.ok ? { ok: true, summary: result.summary, cached: result.cached } : { ok: false, error: result.error };
 }
 
-/** Generates Proposal A and B for Claude Design, each from the reference website chosen for it. */
-export async function generateDesign(leadId: string, referenceA: string | null, referenceB: string | null): Promise<Result> {
+/** Generates Proposal A and B for Claude Design, each from the reference website chosen for it, with the model typed in. */
+export async function generateDesign(leadId: string, referenceA: string | null, referenceB: string | null, model?: string): Promise<Result> {
   const by = await requireAdmin();
   for (const slug of [referenceA, referenceB]) {
     if (slug !== null && !SLUG.test(slug)) return { ok: false, error: 'Unknown reference website.' };
   }
-  const result = await generateDesignProposals(leadId, { A: referenceA, B: referenceB }, by);
+  if (model && !MODEL_ID.test(model.trim())) return { ok: false, error: `"${model}" is not a model id.` };
+  const result = await generateDesignProposals(leadId, { A: referenceA, B: referenceB }, by, model);
   revalidatePath(`/admin/developer/${leadId}`);
   return result.ok ? { ok: true } : { ok: false, error: result.error };
 }

@@ -10,7 +10,7 @@ import { loadComments } from '@/lib/developer/comments';
 import { ensureReviewToken, loadVersions, type DesignVersion } from '@/lib/developer/designs';
 import { toReviewComment, type ReviewComment } from '@/lib/developer/review';
 import { slugify } from '@/lib/developer/drafts';
-import { clientSpecKeys } from '@/lib/developer/generate';
+import { clientSpecKeys, designSourcesOfTruth } from '@/lib/developer/generate';
 import { defaultReferences, pageListsFromDesign } from '@/lib/developer/messages';
 import { autoPending } from '@/lib/developer/auto-status';
 import { clientChoices, isClientSource } from '@/lib/developer/reference-sources';
@@ -20,7 +20,7 @@ import { designsSchemaReady, developerSchemaReady, loadProject, loadPrompts, typ
 import type { Lead } from '@/lib/types';
 import { getOnboardingDefinition } from '@/lib/onboarding/definition';
 import { BuildPanel } from '@/components/admin/developer/BuildPanel';
-import { DesignPromptsPanel, type DesignPromptRow, type ReferenceChoice, type ReferenceSpecView } from '@/components/admin/developer/DesignPromptsPanel';
+import { DesignPromptsPanel, type DesignPromptRow, type ReferenceChoice, type ReferenceSpecView, type TruthView } from '@/components/admin/developer/DesignPromptsPanel';
 import { DesignVersionsPanel, type ReviewInfo } from '@/components/admin/developer/DesignVersionsPanel';
 import { HandoverPanel } from '@/components/admin/developer/HandoverPanel';
 import { AppDesignForm } from '@/components/admin/developer/AppDesignForm';
@@ -51,6 +51,10 @@ interface DesignData {
   autoPending: boolean;
   /** The spec last written for each of the client's own references, by choice value. */
   specs: Record<string, ReferenceSpecView>;
+  /** The model the prompts are written with unless another one is typed in (dev_prompt_model). */
+  promptModel: string;
+  /** What each proposal's prompt is written from. */
+  truths: TruthView[];
 }
 
 const TAB_LABELS: Record<DeveloperTab, string> = { design: 'Design', build: 'Build', handover: 'Handover' };
@@ -409,6 +413,13 @@ export default async function DeveloperClientPage({
       const row = rows.get(key);
       if (row) specs[value] = { content: row.content, summary: row.summary, model: row.model, created_at: row.created_at };
     }
+    const defaults = defaultReferences(context.examples, (value) => !isClientSource(value) || (specsReady && own.some((c) => c.value === value)));
+    // The source of truth each proposal is written from: for the reference of its newest prompt, or the default one.
+    const latestRef = (p: 'A' | 'B') => {
+      const latest = prompts.find((x) => x.proposal === p);
+      return latest ? latest.reference_slug : defaults[p];
+    };
+    const truths = formReady ? await designSourcesOfTruth(lead.id, { A: latestRef('A'), B: latestRef('B') }) : [];
     design = {
       formReady,
       schemaReady,
@@ -424,10 +435,12 @@ export default async function DeveloperClientPage({
         })),
       ],
       // The client's own sources only when they can be read (a link, or pictures the model can see).
-      defaults: defaultReferences(context.examples, (value) => !isClientSource(value) || (specsReady && own.some((c) => c.value === value))),
+      defaults,
       autoPending: autoPending(onboarding.confirmed?.at ?? null, prompts.length),
       specsReady,
       specs,
+      promptModel: definition.settings.promptModel,
+      truths: truths.map((t) => ({ proposal: t.proposal, reference: t.reference, files: t.files, text: t.text })),
       prompts: prompts.map((p) => ({
         id: p.id,
         proposal: p.proposal,

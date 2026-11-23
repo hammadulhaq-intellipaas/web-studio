@@ -21,6 +21,23 @@ export interface ReferenceSpecView {
   created_at: string;
 }
 
+/** The source of truth one proposal's prompt is written from: its Markdown files and the whole text. */
+export interface TruthView {
+  proposal: 'A' | 'B';
+  reference: string | null;
+  files: { name: string; content: string }[];
+  text: string;
+}
+
+/** Models worth comparing for the prompt (OpenRouter ids, checked 23 Nov 2026). Any other id can be typed in. */
+const PROMPT_MODELS = [
+  { id: 'anthropic/claude-opus-5.5', label: 'Claude Opus 5.5' },
+  { id: 'gpt-6-sol', label: 'GPT-6 Sol' },
+  { id: 'anthropic/claude-sonnet-5.5', label: 'Claude Sonnet 5.5' },
+  { id: 'deepseek/deepseek-v4-pro', label: 'DeepSeek V4 Pro' },
+  { id: 'z-ai/glm-5.3', label: 'GLM 5.3' },
+];
+
 export interface DesignPromptRow {
   id: string;
   proposal: 'A' | 'B' | null;
@@ -48,6 +65,9 @@ interface Props {
   specs: Record<string, ReferenceSpecView>;
   /** The client confirmed a moment ago and the automatic prompts are still being written. */
   autoPending: boolean;
+  /** The model the prompts are written with unless another one is typed in. */
+  promptModel: string;
+  truths: TruthView[];
 }
 
 const NONE = '';
@@ -95,6 +115,28 @@ function NotesEditor({ leadId, initial, disabled }: { leadId: string; initial: s
   );
 }
 
+/** What a proposal's prompt is written from, file by file, to read, copy or download. */
+function TruthBlock({ truth, label }: { truth: TruthView; label: string }) {
+  const words = (truth.text.match(/S+/g) ?? []).length;
+  return (
+    <details className="mb-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2" data-testid={`dev-truth-${truth.proposal}`}>
+      <summary className="cursor-pointer text-sm">
+        <span className="font-semibold">Source of truth</span>
+        <span className="text-xs text-slate-500">
+          {' '}
+          · what this prompt is written from · {truth.files.map((f) => f.name).join(', ')} · {words.toLocaleString('en')} words
+        </span>
+      </summary>
+      <p className="mt-2 text-xs text-slate-500">
+        As it is now, for {label}. Copy the whole text to check a prompt by hand, for example in Claude next to screenshots of the design.
+      </p>
+      <div className="mt-2">
+        <PromptView content={truth.text} copyLabel="Copy source of truth" downloadName={`source-of-truth-proposal-${truth.proposal === 'A' ? 1 : 2}.md`} />
+      </div>
+    </details>
+  );
+}
+
 /** The spec a proposal was built from, when it follows one of the client's own references. */
 function SpecBlock({ spec, label, onRead, busy, disabled, testId }: { spec: ReferenceSpecView | undefined; label: string; onRead: () => void; busy: boolean; disabled: boolean; testId: string }) {
   const again = (
@@ -133,8 +175,9 @@ function SpecBlock({ spec, label, onRead, busy, disabled, testId }: { spec: Refe
   );
 }
 
-export function DesignPromptsPanel({ leadId, formReady, schemaReady, locked, notes, choices, defaults, prompts, specsReady, specs, autoPending }: Props) {
+export function DesignPromptsPanel({ leadId, formReady, schemaReady, locked, notes, choices, defaults, prompts, specsReady, specs, autoPending, promptModel, truths }: Props) {
   const [refs, setRefs] = useState({ A: defaults.A ?? NONE, B: defaults.B ?? NONE });
+  const [model, setModel] = useState(promptModel);
   const [error, setError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [step, setStep] = useState<string | null>(null);
@@ -161,7 +204,7 @@ export function DesignPromptsPanel({ leadId, formReady, schemaReady, locked, not
         if (!r.ok) notes.push(`${label}: ${r.error ?? 'the spec could not be made'}. The proposal follows the client's description instead.`);
       }
       setStep('Writing both proposals…');
-      const r = await generateDesign(leadId, refs.A || null, refs.B || null);
+      const r = await generateDesign(leadId, refs.A || null, refs.B || null, model.trim() || undefined);
       if (!r.ok) setError(r.error ?? 'Generating failed');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Generating failed');
@@ -237,6 +280,26 @@ export function DesignPromptsPanel({ leadId, formReady, schemaReady, locked, not
         ))}
       </div>
 
+      <label className="mb-4 block max-w-md">
+        <span className="mb-1 block text-xs font-semibold text-slate-500">Model that writes the prompts (any OpenRouter id)</span>
+        <input
+          type="text"
+          list="dev-prompt-models"
+          data-testid="dev-prompt-model"
+          value={model}
+          onChange={(e) => setModel(e.target.value)}
+          spellCheck={false}
+          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-sm focus:border-blue-500 focus:outline-none"
+        />
+        <datalist id="dev-prompt-models">
+          {PROMPT_MODELS.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.label}
+            </option>
+          ))}
+        </datalist>
+      </label>
+
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"
@@ -272,6 +335,17 @@ export function DesignPromptsPanel({ leadId, formReady, schemaReady, locked, not
         </ul>
       )}
 
+      {prompts.length === 0 && truths.length > 0 && (
+        <div className="mt-5">
+          {truths.map((t) => (
+            <div key={t.proposal}>
+              <div className="mb-1 text-xs font-semibold text-slate-500">Proposal {t.proposal === 'A' ? 1 : 2}</div>
+              <TruthBlock truth={t} label={nameOf(t.reference)} />
+            </div>
+          ))}
+        </div>
+      )}
+
       {(['A', 'B'] as const).map((p) => {
         const versions = prompts.filter((x) => x.proposal === p);
         if (!versions.length) return null;
@@ -296,7 +370,8 @@ export function DesignPromptsPanel({ leadId, formReady, schemaReady, locked, not
                 testId={`dev-spec-${p}`}
               />
             )}
-            <PromptView content={latest.content} testId={`dev-prompt-${p}`} />
+            {truths.find((t) => t.proposal === p) && <TruthBlock truth={truths.find((t) => t.proposal === p)!} label={nameOf(truths.find((t) => t.proposal === p)!.reference)} />}
+            <PromptView content={latest.content} testId={`dev-prompt-${p}`} downloadName={`design-prompt-proposal-${p === 'A' ? 1 : 2}.md`} />
             {older.length > 0 && (
               <details className="mt-3">
                 <summary className="cursor-pointer text-xs font-semibold text-slate-500">Earlier versions ({older.length})</summary>

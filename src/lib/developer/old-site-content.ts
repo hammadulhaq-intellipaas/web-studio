@@ -5,7 +5,7 @@ import { downloadAsset, loadSiteRead, saveSiteRead, type SiteRead, type StoredAs
 import { hasEvidence } from './old-site';
 
 /**
- * Steps 3 and 4 of reading a Form B client's website: a model (Luna by default) sorts the pages'
+ * Steps 3 and 4 of reading a Form B client's website: the extraction model (dev_extract_model, Sol by default) sorts the pages'
  * content into facts, copied word for word, and code checks each fact against the page it came
  * from; a fact without evidence becomes an open point ([[OFFEN: …]]) instead of content. Then the
  * photos are described, so the design can place them. The spec that comes out of it is assembled

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { PromptContext } from '@/lib/developer/context';
-import { defaultReferences, designPromptInput } from '@/lib/developer/messages';
+import { defaultReferences, otherExamples } from '@/lib/developer/messages';
+import { referenceMd, sourceOfTruth } from '@/lib/developer/source-of-truth';
 import { DEV_REFERENCE_SPEC_PROMPT } from '@/lib/developer/prompt-defaults';
 import {
   CLIENT_SHOTS,
@@ -160,19 +161,22 @@ describe('defaults and the design prompt input', () => {
       existingUrl: null,
       brandKeep: null,
     } as PromptContext;
-    const input = JSON.parse(
-      designPromptInput(context, 'A', { slug: 'client-link-1', name: "The client's link: bloom-mothers.de", url: 'https://www.bloom-mothers.de/', source: 'client_link', note: 'Spec written automatically.', spec: '# Bloom: reference spec' }, ''),
-    );
-    expect(input.reference_website).toEqual({
+    const md = referenceMd(context, {
+      slug: 'client-link-1',
       name: "The client's link: bloom-mothers.de",
       url: 'https://www.bloom-mothers.de/',
       source: 'client_link',
       note: 'Spec written automatically.',
-      client_likes: ['Colours'],
-      client_notes: 'Ruhige Farben',
-      client_dislikes: null,
-      spec: '# Bloom: reference spec',
+      spec: '# Bloom: reference spec\n\n## 1. Overview\nCalm.',
     });
+    expect(md).toContain("The website this proposal follows: The client's link: bloom-mothers.de, https://www.bloom-mothers.de/.");
+    expect(md).toContain('- They like: Colours');
+    expect(md).toContain('- In their words: "Ruhige Farben"');
+    expect(md).not.toContain('They do not like');
+    expect(md).toContain('Spec written automatically.');
+    // The spec's own title goes; its sections sit one level under "## Its spec".
+    expect(md).not.toContain('# Bloom: reference spec');
+    expect(md).toContain('### 1. Overview\nCalm.');
   });
 
   it('hands the other examples over with their likes, and the liked spec sections of a gallery site', () => {
@@ -205,13 +209,19 @@ describe('defaults and the design prompt input', () => {
       existingUrl: null,
       brandKeep: null,
     } as PromptContext;
-    const input = JSON.parse(
-      designPromptInput(context, 'A', { slug: 'rivian', name: 'Rivian', url: 'https://rivian.com/', spec: '# Rivian' }, '', { A: 'rivian', B: 'client-link-2' }),
-    );
-    expect(input.reference_website.client_likes).toEqual(['Layout']);
-    // The example answers travel in structured form only, not twice.
-    expect(input.answers[0].items.map((i: { question: string }) => i.question)).toEqual(['How should your site feel?']);
-    expect(input.other_examples).toEqual([
+    const reference = { slug: 'rivian', name: 'Rivian', url: 'https://rivian.com/', spec: '# Rivian' };
+    const leads = { A: 'rivian', B: 'client-link-2' };
+    const truth = sourceOfTruth({ context, proposal: 'A', reference, leads, site: null, internalNotes: '' });
+    expect(truth.files.map((f) => f.name)).toEqual(['onboarding.md', 'quote.md', 'reference-website.md', 'other-examples.md']);
+    expect(truth.files[2].content).toContain('- They like: Layout');
+    // The example answers travel in their own files only, not twice.
+    expect(truth.files[0].content).toContain('- How should your site feel? Warm');
+    expect(truth.files[0].content).not.toContain('What do you like about the examples you chose?');
+    const others = truth.files[3].content;
+    expect(others).toContain("## The client's link: praxis-x.de/start (praxis-x.de/start): leads the other proposal");
+    expect(others).toContain('- They do not like: "zu viel Text"');
+    expect(others).toContain('### 8. Colour\nOlive #4B5320.');
+    expect(otherExamples(context, 'A', reference, leads)).toEqual([
       {
         name: "The client's link: praxis-x.de/start",
         url: 'praxis-x.de/start',

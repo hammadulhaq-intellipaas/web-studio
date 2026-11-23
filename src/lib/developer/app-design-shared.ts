@@ -60,7 +60,7 @@ Write these files, each in a block that starts with \`\`\`file:<name> and ends w
 2. header.html: the header every page uses, with the logo and the menu linking to the page files below. Below 1024 px the menu collapses behind a menu button that opens a full-width panel.
 3. footer.html: the footer every page uses.
 4. site.js: only the menu button's open and close, a few lines, nothing else.
-5. pages.json: the pages of "Pages in this design", in that order, as a JSON list of {"name": "<page name as in the brief>", "file": "<file name>.html"}; the homepage first, as index.html; other file names in lowercase letters, numbers and hyphens.
+5. pages.json: the pages the brief designs, in its order (one "###" per page under "Pages"; older briefs list them under "Pages in this design"), as a JSON list of {"name": "<page name as in the brief>", "file": "<file name>.html"}; the homepage first, as index.html; other file names in lowercase letters, numbers and hyphens.
 
 Rules: follow the brief exactly (brand, layout direction, reference parts, rules). Images: only the files the brief names (assets/current-site/…), or a neutral placeholder block with a short label saying what photo goes there. No external images, no icon fonts, no frameworks, no gradients. No em dashes or en dashes in any text. Answer with the five files only.`;
 

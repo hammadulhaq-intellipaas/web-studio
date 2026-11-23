@@ -18,7 +18,6 @@ import { promptsReady } from './filters';
 import {
   buildPromptInput,
   codeWordsOutsideDeliverable,
-  designPromptInput,
   handoverPromptInput,
   pageListsFromDesign,
   proposalNumber,
@@ -49,7 +48,8 @@ import {
   specCheck,
 } from './reference-sources';
 import { latestSpec, referenceSpecsReady, saveSpec, SPEC_MAX_AGE_DAYS } from './reference-specs';
-import { assembleDesignPrompt, creativeCheck, type CurrentSite } from './design-blocks';
+import { sourceOfTruth, type SiteForTruth, type TruthFile } from './source-of-truth';
+import { designPromptCheck, stripDashesOutsideQuotes } from './design-prompt-check';
 import { loadSiteRead, siteReadsReady } from './old-site-read';
 import { readSite, SiteReadError } from './site-reader';
 import { cmsBooked } from './setup';
@@ -78,17 +78,27 @@ const DEFAULTS: Record<DevPromptId, string> = {
 /** Canned output for e2e runs (ONBOARDING_AI_FIXTURE=1): no key, no cost, deterministic. */
 function fixtureText(job: DevPromptId, company: string, detail: string): string {
   const title: Record<DevPromptId, string> = {
-    dev_design: `## Pages in this design\n- Startseite: the homepage\n- Kontakt: the main action\n\n## Layout direction\nFixture layout (${detail}).\n\n## Pages and sections\n### Startseite\n1. Fixture section.\n\n## Motion\nNone.`,
+    dev_design: `# Website design: ${company}\n\n## The client\nFixture client (${detail}).\n\n## Brand (fixed)\nFixture brand.\n\n## Direction\nFixture direction.\n\n## Pages\n### Startseite\nThe homepage.\n\n## Photos\nNone.\n\n## Rules\n- Fixture rule.\n\n## Your freedom\nThe layout.`,
     dev_revision: `# Design improvement: ${company}, ${detail}`,
     dev_build: `# Build: ${company}`,
     dev_handover: `# ${company} Website Handoff`,
     dev_reference_spec: `# ${detail}: reference spec\n\n${SPEC_SECTIONS.map((t, i) => `## ${i + 1}. ${t}\nFixture text.`).join('\n\n')}`,
   };
   const tail: Partial<Record<DevPromptId, string>> = {
-    dev_design: '\n\n## Pages not designed yet\n- Impressum',
+    dev_design: '\n\n## Not designed yet\n- Impressum',
     dev_revision: '\n\n## For the client\n- Fixture change.',
   };
   return job === 'dev_design' ? `${title[job]}${tail[job]}` : `${title[job]}\n\n## Goal\nFixture text.${tail[job] ?? ''}`;
+}
+
+/**
+ * The design instruction writes the whole prompt from the source of truth since 23 Nov 2026. A
+ * stored row without it is an older instruction (the creative part only, or the one before), whose
+ * answer would not fit; the built-in text is used until migration 20261123000037 replaces it.
+ */
+function currentInstruction(job: DevPromptId, stored: string | undefined): string | undefined {
+  if (job === 'dev_design' && stored && !/source of truth/i.test(stored)) return undefined;
+  return stored;
 }
 
 /** Asks for one rewrite when a design or improvement prompt slips into code words. */
@@ -120,7 +130,7 @@ async function logCall(formId: string, job: DevPromptId, system: string, prompt:
 /** The editable instruction for a job (onb_prompts), or the built-in text when the row is missing. */
 async function instructionFor(job: DevPromptId): Promise<string> {
   const secrets = await getOnboardingSecrets();
-  return secrets.prompts.find((p) => p.id === job)?.content?.trim() || DEFAULTS[job];
+  return currentInstruction(job, secrets.prompts.find((p) => p.id === job)?.content?.trim()) || DEFAULTS[job];
 }
 
 /**
@@ -142,6 +152,8 @@ async function runModel(opts: {
    * request on Vercel ends after 300 s, and a call cut off there leaves no trace at all.
    */
   timeoutMs?: number;
+  /** Dashes go only from the model's own words; the client's quoted text keeps them (design prompts). */
+  keepQuotedDashes?: boolean;
 }): Promise<string> {
   const started = Date.now();
   const left = () => (opts.timeoutMs ? Math.max(1, opts.timeoutMs - (Date.now() - started)) : undefined);
@@ -188,7 +200,7 @@ async function runModel(opts: {
       throw new Error(message);
     }
   }
-  content = stripDashes(content.trim());
+  content = opts.keepQuotedDashes ? stripDashesOutsideQuotes(content.trim()) : stripDashes(content.trim());
   await logCall(opts.formId, opts.job, opts.system, logged, opts.modelId, true, { text: content }, Date.now() - started);
   return content;
 }
@@ -289,7 +301,9 @@ export type SpecResult = { ok: true; cached: boolean; summary: string } | { ok: 
 export async function generateReferenceSpec(leadId: string, value: string, force: boolean, by: string | null): Promise<SpecResult> {
   const ready = await prepare(leadId, false);
   if ('error' in ready) return { ok: false, error: ready.error as string };
-  const { onboarding, context, definition, project, modelId, company } = ready;
+  const { onboarding, context, definition, project, company } = ready;
+  // Reading a website is the extraction model's job, not the onboarding assistant's.
+  const modelId = fixtureMode() ? 'fixture' : definition.settings.extractModel;
   if (project.approved_version_id) return { ok: false, error: 'The design is approved and locked. Reopen it first.' };
   if (!(await referenceSpecsReady())) return { ok: false, error: 'Run migration 20261103000028 first.' };
   const source = clientSource(value, context, leadId);
@@ -356,69 +370,119 @@ export async function generateReferenceSpec(leadId: string, value: string, force
   }
 }
 
+/** A proposal's reference by its choice value: a library website with its spec, or one of the client's own. */
+async function resolveReference(
+  slug: string | null,
+  context: PromptContext,
+  leadId: string,
+  definition: Awaited<ReturnType<typeof getOnboardingDefinition>>,
+): Promise<ReferenceForPrompt | null> {
+  if (!slug) return null;
+  if (isClientSource(slug)) {
+    // The client's own reference: its spec was written by generateReferenceSpec.
+    const source = clientSource(slug, context, leadId);
+    if (!source) return null;
+    const row = source.key && (await referenceSpecsReady()) ? await latestSpec(source.key) : null;
+    const note = !row
+      ? 'No spec could be made for this reference. Follow what the client says about it.'
+      : source.kind === 'link'
+        ? 'Spec written automatically from a quick read of the website: exact measurements, fewer pages than a library spec.'
+        : "Spec written from the client's pictures only.";
+    return {
+      slug,
+      name: source.label,
+      url: source.kind === 'link' ? (source.url ?? source.typed) : null,
+      source: source.kind === 'link' ? 'client_link' : 'client_screenshots',
+      note,
+      spec: row?.content ?? null,
+    };
+  }
+  const option = definition.fields.find((f) => f.id === REFERENCE_FIELD)?.options.find((o) => o.value === slug);
+  return { slug, name: option?.label_en ?? slug, url: option?.url ?? null, spec: await loadReferenceSpec(slug) };
+}
+
+/** A Form B client's current website as the source of truth uses it, once it has been read. */
+async function siteForTruth(leadId: string): Promise<SiteForTruth | null> {
+  if (!(await siteReadsReady())) return null;
+  const read = await loadSiteRead(leadId);
+  if (!read || read.status !== 'ready') return null;
+  const url = normalizeSiteUrl(read.url);
+  const design = url ? await latestSpec(sourceKey({ kind: 'link', url })) : null;
+  return { read, designSpec: design?.content ?? null };
+}
+
+export interface ProposalTruth {
+  proposal: Proposal;
+  reference: string | null;
+  files: TruthFile[];
+  text: string;
+}
+
 /**
- * Generates the Claude Design prompts for Proposal A and B and stores them as a new version.
- * Phase 1 works from the confirmed onboarding form only.
+ * The source of truth of both proposals, as the next generation would read it: for the Design
+ * tab, so the team can see (and copy) exactly what the prompt is written from.
+ */
+export async function designSourcesOfTruth(leadId: string, references: Record<Proposal, string | null>): Promise<ProposalTruth[]> {
+  const client = await loadDeveloperClient(leadId);
+  if (!client?.onboarding) return [];
+  const [context, definition, project] = await Promise.all([buildPromptContext(client.lead, client.onboarding.id), getOnboardingDefinition(), loadProject(leadId)]);
+  if (!context) return [];
+  const site = context.funnel === 'B' ? await siteForTruth(leadId) : null;
+  return Promise.all(
+    PROPOSALS.map(async (proposal) => {
+      const reference = await resolveReference(references[proposal], context, leadId, definition);
+      const truth = sourceOfTruth({ context, proposal, reference, leads: references, site, internalNotes: project.internal_notes });
+      return { proposal, reference: references[proposal], files: truth.files, text: truth.text };
+    }),
+  );
+}
+
+/** Model ids the Design tab accepts: an OpenRouter id ("anthropic/claude-opus-5.5") or a plain GPT or Claude name. */
+export const MODEL_ID = /^[a-z0-9][a-z0-9._:/~-]{2,80}$/i;
+
+/**
+ * Writes the Claude Design prompts for Proposal A and B and stores them as a new version. For each
+ * proposal, code assembles the source of truth (the client's answers, the quote, their current
+ * website, the reference this proposal follows, their other examples); the prompt model writes the
+ * whole brief from it, with the design instruction as its system message; code then checks the
+ * brief against the source of truth and asks for one rewrite if something is off.
  */
 export async function generateDesignProposals(
   leadId: string,
   references: Record<Proposal, string | null>,
   by: string | null,
+  model?: string | null,
 ): Promise<GenerateResult> {
   const ready = await prepare(leadId, false);
   if ('error' in ready) return { ok: false, error: ready.error as string };
   const { onboarding, context, definition, project, company } = ready;
   if (project.approved_version_id) return { ok: false, error: 'The design is approved and locked. Reopen it first.' };
+  const chosen = model?.trim() || definition.settings.promptModel;
+  if (!MODEL_ID.test(chosen)) return { ok: false, error: `"${chosen}" is not a model id.` };
+  const modelId = fixtureMode() ? 'fixture' : chosen;
 
-  const options = definition.fields.find((f) => f.id === REFERENCE_FIELD)?.options ?? [];
-  const specsReady = await referenceSpecsReady();
-  const resolve = async (slug: string | null): Promise<ReferenceForPrompt | null> => {
-    if (!slug) return null;
-    if (isClientSource(slug)) {
-      // The client's own reference: its spec was written a moment ago (generateReferenceSpec).
-      const source = clientSource(slug, context, leadId);
-      if (!source) return null;
-      const row = source.key && specsReady ? await latestSpec(source.key) : null;
-      const note = !row
-        ? 'No spec could be made for this reference. Follow what the client says about it (client_likes, client_notes, client_dislikes).'
-        : source.kind === 'link'
-          ? 'Spec written automatically from a quick read of the website: exact measurements, fewer pages than a library spec.'
-          : "Spec written from the client's pictures only.";
-      return {
-        slug,
-        name: source.label,
-        url: source.kind === 'link' ? (source.url ?? source.typed) : null,
-        source: source.kind === 'link' ? 'client_link' : 'client_screenshots',
-        note,
-        spec: row?.content ?? null,
-      };
-    }
-    const option = options.find((o) => o.value === slug);
-    return { slug, name: option?.label_en ?? slug, url: option?.url ?? null, spec: await loadReferenceSpec(slug) };
-  };
   const system = await instructionFor('dev_design');
-  // The creative part comes from its own model; the rest of the prompt is assembled in code.
-  const creativeModel = fixtureMode() ? 'fixture' : definition.settings.creativeModel;
-  const site = context.funnel === 'B' ? await currentSite(leadId) : null;
+  const site = context.funnel === 'B' ? await siteForTruth(leadId) : null;
 
   try {
     const drafts = await Promise.all(
       PROPOSALS.map(async (proposal) => {
-        const reference = await resolve(references[proposal]);
-        const prompt = designPromptInput(context, proposal, reference, project.internal_notes, references, site?.spec ?? null);
-        const creative = await runModel({
+        const reference = await resolveReference(references[proposal], context, leadId, definition);
+        const truth = sourceOfTruth({ context, proposal, reference, leads: references, site, internalNotes: project.internal_notes });
+        const currentSite = truth.files.find((f) => f.name === 'current-website.md')?.content ?? null;
+        const content = await runModel({
           formId: onboarding.id,
           job: 'dev_design',
-          modelId: creativeModel,
+          modelId,
           system,
-          prompt,
+          prompt: truth.text,
           fixture: fixtureText('dev_design', company, reference ? `follows ${reference.name}` : "from the client's answers"),
-          check: (text) => creativeCheck(text) ?? designLanguageCheck(text),
+          check: (text) => designPromptCheck({ prompt: text, truth: truth.text, variant: truth.variant, currentSite }),
           timeoutMs: DESIGN_MODEL_MS,
+          keepQuotedDashes: true,
         }).catch((err) => {
           throw new Error(`Proposal ${proposalNumber(proposal)}: ${err instanceof Error ? err.message : String(err)}`);
         });
-        const content = assembleDesignPrompt({ context, proposal, reference, leads: references, creative, site });
         return { proposal, reference, content };
       }),
     );
@@ -430,7 +494,7 @@ export async function generateDesignProposals(
         proposal: d.proposal,
         reference_slug: d.reference?.slug ?? null,
         content: d.content,
-        model: creativeModel,
+        model: modelId,
         created_by: by,
       })),
     );
@@ -440,21 +504,6 @@ export async function generateDesignProposals(
   }
 }
 
-/** A Form B client's current website as the design prompt uses it, once it has been read. */
-async function currentSite(leadId: string): Promise<CurrentSite | null> {
-  if (!(await siteReadsReady())) return null;
-  const read = await loadSiteRead(leadId);
-  if (!read || read.status !== 'ready' || !read.spec) return null;
-  const url = normalizeSiteUrl(read.url);
-  const design = url ? await latestSpec(sourceKey({ kind: 'link', url })) : null;
-  return {
-    spec: read.spec,
-    designSpec: design?.content ?? null,
-    logos: read.assets.filter((a) => a.kind === 'image' && a.logo).map((a) => a.path),
-    fontFiles: read.assets.filter((a) => a.kind === 'font').map((a) => ({ family: a.label, file: a.path, weight: a.weight, style: a.style })),
-    googleFonts: read.found.googleFonts ?? [],
-  };
-}
 
 /** The newest design prompt of a proposal: what Claude Design made that proposal from. */
 async function latestDesignPrompt(leadId: string, proposal: Proposal) {

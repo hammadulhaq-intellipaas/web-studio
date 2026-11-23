@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { PromptContext } from '@/lib/developer/context';
-import { defaultReferences, designPromptInput } from '@/lib/developer/messages';
+import { defaultReferences } from '@/lib/developer/messages';
+import { PROMPT_SECTIONS } from '@/lib/developer/design-prompt-check';
+import { sourceOfTruth } from '@/lib/developer/source-of-truth';
 import { DEV_DESIGN_PROMPT } from '@/lib/developer/prompt-defaults';
 
 const context: PromptContext = {
@@ -44,40 +46,45 @@ describe('defaultReferences', () => {
   });
 });
 
-describe('designPromptInput', () => {
-  const reference = { slug: 'graza', name: 'Graza', url: 'https://www.graza.co/', spec: '# Graza: reference spec\n\n## 1. Overview' };
+describe('the source of truth', () => {
+  const reference = { slug: 'graza', name: 'Graza', url: 'https://www.graza.co/', spec: '# Graza: reference spec\n\n## 1. Overview\nPlayful.' };
 
-  it('carries the proposal, the spec and the notes, and pulls the client\'s own references out', () => {
-    const input = JSON.parse(designPromptInput(context, 'B', reference, '  Keep it calm.  '));
-    expect(input.proposal).toBe(2);
-    expect(input.reference_website).toEqual({
-      name: 'Graza',
-      url: 'https://www.graza.co/',
-      client_likes: [],
-      client_notes: null,
-      client_dislikes: null,
-      spec: reference.spec,
-    });
+  it('carries the proposal, the answers, the quote, the reference and the notes, and keeps the email out', () => {
+    const { text, files, variant } = sourceOfTruth({ context, proposal: 'B', reference, leads: { A: 'graza', B: 'graza' }, site: null, internalNotes: '  Keep it calm.  ' });
+    expect(variant).toBe('A');
+    expect(files.map((f) => f.name)).toEqual(['onboarding.md', 'quote.md', 'reference-website.md', 'other-examples.md']);
+    expect(text).toContain("Müller Sanitär GmbH's new website, Proposal 2");
+    expect(text).toContain('## Internal notes from the team');
+    expect(text).toContain('Keep it calm.');
+    expect(text).toContain('- In one sentence, what do you do? Wir bauen Bäder.');
+    expect(text).toContain('- Add-ons: Online booking system (Calendly/Cal.com)');
+    expect(text).toContain('- Contact person: Anna Meier');
+    expect(text).not.toContain('anna@example.com');
     // The client's own link is one of the other examples, with what they wrote about it.
-    expect(input.other_examples).toEqual([expect.objectContaining({ source: 'client_link', client_notes: expect.stringContaining('the calm layout') })]);
-    expect(input.answers[0].items.map((i: { question: string }) => i.question)).toEqual(['In one sentence, what do you do?']);
-    expect(input.answers[0].items[0].answer).toBe('Wir bauen Bäder.');
-    expect(input.internal_notes).toBe('Keep it calm.');
-    expect(input.quote.addons).toEqual(['Online booking system (Calendly/Cal.com)']);
+    expect(files[3].content).toContain('- In their words: "the calm layout"');
+    // The examples answer is not repeated in onboarding.md.
+    expect(files[0].content).not.toContain('Are there other websites you like?');
   });
 
-  it('sends null for no reference and no notes', () => {
-    const input = JSON.parse(designPromptInput(context, 'A', null, '   '));
-    expect(input.reference_website).toBeNull();
-    expect(input.internal_notes).toBeNull();
+  it('has no reference file and no notes section without them', () => {
+    const { text, files } = sourceOfTruth({ context, proposal: 'A', reference: null, leads: { A: null, B: null }, site: null, internalNotes: '   ' });
+    expect(files.map((f) => f.name)).not.toContain('reference-website.md');
+    expect(text).toContain('This proposal follows: no reference website');
+    expect(text).not.toContain('Internal notes');
   });
 });
 
 describe('the dev_design instruction', () => {
   it('has no em or en dashes and carries the rules that keep sites from looking AI-made', () => {
     expect(DEV_DESIGN_PROMPT).not.toMatch(/[–—]/);
-    for (const rule of [/never invent/i, /gradients/i, /three identical icon cards/i, /em dash/i, /legal pages/, /## Pages and sections/]) {
+    for (const rule of [/never invent/i, /gradients/i, /three identical icon cards/i, /em dash/i, /legal pages/, /source of truth/i, /Do not map it onto the new site/]) {
       expect(DEV_DESIGN_PROMPT).toMatch(rule);
     }
+  });
+
+  it('asks for exactly the sections the check looks for, in order', () => {
+    const headings = [...DEV_DESIGN_PROMPT.matchAll(/^## (.+)$/gm)].map((m) => m[1]);
+    expect(headings).toEqual(['The client', 'Brand (fixed)', 'Direction', 'Pages', 'Photos', 'Rules', 'Your freedom', 'Not designed yet']);
+    for (const s of PROMPT_SECTIONS) expect(headings.some((h) => h.startsWith(s))).toBe(true);
   });
 });

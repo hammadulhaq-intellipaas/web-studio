@@ -106,7 +106,8 @@ export async function runSitePhase(leadId: string, phase: (typeof SITE_PHASES)[n
   const client = await loadDeveloperClient(leadId);
   if (!client?.onboarding) throw new Error('no onboarding form');
   const formId = client.onboarding.id;
-  const model = (await getOnboardingDefinition()).settings.model;
+  // Reading a website is the extraction model's job (dev_extract_model), not the onboarding assistant's.
+  const model = (await getOnboardingDefinition()).settings.extractModel;
   if (phase === 'pages') return readSitePages(leadId);
   if (phase === 'assets') return downloadSiteAssets(leadId);
   if (phase === 'content') return sortSiteContent(leadId, formId, model);

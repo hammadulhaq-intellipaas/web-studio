@@ -31,7 +31,8 @@ export function parseOnboardingSettings(settingsMap: Record<string, unknown>): O
   return {
     model: str('onb_model', 'gpt-6-luna'),
     revisionModel: str('dev_revision_model', 'gpt-6-sol'),
-    creativeModel: str('dev_creative_model', 'gpt-6-sol'),
+    extractModel: str('dev_extract_model', 'gpt-6-sol'),
+    promptModel: str('dev_prompt_model', 'anthropic/claude-opus-5.5'),
     designModel: str('dev_design_model', 'anthropic/claude-opus-5.5'),
     fixModel: str('dev_fix_model', 'anthropic/claude-sonnet-5.5'),
     maxFollowups: num('onb_max_followups', 12),

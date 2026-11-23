@@ -110,12 +110,32 @@ export function pageLanguage(html: string): string | null {
 }
 
 /**
+ * Cloudflare hides email addresses on sites it serves: the page says "[email protected]" and a
+ * script puts the address back in the browser. The address is in the page, XOR-encoded with its
+ * first byte (data-cfemail="…" or a link to /cdn-cgi/l/email-protection#…). Null if it is not one.
+ */
+export function decodeCloudflareEmail(hex: string): string | null {
+  if (!/^(?:[0-9a-f]{2}){3,}$/i.test(hex)) return null;
+  const key = parseInt(hex.slice(0, 2), 16);
+  let out = '';
+  for (let i = 2; i < hex.length; i += 2) out += String.fromCharCode(parseInt(hex.slice(i, i + 2), 16) ^ key);
+  return /^[^\s@<>"]+@[^\s@<>"]+\.[a-z]{2,}$/i.test(out) ? out : null;
+}
+
+/** The page with every hidden email address written out again, as a visitor's browser shows it. */
+export function revealCloudflareEmails(html: string): string {
+  return html
+    .replace(/<(a|span)\b[^>]*\bdata-cfemail="([0-9a-f]+)"[^>]*>[\s\S]*?<\/\1>/gi, (m, _tag: string, hex: string) => decodeCloudflareEmail(hex) ?? m)
+    .replace(/<a\b[^>]*\bhref="[^"]*\/cdn-cgi\/l\/email-protection#([0-9a-f]+)"[^>]*>[\s\S]*?<\/a>/gi, (m, hex: string) => decodeCloudflareEmail(hex) ?? m);
+}
+
+/**
  * The words of a page as plain text: headings start with "# " (one # per level), list items with
  * "- ", every block on its own line. Scripts, styles, forms' hidden parts and pictures are left
  * out; a line repeated right after itself (a menu shown twice for phones) is kept once.
  */
 export function htmlToText(html: string): string {
-  let s = html
+  let s = revealCloudflareEmails(html)
     .replace(/<!--[\s\S]*?-->/g, ' ')
     .replace(/<(script|style|noscript|svg|template|iframe|head|select)\b[\s\S]*?<\/\1>/gi, ' ');
   s = s.replace(/<h([1-6])\b[^>]*>/gi, (_m, n: string) => `\n${'#'.repeat(Number(n))} `);

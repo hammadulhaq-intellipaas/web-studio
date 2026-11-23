@@ -8,7 +8,6 @@ import {
   buildPromptInput,
   clientPageList,
   codeWordsOutsideDeliverable,
-  designPromptInput,
   handoverPromptInput,
   pageListsFromDesign,
   revisionPromptInput,
@@ -264,10 +263,6 @@ describe('revision, build and handover inputs', () => {
     expect(carry.other_proposal_brief).toBe('# Proposal 2 brief');
   });
 
-  it('sends the design model the proposal as a number', () => {
-    expect(JSON.parse(designPromptInput(context, 'B', null, '')).proposal).toBe(2);
-  });
-
   it('gives the build prompt the project, the CMS flag and the developer instructions', () => {
     const input = JSON.parse(
       buildPromptInput(context, { project: 'mueller', cms: true, design, designBrief: null, pagesInDesign: ['Startseite'], pagesNotDesigned: ['Team'], devInstructions: ' Use Sanity. ', internalNotes: 'Calm.' }),
@@ -341,6 +336,27 @@ describe('page lists, the client summary and the code-word check', () => {
     expect(pageListsFromDesign(null)).toEqual({ designed: [], notDesigned: [] });
   });
 
+  it('reads the pages of a prompt written from the source of truth (one ### per designed page)', () => {
+    const md = [
+      '# Website design: Bloom, Proposal 1',
+      '## The client',
+      'Bloom sells online courses.',
+      '### Not a page',
+      '## Pages',
+      '### Startseite',
+      'Its job: the first impression.',
+      '- "Bloom ist eine körperbasierte Lernplattform"',
+      '### **Kurse**',
+      'Both courses side by side.',
+      '## Photos',
+      '- assets/current-site/hero.jpg',
+      '## Not designed yet',
+      '- FAQ',
+      '- Blog',
+    ].join('\n');
+    expect(pageListsFromDesign(md)).toEqual({ designed: ['Startseite', 'Kurse'], notDesigned: ['FAQ', 'Blog'] });
+  });
+
   it("splits the client's \"what changed\" list off an improvement prompt", () => {
     const md = '# Design improvement\n## Changes\n1. Lighter header\n## For the client\n- Der Kopfbereich ist jetzt heller.';
     expect(splitClientSummary(md)).toEqual({ prompt: '# Design improvement\n## Changes\n1. Lighter header', summary: '- Der Kopfbereich ist jetzt heller.' });
@@ -362,13 +378,13 @@ describe('the design, improvement, build and handover instructions', () => {
     for (const text of [DEV_DESIGN_PROMPT, DEV_REVISION_PROMPT, DEV_BUILD_PROMPT, DEV_HANDOVER_PROMPT]) expect(text).not.toMatch(/[–—]/);
   });
   it('ask Claude Design for a static design of 5 to 6 key pages, in design language', () => {
-    expect(DEV_DESIGN_PROMPT).toMatch(/homepage plus four or five other pages, six pages at most/);
-    expect(DEV_DESIGN_PROMPT).toMatch(/## Pages in this design/);
-    expect(DEV_DESIGN_PROMPT).toMatch(/## Pages not designed yet/);
-    expect(DEV_DESIGN_PROMPT).toMatch(/Never use code or technical words/);
+    expect(DEV_DESIGN_PROMPT).toMatch(/homepage plus four or five other pages, six at most/);
+    expect(DEV_DESIGN_PROMPT).toMatch(/^## Pages$/m);
+    expect(DEV_DESIGN_PROMPT).toMatch(/^## Not designed yet$/m);
+    expect(DEV_DESIGN_PROMPT).toMatch(/No technical words/);
     expect(DEV_DESIGN_PROMPT).toMatch(/shown as they will look, not built/);
-    expect(DEV_DESIGN_PROMPT).toMatch(/"Sie"/);
-    expect(DEV_DESIGN_PROMPT).toMatch(/Never design legal pages/);
+    expect(DEV_DESIGN_PROMPT).toMatch(/use the form their own existing texts use \(du or Sie\)/);
+    expect(DEV_DESIGN_PROMPT).toMatch(/Never legal pages/);
   });
   it('carry their key rules and output shapes', () => {
     expect(DEV_REVISION_PROMPT).toMatch(/Change only what the feedback asks for/);
@@ -401,7 +417,7 @@ describe('the design, improvement, build and handover instructions', () => {
     expect(DEV_HANDOVER_PROMPT).toMatch(/password protection taken off the website/);
   });
   it('write the design, improvement and build prompts in English, whatever the form language', () => {
-    expect(DEV_DESIGN_PROMPT).toMatch(/Write the whole prompt in English, whatever language the client filled in the form in/);
+    expect(DEV_DESIGN_PROMPT).toMatch(/Write the brief in English. Only the words that appear on the pages are in the site's language/);
     expect(DEV_DESIGN_PROMPT).not.toMatch(/Design the pages in the site's main language/);
     expect(DEV_REVISION_PROMPT).toMatch(/Write the prompt in English/);
     expect(DEV_BUILD_PROMPT).toMatch(/Write the prompt in English, whatever language the client filled in the form in/);
